@@ -1,10 +1,9 @@
 import { FolderPlus, ImagePlus } from 'lucide-react'
-import { type ChangeEvent, type ComponentProps, useEffect, useRef, useState } from 'react'
+import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/icon-button'
 import { Progress } from '@/components/ui/progress'
-import { Tooltip, TooltipPopup, TooltipTrigger } from '@/components/ui/tooltip'
 
 import { fromDrop, fromFiles } from './import-source'
 import { runImport, useImportProgress } from './import-store'
@@ -89,15 +88,6 @@ export function ImportProgress() {
   )
 }
 
-function ImportButton({ label, ...props }: ComponentProps<typeof Button> & { label: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger render={<Button size="icon" aria-label={label} {...props} />} />
-      <TooltipPopup>{label}</TooltipPopup>
-    </Tooltip>
-  )
-}
-
 export function ImportButtons() {
   const { t } = useTranslation('planner')
   const busy = useImportProgress() !== null
@@ -119,17 +109,17 @@ export function ImportButtons() {
     <div className="flex flex-wrap gap-2 px-4 pb-4">
       <input ref={files} type="file" accept="image/*" multiple hidden onChange={choose} />
       <input ref={folder} type="file" multiple hidden onChange={choose} />
-      <ImportButton label={t('addImages')} disabled={busy} onClick={() => files.current?.click()}>
+      <IconButton label={t('addImages')} disabled={busy} onClick={() => files.current?.click()}>
         <ImagePlus />
-      </ImportButton>
-      <ImportButton
+      </IconButton>
+      <IconButton
         label={t('addFolder')}
         variant="outline"
         disabled={busy}
         onClick={() => folder.current?.click()}
       >
         <FolderPlus />
-      </ImportButton>
+      </IconButton>
     </div>
   )
 }

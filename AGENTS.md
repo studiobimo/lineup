@@ -162,6 +162,8 @@ pnpm cf:deploy:production  # lineup.bimo.dev
 - **Every board change is undoable.** A new store action goes through the history, and its test
   asserts undo and redo.
 - **Storage changes ship with a migration** and a test that opens a board saved by the previous release.
+- **Icon-only buttons use `IconButton`,** which requires a label and shows it as a tooltip. ESLint
+  refuses `<Button size="icon…">` anywhere else, so every one behaves the same.
 - **Spelling is British** in prose and identifiers (`colour`), matching the rest of the org.
 - **Work starts from an issue.** Its title is the Conventional Commit the PR will use, and its
   milestone is the one the story belongs to. See Planning in `CONTRIBUTING.md`.

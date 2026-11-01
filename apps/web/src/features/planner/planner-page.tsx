@@ -3,6 +3,7 @@ import { m } from 'motion/react'
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { IconButton, SharedTooltip } from '@/components/icon-button'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -27,6 +28,7 @@ import type { Container } from './board'
 import { BoardCell } from './board-cell'
 import { BoardDrag } from './board-drag'
 import { type BoardHold, holdBoard } from './board-lock'
+import { cellTooltip } from './cell-tooltip'
 import { useEmptyAreaMark } from './drag-target'
 import { ImportButtons, ImportProgress, ImportTargets } from './import-controls'
 import { instagram } from './network-profile'
@@ -77,24 +79,22 @@ function History() {
   const canRedo = usePlanner((state) => state.future.length > 0)
   return (
     <div className="flex gap-1">
-      <Button
+      <IconButton
         variant="ghost"
-        size="icon"
-        aria-label={t('undo')}
+        label={t('undo')}
         disabled={!canUndo}
         onClick={() => plannerStore.getState().undo()}
       >
         <Undo2 />
-      </Button>
-      <Button
+      </IconButton>
+      <IconButton
         variant="ghost"
-        size="icon"
-        aria-label={t('redo')}
+        label={t('redo')}
         disabled={!canRedo}
         onClick={() => plannerStore.getState().redo()}
       >
         <Redo2 />
-      </Button>
+      </IconButton>
     </div>
   )
 }
@@ -209,6 +209,7 @@ export function PlannerPage() {
           <h1 className="sr-only">{t('title')}</h1>
           <ImportTargets />
           <SaveFailure />
+          <SharedTooltip handle={cellTooltip} />
           {desktop && <TrayPanel />}
           <GridPanel desktop={desktop} />
         </div>

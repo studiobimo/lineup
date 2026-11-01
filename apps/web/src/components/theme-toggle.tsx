@@ -2,7 +2,7 @@ import { Moon, Sun } from 'lucide-react'
 import { useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/icon-button'
 import { getTheme, setTheme, subscribeToTheme } from '@/lib/theme'
 
 export function ThemeToggle() {
@@ -10,13 +10,8 @@ export function ThemeToggle() {
   const theme = useSyncExternalStore(subscribeToTheme, getTheme)
   const next = theme === 'dark' ? 'light' : 'dark'
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      aria-label={t(`theme.${next}`)}
-      onClick={() => setTheme(next)}
-    >
+    <IconButton variant="ghost" label={t(`theme.${next}`)} onClick={() => setTheme(next)}>
       {theme === 'dark' ? <Sun /> : <Moon />}
-    </Button>
+    </IconButton>
   )
 }

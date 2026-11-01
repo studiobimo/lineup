@@ -1,7 +1,7 @@
 APP_DIR := apps/web
 
 # Everything the app ships, lazy chunks and CSS included, so a stray dependency cannot slip by. The
-# PRD's limit is a different number: 200 kB of JavaScript before any lazy route, 136 KiB today.
+# PRD's limit is a different number: 200 kB of JavaScript before any lazy route, 166 KiB today.
 # Motion is 48 KiB of this and loads after first paint. Raising it needs a reason.
 BUNDLE_TOTAL_KIB := 290
 
