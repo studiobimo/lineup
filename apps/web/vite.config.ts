@@ -12,5 +12,11 @@ const report = process.env.ANALYZE
 // The hosting profile's plugin, if there is one, comes in through app().
 export default defineConfig(
   // public/_headers allows no data: URIs, so a small font or image has to stay a file.
-  mergeConfig(await app({ site }), { build: { assetsInlineLimit: 0 }, plugins: report })
+  mergeConfig(await app({ site }), {
+    build: { assetsInlineLimit: 0 },
+    plugins: report,
+    // The default worker format inlines dynamic imports, which would load the metadata reader and
+    // the city list with every import, for people who have not turned either on.
+    worker: { format: 'es' }
+  })
 )

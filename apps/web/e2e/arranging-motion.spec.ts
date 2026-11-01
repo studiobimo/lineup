@@ -120,7 +120,8 @@ test('the ghost is centred on the pointer, and leans only while it moves', async
   )
   await page.mouse.move(900, 300, { steps: 6 })
   expect(await peak).toBeGreaterThan(1)
-  expect(await peak).toBeLessThanOrEqual(10)
+  // Ten degrees, as near as a transform matrix can be read back.
+  expect(await peak).toBeLessThan(10.01)
 
   await page.waitForTimeout(700)
   expect(Math.abs(await lean())).toBeLessThan(0.5)
