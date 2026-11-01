@@ -25,7 +25,7 @@ export function ShellActions() {
         <Settings />
       </IconButton>
       {open && (
-        <LazyOverlay onClose={close}>
+        <LazyOverlay name={t(open === 'help' ? 'title' : 'settings')} onClose={close}>
           {open === 'help' ? <HelpDialog onClose={close} /> : <SettingsDialog onClose={close} />}
         </LazyOverlay>
       )}

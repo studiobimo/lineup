@@ -156,10 +156,11 @@ function MobileTray() {
 }
 
 function OpenImage() {
+  const { t } = useTranslation('planner')
   const id = useLightboxId()
   if (!id) return null
   return (
-    <LazyOverlay onClose={closeLightbox}>
+    <LazyOverlay name={t('lightboxName')} onClose={closeLightbox}>
       <Lightbox id={id} />
     </LazyOverlay>
   )

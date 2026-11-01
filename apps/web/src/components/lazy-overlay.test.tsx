@@ -10,7 +10,7 @@ describe('LazyOverlay', () => {
   it('shows what it loads', async () => {
     const Loaded = lazy(async () => ({ default: () => <p>loaded</p> }))
     render(
-      <LazyOverlay onClose={vi.fn()}>
+      <LazyOverlay name="Settings" onClose={vi.fn()}>
         <Loaded />
       </LazyOverlay>
     )
@@ -25,11 +25,14 @@ describe('LazyOverlay', () => {
       throw new Error('chunk failed')
     })
     render(
-      <LazyOverlay onClose={onClose}>
+      <LazyOverlay name="Settings" onClose={onClose}>
         <Missing />
       </LazyOverlay>
     )
     await waitFor(() => expect(onClose).toHaveBeenCalled())
-    expect(toastManager.add).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
+    expect(toastManager.add).toHaveBeenCalledWith({
+      type: 'error',
+      title: 'Settings could not be opened. Reload the page and try again.'
+    })
   })
 })

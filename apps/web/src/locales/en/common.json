@@ -5,7 +5,7 @@
   },
   "errors": {
     "area": "This part of the page ran into a problem. The rest of it still works.",
-    "overlay": "That could not be opened. Reload the page and try again.",
+    "overlay": "{{name}} could not be opened. Reload the page and try again.",
     "routeTitle": "This page ran into a problem",
     "routeDescription": "Your board is safe on this device.",
     "retry": "Try again"

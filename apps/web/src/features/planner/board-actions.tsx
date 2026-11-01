@@ -70,7 +70,7 @@ export function PreviewOnPhone() {
         <Smartphone />
       </IconButton>
       {open && (
-        <LazyOverlay onClose={() => setOpen(false)}>
+        <LazyOverlay name={t('phonePreviewName')} onClose={() => setOpen(false)}>
           <PhonePreview onClose={() => setOpen(false)} />
         </LazyOverlay>
       )}

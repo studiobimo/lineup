@@ -50,6 +50,8 @@
   "clearDescriptionLocked": "They leave the board, and Undo brings them back. Locked images stay.",
   "cancel": "Cancel",
   "phonePreview": "Preview on a phone",
+  "phonePreviewName": "The phone preview",
+  "lightboxName": "The image",
   "phone": {
     "username": "your_username",
     "displayName": "Your name",
