@@ -18,6 +18,8 @@ export interface Point {
 
 export type Side = 'before' | 'after'
 
+export type Direction = 'left' | 'right' | 'up' | 'down'
+
 interface Beside {
   id: string
   side: Side
@@ -54,8 +56,31 @@ interface Aim {
 // The gap between two cells is 2 px, too thin to aim at.
 const INSERT_EDGE = 0.2
 
-const distance = (box: Box, { x, y }: Point) =>
-  Math.hypot(x - (box.left + box.right) / 2, y - (box.top + box.bottom) / 2)
+export const centreOf = ({ left, right, top, bottom }: Box): Point => ({
+  x: (left + right) / 2,
+  y: (top + bottom) / 2
+})
+
+function distance(box: Box, { x, y }: Point) {
+  const centre = centreOf(box)
+  return Math.hypot(x - centre.x, y - centre.y)
+}
+
+/** Straying off the line counts double, so Down stays in its column rather than the next one. */
+export function nearestInDirection(from: Box, direction: Direction, boxes: Box[]) {
+  const sideways = direction === 'left' || direction === 'right'
+  const sign = direction === 'left' || direction === 'up' ? -1 : 1
+  const start = centreOf(from)
+  let nearest: { box: Box; cost: number } | undefined
+  for (const box of boxes) {
+    const { x, y } = centreOf(box)
+    const ahead = (sideways ? x - start.x : y - start.y) * sign
+    const off = Math.abs(sideways ? y - start.y : x - start.x)
+    const cost = ahead + off * 2
+    if (ahead > 1 && (!nearest || cost < nearest.cost)) nearest = { box, cost }
+  }
+  return nearest?.box
+}
 
 /** The cells read left to right, so past the end of a row or below it counts as after. */
 function sideOf(box: Box, { x, y }: Point): Side {

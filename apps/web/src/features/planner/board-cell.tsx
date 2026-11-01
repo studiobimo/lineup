@@ -56,7 +56,13 @@ export function BoardCell({ id, container, position }: BoardCellProps) {
   const { t } = useTranslation('planner')
   const cell = useRef<HTMLDivElement>(null)
   const near = useNearViewport(cell)
-  const { ref: dragRef, listeners, isDragging, dropArea } = useCellDrag(id, container)
+  const {
+    ref: dragRef,
+    attributes,
+    listeners,
+    isDragging,
+    dropArea
+  } = useCellDrag(id, container, t('cellRole'))
   const mark = useDropMark(id)
   const airborne = useAirborne(id)
   const zIndex = useMotionValue(0)
@@ -71,7 +77,9 @@ export function BoardCell({ id, container, position }: BoardCellProps) {
   return (
     <m.div
       ref={ref}
+      {...attributes}
       {...listeners}
+      aria-label={t('cell', { position })}
       {...dropArea}
       data-mark={mark}
       layout={!airborne}
@@ -80,7 +88,7 @@ export function BoardCell({ id, container, position }: BoardCellProps) {
       onLayoutAnimationStart={() => zIndex.set(GLIDING_Z)}
       onLayoutAnimationComplete={() => zIndex.set(0)}
       className={cn(
-        'group relative cursor-grab touch-manipulation overflow-hidden bg-muted select-none [-webkit-touch-callout:none] active:cursor-grabbing',
+        'group relative cursor-grab touch-manipulation overflow-hidden bg-muted select-none [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary active:cursor-grabbing',
         isDragging && 'opacity-30',
         airborne && 'opacity-0'
       )}

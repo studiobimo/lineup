@@ -8,7 +8,7 @@ import {
 } from 'motion/react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 
-import type { Box, Point } from './drag-target'
+import { type Box, centreOf, type Point } from './drag-target'
 import { settle } from './motion'
 import { instagram } from './network-profile'
 
@@ -26,11 +26,6 @@ const FULL_LEAN_SPEED = 1600
 const LEAN_SPRING = { stiffness: 320, damping: 24, mass: 0.6 }
 
 const restingScale = () => Math.min(1, (window.innerWidth * MAX_VIEWPORT_SHARE) / GHOST_WIDTH)
-
-const centre = (box: Box): Point => ({
-  x: (box.left + box.right) / 2,
-  y: (box.top + box.bottom) / 2
-})
 
 /**
  * One element from pick-up to landing, so nothing is handed over at the moment of a drop. It sits at
@@ -73,7 +68,7 @@ export function useDragGhost() {
   const lift = useCallback(
     (cell: string, pointer: Point, from: Box) => {
       finishLanding()
-      const start = centre(from)
+      const start = centreOf(from)
       pointerX.jump(pointer.x)
       pointerY.jump(pointer.y)
       offsetX.jump(start.x - pointer.x)
@@ -98,6 +93,15 @@ export function useDragGhost() {
     [pointerX, pointerY]
   )
 
+  /** A key press jumps from cell to cell, so the ghost travels there instead. */
+  const glide = useCallback(
+    ({ x, y }: Point) => {
+      animate(pointerX, x, settle)
+      animate(pointerY, y, settle)
+    },
+    [pointerX, pointerY]
+  )
+
   const land = useCallback(
     (to: Box | undefined, done: () => void) => {
       const clear = () => {
@@ -109,7 +113,7 @@ export function useDragGhost() {
         clear()
         return
       }
-      const end = centre(to)
+      const end = centreOf(to)
       leaning.set(0)
       landed.current = clear
       void Promise.all([
@@ -127,8 +131,8 @@ export function useDragGhost() {
   )
 
   return useMemo(
-    () => ({ id, x, y, rotate, scale, opacity, lift, follow, land }),
-    [id, x, y, rotate, scale, opacity, lift, follow, land]
+    () => ({ id, x, y, rotate, scale, opacity, lift, follow, glide, land }),
+    [id, x, y, rotate, scale, opacity, lift, follow, glide, land]
   )
 }
 

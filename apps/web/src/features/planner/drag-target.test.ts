@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { type Box, dropTarget } from './drag-target'
+import { type Box, dropTarget, nearestInDirection } from './drag-target'
 
 const board = { tray: ['t1'], grid: ['a', 'b', 'c', 'd'] }
 
@@ -22,6 +22,28 @@ const aim = (overrides: Partial<Parameters<typeof dropTarget>[0]>) =>
     boxOf: (id) => boxes[id],
     ...overrides
   })
+
+describe('nearestInDirection', () => {
+  const all = Object.values(boxes)
+
+  it('finds the next cell each way', () => {
+    expect(nearestInDirection(boxes.a, 'right', all)).toBe(boxes.b)
+    expect(nearestInDirection(boxes.b, 'left', all)).toBe(boxes.a)
+    expect(nearestInDirection(boxes.a, 'down', all)).toBe(boxes.c)
+    expect(nearestInDirection(boxes.c, 'up', all)).toBe(boxes.a)
+  })
+
+  it('stays in the column rather than taking the nearer diagonal', () => {
+    const below = { left: 0, right: 100, top: 300, bottom: 400 }
+    const diagonal = { left: 100, right: 200, top: 120, bottom: 220 }
+    expect(nearestInDirection(boxes.a, 'down', [diagonal, below])).toBe(below)
+  })
+
+  it('finds nothing past the edge', () => {
+    expect(nearestInDirection(boxes.a, 'left', all)).toBeUndefined()
+    expect(nearestInDirection(boxes.a, 'up', all)).toBeUndefined()
+  })
+})
 
 describe('dropTarget', () => {
   it('swaps with the cell under the pointer', () => {

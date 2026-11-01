@@ -169,6 +169,14 @@ const order = (page: Page) =>
       })
   )
 
+/** The sensor starts listening for arrow keys on the tick after a cell is picked up. */
+async function pickUpWithKeyboard(page: Page, key: 'Space' | 'Enter') {
+  await page.getByRole('group', { name: 'Image 1' }).last().focus()
+  await page.keyboard.press(key)
+  await expect(page.locator('[data-ghost]')).toBeVisible()
+  await page.waitForTimeout(50)
+}
+
 async function boardOfFour(page: Page) {
   await page.goto('/')
   await addImages(page, [image('a.png'), image('b.png'), image('c.png'), image('d.png')])
@@ -241,12 +249,47 @@ test('either side of a gap draws one line, in the middle of it', async ({ page }
   expect(fromLeft.x + fromLeft.width / 2).toBe((left.x + left.width + right.x) / 2)
 })
 
+test('a cell can be picked up, moved and dropped with the keyboard', async ({ page }) => {
+  const { before, cells } = await boardOfFour(page)
+  const [a, b, c] = before.grid
+
+  await pickUpWithKeyboard(page, 'Space')
+  await expect(page.getByRole('status').filter({ hasText: 'Picked up image 1' })).toHaveCount(1)
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('ArrowRight')
+  await expect(page.locator('[data-mark="swap"]')).toHaveCount(1)
+  await page.keyboard.press('Space')
+
+  await expect.poll(async () => (await order(page)).grid).toEqual([c, b, a])
+  await expect(cells).toHaveCount(3)
+})
+
+test('Escape puts a cell carried by keyboard back', async ({ page }) => {
+  const { before } = await boardOfFour(page)
+
+  await pickUpWithKeyboard(page, 'Enter')
+  await page.keyboard.press('ArrowRight')
+  await expect(page.locator('[data-mark="swap"]')).toHaveCount(1)
+  await page.keyboard.press('Escape')
+
+  await expect(page.locator('[data-ghost]')).toHaveCount(0)
+  expect(await order(page)).toEqual(before)
+})
+
+test('Space on a button inside a cell does not pick the cell up', async ({ page }) => {
+  await boardOfFour(page)
+  const remove = page.getByRole('button', { name: 'Delete' }).first()
+  await remove.focus()
+  await page.keyboard.press('Space')
+  await expect(page.locator('[data-ghost]')).toHaveCount(0)
+})
+
 test('holding Shift inserts on the side the pointer is on', async ({ page }) => {
   const { before, cells } = await boardOfFour(page)
   const [a, b, c] = before.grid
 
   await drag(page, cells.nth(0), cells.nth(2), { shift: true, x: 0.9 })
-  await expect(page.getByText('to insert instead of swap')).toBeVisible()
+  await expect(page.getByText(/^Hold .+ to insert instead of swap$/)).toBeVisible()
   await expect(page.locator('[data-mark="after"]')).toHaveCount(1)
   await expect(page.locator('[data-mark="swap"]')).toHaveCount(0)
   await page.mouse.up()
@@ -272,7 +315,7 @@ test('Escape puts a dragged cell back, and a click still works', async ({ page }
   await drag(page, cells.nth(0), cells.nth(2))
   await page.keyboard.press('Escape')
   await page.mouse.up()
-  await expect(page.getByText('to insert instead of swap')).toBeHidden()
+  await expect(page.getByText(/^Hold .+ to insert instead of swap$/)).toBeHidden()
   expect(await order(page)).toEqual(before)
 
   await cells.nth(0).hover()

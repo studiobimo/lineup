@@ -1,20 +1,24 @@
 import {
   type CollisionDetection,
   DndContext,
+  KeyboardSensor,
   MouseSensor,
   TouchSensor,
   useSensor,
   useSensors
 } from '@dnd-kit/core'
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
-import { Trans } from 'react-i18next'
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 
 import { Kbd } from '@/components/ui/kbd'
 
 import { CellFlights } from './cell-flights'
+import { dragAnnouncements } from './drag-announcements'
 import { DragGhost } from './drag-ghost'
 import {
+  type Box,
   cellBox,
+  centreOf,
   dragStore,
   dropTarget,
   type DropTarget,
@@ -24,6 +28,7 @@ import {
   type Point
 } from './drag-target'
 import { InsertLine } from './insert-line'
+import { stepBetweenCells } from './keyboard-drag'
 import { plannerStore } from './planner'
 import { useDragGhost } from './use-drag-ghost'
 
@@ -32,16 +37,13 @@ const PICK_UP_DISTANCE = 6
 // On touch a finger that moves at once is scrolling the page, so a drag starts from a held press.
 const LONG_PRESS = { delay: 250, tolerance: 8 }
 
-// #14 gives these their words. Until then the library would read out each cell's id.
-const quiet = () => undefined
-const announcements = {
-  onDragStart: quiet,
-  onDragOver: quiet,
-  onDragEnd: quiet,
-  onDragCancel: quiet
-}
-
 const pointOf = ({ clientX, clientY }: MouseEvent | Touch): Point => ({ x: clientX, y: clientY })
+
+/** Where a drag starts. Keys have no position, so it starts from the cell. */
+function startOf(event: MouseEvent | TouchEvent | KeyboardEvent, cell: Box) {
+  if ('touches' in event) return pointOf(event.touches[0])
+  return 'clientX' in event ? pointOf(event) : centreOf(cell)
+}
 
 function place(id: string, target: DropTarget) {
   const { swap, move } = plannerStore.getState()
@@ -57,12 +59,21 @@ interface Latest {
 }
 
 export function BoardDrag({ children }: { children: ReactNode }) {
+  const { t } = useTranslation('planner')
+  const accessibility = useMemo(
+    () => ({
+      announcements: dragAnnouncements(t),
+      screenReaderInstructions: { draggable: t('dragInstructions') }
+    }),
+    [t]
+  )
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: PICK_UP_DISTANCE } }),
-    useSensor(TouchSensor, { activationConstraint: LONG_PRESS })
+    useSensor(TouchSensor, { activationConstraint: LONG_PRESS }),
+    useSensor(KeyboardSensor, { coordinateGetter: stepBetweenCells })
   )
   const ghost = useDragGhost()
-  const { lift, follow, land } = ghost
+  const { lift, follow, glide, land } = ghost
   const [active, setActive] = useState<string | null>(null)
   const latest = useRef<Latest>({ active: null, hover: null, point: null, inserting: false })
   const boxes = useRef<(id: string) => DOMRect | undefined>(() => undefined)
@@ -77,13 +88,15 @@ export function BoardDrag({ children }: { children: ReactNode }) {
 
   // Asks the page what is under the pointer. Rectangles measured beforehand would go stale beside
   // a sticky tray as the page scrolls, and would count cells that the tray has clipped.
-  const collide = useCallback<CollisionDetection>(({ droppableContainers, pointerCoordinates }) => {
+  const collide = useCallback<CollisionDetection>((args) => {
+    const { collisionRect, droppableContainers, pointerCoordinates } = args
     const find = (id: unknown) => droppableContainers.find((droppable) => droppable.id === id)
     boxes.current = (id) => find(id)?.node.current?.getBoundingClientRect()
-    latest.current.point = pointerCoordinates
-    if (!pointerCoordinates) return []
+    // A keyboard drag has no pointer, so it aims from the middle of the cell it is carrying.
+    const point = pointerCoordinates ?? centreOf(collisionRect)
+    latest.current.point = point
 
-    const { x, y } = pointerCoordinates
+    const { x, y } = point
     const under = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-drop-id]')
     const droppable = find(under?.dataset.dropId)
     const data = droppable?.data.current as Omit<Hover, 'id'> | undefined
@@ -133,17 +146,21 @@ export function BoardDrag({ children }: { children: ReactNode }) {
     <DndContext
       sensors={sensors}
       collisionDetection={collide}
-      accessibility={{ announcements }}
+      accessibility={accessibility}
       onDragStart={({ active: { id }, activatorEvent }) => {
         const cell = String(id)
-        const event = activatorEvent as MouseEvent | TouchEvent
+        const event = activatorEvent as MouseEvent | TouchEvent | KeyboardEvent
         const from = cellBox(cell)
         latest.current.active = cell
         latest.current.inserting = event.shiftKey
         setActive(cell)
-        if (from) lift(cell, pointOf('touches' in event ? event.touches[0] : event), from)
+        if (from) lift(cell, startOf(event, from), from)
       }}
-      onDragMove={aim}
+      onDragMove={({ active: { rect }, activatorEvent }) => {
+        const { translated } = rect.current
+        if (activatorEvent instanceof KeyboardEvent && translated) glide(centreOf(translated))
+        aim()
+      }}
       onDragEnd={() => release(true)}
       onDragCancel={() => release(false)}
     >
