@@ -1,3 +1,7 @@
+packages:
+  - apps/web
+  - packages/*
+
 # >>> template:vite
 # The supply chain. pnpm resolves no version younger than a week, the same cooldown
 # Dependabot keeps, and runs no dependency's install script unless allowBuilds names it:
