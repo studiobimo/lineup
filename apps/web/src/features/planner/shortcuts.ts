@@ -1,5 +1,16 @@
 export type Shortcut = 'undo' | 'redo'
 
+/** What the Help dialog lists. Each name is a key in the help catalog. */
+export const shortcutList = [
+  { action: 'undo', keys: ['mod', 'z'] },
+  { action: 'redo', keys: ['mod', 'shift', 'z'] },
+  { action: 'delete', keys: ['delete'] },
+  { action: 'pickUp', keys: ['space'] },
+  { action: 'move', keys: ['arrows'] },
+  { action: 'insert', keys: ['shift'] },
+  { action: 'cancel', keys: ['escape'] }
+]
+
 export const isDelete = ({ key }: Pick<KeyboardEvent, 'key'>) =>
   key === 'Delete' || key === 'Backspace'
 

@@ -93,6 +93,10 @@ test('a finger that moves at once scrolls the page and picks up nothing', async 
 })
 
 test('a long press drags inside the tray drawer', async ({ page }) => {
+  const violations: string[] = []
+  page.on('console', (message) => {
+    if (message.type() === 'error') violations.push(message.text())
+  })
   const toTray = page.getByRole('button', { name: 'Move to the tray' })
   for (let cell = 0; cell < 3; cell += 1) {
     await toTray.first().evaluate((button) => (button as HTMLElement).click())
@@ -115,6 +119,7 @@ test('a long press drags inside the tray drawer', async ({ page }) => {
 
   const [a, b, c] = before
   await expect.poll(() => gridOrder(cells)).toEqual([c, b, a])
+  expect(violations).toEqual([])
 })
 
 test('dragging to the bottom edge scrolls the page', async ({ page }) => {

@@ -105,10 +105,23 @@ test('the ghost is centred on the pointer, and leans only while it moves', async
   expect(Math.abs(box.y + box.height / 2 - 300)).toBeLessThan(2)
   expect(Math.abs(await lean())).toBeLessThan(0.5)
 
-  await page.mouse.move(900, 300, { steps: 4 })
-  const moving = await lean()
-  expect(Math.abs(moving)).toBeGreaterThan(1)
-  expect(Math.abs(moving)).toBeLessThanOrEqual(10)
+  const peak = ghost.evaluate(
+    (element) =>
+      new Promise<number>((resolve) => {
+        let most = 0
+        const end = performance.now() + 400
+        const tick = (now: number) => {
+          const { a, b } = new DOMMatrix(getComputedStyle(element).transform)
+          most = Math.max(most, Math.abs((Math.atan2(b, a) * 180) / Math.PI))
+          if (now < end) requestAnimationFrame(tick)
+          else resolve(most)
+        }
+        requestAnimationFrame(tick)
+      })
+  )
+  await page.mouse.move(900, 300, { steps: 6 })
+  expect(await peak).toBeGreaterThan(1)
+  expect(await peak).toBeLessThanOrEqual(10)
 
   await page.waitForTimeout(700)
   expect(Math.abs(await lean())).toBeLessThan(0.5)

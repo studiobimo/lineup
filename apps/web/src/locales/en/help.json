@@ -1,0 +1,41 @@
+{
+  "title": "Help",
+  "description": "Everything here stays on this device.",
+  "shortcuts": "Keyboard shortcuts",
+  "showIntro": "Show the introduction",
+  "introTitle": "Plan your feed before it goes live",
+  "introSteps": {
+    "add": "Add images to the tray, or drop them anywhere on the window.",
+    "arrange": "Drag them into the grid. Drop on a cell to swap, or near its edge to insert.",
+    "preview": "Use the phone button to see how the feed will look."
+  },
+  "introDismiss": "Dismiss the introduction",
+  "actions": {
+    "undo": "Undo",
+    "redo": "Redo",
+    "delete": "Delete the focused image",
+    "pickUp": "Pick up or drop the focused image",
+    "move": "Move the image you picked up",
+    "insert": "Insert instead of swap, while dragging",
+    "cancel": "Cancel a move"
+  },
+  "keys": {
+    "mod": "Ctrl",
+    "mod_apple": "⌘",
+    "shift": "Shift",
+    "z": "Z",
+    "delete": "Delete",
+    "space": "Space",
+    "arrows": "Arrow keys",
+    "escape": "Esc"
+  },
+  "settings": "Settings",
+  "theme": "Theme",
+  "themes": {
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "storage": "Storage on this device",
+  "storageUsed": "{{used}} of {{quota}} used",
+  "storageNote": "Your images are kept in this browser and never leave it until you schedule a post."
+}

@@ -345,6 +345,36 @@ test('the phone preview shows the planned grid, and changes nothing', async ({ p
   expect(errors).toEqual([])
 })
 
+test('the introduction shows once, and comes back from Help', async ({ page }) => {
+  const intro = page.getByRole('region', { name: 'Plan your feed before it goes live' })
+  await page.goto('/')
+  await expect(intro).toBeVisible()
+
+  await page.getByRole('button', { name: 'Dismiss the introduction' }).click()
+  await expect(intro).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByText('Move images here to plan your feed.')).toBeVisible()
+  await expect(intro).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Help' }).click()
+  await expect(page.getByText('Keyboard shortcuts')).toBeVisible()
+  await page.getByRole('button', { name: 'Show the introduction' }).click()
+  await expect(intro).toBeVisible()
+})
+
+test('settings show the theme and what is stored', async ({ page }) => {
+  const errors = watchErrors(page)
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await expect(page.getByText(/ used$/)).toBeVisible()
+
+  await page.getByRole('button', { name: 'Dark' }).click()
+  await expect(page.locator('html')).toHaveClass(/dark/)
+  await page.getByRole('button', { name: 'Light' }).click()
+  await expect(page.locator('html')).not.toHaveClass(/dark/)
+  expect(errors).toEqual([])
+})
+
 test('holding Shift inserts on the side the pointer is on', async ({ page }) => {
   const { before, cells } = await boardOfFour(page)
   const [a, b, c] = before.grid

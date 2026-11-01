@@ -102,6 +102,11 @@ export function createIndexedDbBoardStore(name = 'lineup', steps = migrations): 
 
     async requestPersistence() {
       return (await navigator.storage?.persist?.()) ?? false
+    },
+
+    async storageUsage() {
+      const { usage = 0, quota = 0 } = (await navigator.storage?.estimate?.()) ?? {}
+      return { used: usage, quota }
     }
   }
 }

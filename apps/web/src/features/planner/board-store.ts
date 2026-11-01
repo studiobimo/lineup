@@ -11,6 +11,11 @@ export interface ImageRecord {
   createdAt: string
 }
 
+export interface StorageUsage {
+  used: number
+  quota: number
+}
+
 export interface StoredImage extends ImageRecord {
   thumbnail: Blob
   publish: Blob
@@ -29,6 +34,8 @@ export interface BoardStore {
   getThumbnail(id: string): Promise<Blob | undefined>
   getPublishCopy(id: string): Promise<Blob | undefined>
   deleteImages(ids: string[]): Promise<void>
+  /** What this origin uses and may use, in bytes, as the browser estimates it. */
+  storageUsage(): Promise<StorageUsage>
   /** Asks the browser not to evict the board. Resolves to whether it agreed. */
   requestPersistence(): Promise<boolean>
 }

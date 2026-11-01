@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/empty'
 import { Group } from '@/components/ui/group'
 import { toastManager } from '@/components/ui/toast'
+import { Intro } from '@/features/help/intro'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 
@@ -177,6 +178,7 @@ function GridPanel({ desktop }: { desktop: boolean }) {
       className={cn('min-w-0 flex-1', marked && 'ring-3 ring-primary ring-inset')}
     >
       <div className="mx-auto max-w-3xl">
+        <Intro />
         <div className="flex items-center justify-between gap-2 p-4">
           <h2 className="text-xl">{t('grid')}</h2>
           <div className="flex flex-wrap items-center justify-end gap-2">
