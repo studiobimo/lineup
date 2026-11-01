@@ -9,6 +9,9 @@ window.scrollTo = () => {}
 window.matchMedia = () =>
   ({ matches: false, addEventListener() {}, removeEventListener() {} }) as unknown as MediaQueryList
 
+// Nor a canvas to draw on, so cells stay blank. A test that cares replaces this.
+HTMLCanvasElement.prototype.getContext = () => null
+
 // Nor what is on screen, so every element counts as seen.
 window.IntersectionObserver = class {
   callback: IntersectionObserverCallback

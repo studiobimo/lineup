@@ -55,7 +55,8 @@ test('imports, arranges, undoes and comes back after a reload', async ({ page })
   const images = page.getByRole('img')
   await expect(images).toHaveCount(3)
   await expect(page.getByText('1 image could not be read.')).toBeVisible()
-  await expect(images.first()).toHaveJSProperty('naturalWidth', 2)
+  // An empty canvas is 300 wide, and it counts as an image before anything is drawn.
+  await expect(images.first()).toHaveJSProperty('width', 2)
 
   await page.getByRole('button', { name: 'Move to the grid' }).first().click()
   const grid = page.locator('section')
@@ -69,7 +70,7 @@ test('imports, arranges, undoes and comes back after a reload', async ({ page })
   await expect.poll(() => savedGridSize(page)).toBe(1)
   await page.reload()
   await expect(images).toHaveCount(3)
-  await expect(grid.getByRole('img')).toHaveCount(1)
+  await expect(grid.getByRole('img')).toHaveJSProperty('width', 2)
 
   expect(errors).toEqual([])
 })

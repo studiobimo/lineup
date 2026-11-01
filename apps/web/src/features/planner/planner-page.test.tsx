@@ -1,6 +1,6 @@
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { plannerStore } from './planner'
 import { PlannerPage } from './planner-page'
@@ -15,10 +15,6 @@ const processed = {
 
 describe('PlannerPage', () => {
   beforeEach(async () => {
-    vi.stubGlobal(
-      'URL',
-      Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL() {} })
-    )
     plannerStore.setState({ board: { tray: [], grid: [] }, images: {}, past: [], future: [] })
     await plannerStore.getState().load()
   })
@@ -40,8 +36,7 @@ describe('PlannerPage', () => {
     })
     const [id] = plannerStore.getState().board.grid
 
-    const cell = await screen.findByRole('img', { name: 'Image 1' })
-    expect(cell).toHaveAttribute('src', 'blob:x')
+    await screen.findByRole('img', { name: 'Image 1' })
 
     await user.click(screen.getByRole('button', { name: 'Undo' }))
     expect(plannerStore.getState().board.grid).toEqual([])

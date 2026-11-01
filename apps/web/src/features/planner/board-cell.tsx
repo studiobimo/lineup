@@ -18,27 +18,25 @@ interface BoardCellProps {
   position: number
 }
 
+function Thumbnail({ id, label }: { id: string; label: string }) {
+  const canvas = useRef<HTMLCanvasElement>(null)
+  useThumbnail(canvas, id)
+  return <canvas ref={canvas} role="img" aria-label={label} className="size-full object-cover" />
+}
+
 export function BoardCell({ id, container, position }: BoardCellProps) {
   const { t } = useTranslation('planner')
-  const ref = useRef<HTMLDivElement>(null)
-  const url = useThumbnail(id, useNearViewport(ref))
+  const cell = useRef<HTMLDivElement>(null)
+  const near = useNearViewport(cell)
   const toTray = container === 'grid'
 
   return (
     <div
-      ref={ref}
+      ref={cell}
       className="group relative overflow-hidden bg-muted"
       style={{ aspectRatio: `${width} / ${height}` }}
     >
-      {url && (
-        <img
-          src={url}
-          alt={t('cell', { position })}
-          decoding="async"
-          draggable={false}
-          className="size-full object-cover"
-        />
-      )}
+      {near && <Thumbnail id={id} label={t('cell', { position })} />}
       <div className="absolute inset-x-0 top-0 flex justify-end gap-1 p-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
         <Button
           variant="outline"

@@ -153,8 +153,9 @@ pnpm cf:deploy:production  # lineup.bimo.dev
   assets, not Worker responses. A feature adds what it needs and no more, and assets are never
   inlined, because the policy allows no `data:` URIs. The Playwright smoke test fails on a violation.
 - **Images stay out of memory.** Cells show thumbnails, off-screen cells hold no decoded image,
-  and image bytes never enter application state. All persistence goes through `BoardStore`
-  (ADR-0002).
+  and image bytes never enter application state. A cell draws an `ImageBitmap` to a canvas and
+  frees it, because Chromium keeps what an `<img>` loaded from a `blob:` URL even after both are
+  gone. All persistence goes through `BoardStore` (ADR-0002).
 - **Network numbers live in one profile.** Columns, cell ratio and carousel limit are never
   repeated outside the network profile, and provider code outside the Zernio implementation uses
   neutral names, so a second network stays cheap.
