@@ -33,6 +33,13 @@
   "moveAllToTray": "Move all to the tray",
   "shuffleTray": "Shuffle the tray",
   "shuffleGrid": "Shuffle the grid",
+  "sortTray": "Sort the tray by colour",
+  "sortGrid": "Sort the grid by colour",
+  "sort": {
+    "rainbow": "Rainbow",
+    "lightToDark": "Light to dark",
+    "grouped": "Grouped by colour"
+  },
   "clear": "Clear",
   "clearTitle": "Clear which images?",
   "clearDescription": "They leave the board, and Undo brings them back.",

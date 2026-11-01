@@ -1,4 +1,4 @@
-import { ChevronsLeft, ChevronsRight, Eraser, Shuffle, Smartphone } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, Eraser, Palette, Shuffle, Smartphone } from 'lucide-react'
 import { lazy, type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Group } from '@/components/ui/group'
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
+import { sortStrategies } from '@/features/autosort/sort'
 
 import type { Container } from './board'
 import { plannerStore, usePlanner } from './planner'
@@ -25,11 +27,38 @@ const PhonePreview = lazy(() =>
 
 const moveAllLabels = { tray: 'moveAllToGrid', grid: 'moveAllToTray' } as const
 const shuffleLabels = { tray: 'shuffleTray', grid: 'shuffleGrid' } as const
+const sortLabels = { tray: 'sortTray', grid: 'sortGrid' } as const
 const actionsLabels = { tray: 'trayActions', grid: 'gridActions' } as const
 
 interface ContainerActionsProps {
   container: Container
   children?: ReactNode
+}
+
+function SortMenu({ container, disabled }: { container: Container; disabled: boolean }) {
+  const { t } = useTranslation('planner')
+  return (
+    <Menu>
+      <MenuTrigger
+        disabled={disabled}
+        render={
+          <IconButton variant="outline" label={t(sortLabels[container])}>
+            <Palette />
+          </IconButton>
+        }
+      />
+      <MenuPopup>
+        {sortStrategies.map((strategy) => (
+          <MenuItem
+            key={strategy}
+            onClick={() => plannerStore.getState().sortByColour(container, strategy)}
+          >
+            {t(`sort.${strategy}`)}
+          </MenuItem>
+        ))}
+      </MenuPopup>
+    </Menu>
+  )
 }
 
 export function ContainerActions({ container, children }: ContainerActionsProps) {
@@ -54,6 +83,7 @@ export function ContainerActions({ container, children }: ContainerActionsProps)
       >
         <Shuffle />
       </IconButton>
+      <SortMenu container={container} disabled={count < 2} />
       {children}
     </Group>
   )

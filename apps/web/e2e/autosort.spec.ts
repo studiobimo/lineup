@@ -1,8 +1,13 @@
 /// <reference lib="dom" />
 
+import { readdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
 import { expect, type Page, test } from '@playwright/test'
 
-import { addImages, image } from './fixtures'
+import { addImages, image, watchErrors } from './fixtures'
+
+const photos = new URL('../../../test-images/', import.meta.url)
 
 /** The image records, read from the browser as a reload would find them. */
 const storedColours = (page: Page) =>
@@ -42,6 +47,77 @@ const forgetColours = (page: Page) =>
         }
       })
   )
+
+const testImages = readdirSync(photos).map((name) => fileURLToPath(new URL(name, photos)))
+
+/** The grid's hues in order, from the first image in the grid to the last. */
+const gridHues = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<number[]>((resolve) => {
+        const opening = indexedDB.open('lineup')
+        opening.onsuccess = () => {
+          const transaction = opening.result.transaction(['board', 'images'])
+          const board = transaction.objectStore('board').get('current')
+          const images = transaction.objectStore('images').getAll()
+          transaction.oncomplete = () => {
+            opening.result.close()
+            const hue = new Map(images.result.map(({ id, colour }) => [id, colour.dominant.hue]))
+            resolve(board.result.grid.map((id: string) => hue.get(id)))
+          }
+        }
+      })
+  )
+
+async function shuffledGrid(page: Page) {
+  await page.goto('/')
+  await page
+    .locator('input[type=file]')
+    .first()
+    .setInputFiles([...testImages].reverse())
+  await expect(page.getByRole('img')).toHaveCount(testImages.length)
+  await page.getByRole('button', { name: 'Move all to the grid' }).click()
+  await expect(page.locator('section').getByRole('img')).toHaveCount(testImages.length)
+  await expect.poll(async () => (await gridHues(page)).length).toBe(testImages.length)
+}
+
+const ascending = (hues: number[]) => hues.every((hue, index) => !index || hue >= hues[index - 1])
+
+test('the sort menu sorts the grid, and one undo restores it', async ({ page }) => {
+  const errors = watchErrors(page)
+  await shuffledGrid(page)
+  const before = await gridHues(page)
+
+  await page.getByRole('button', { name: 'Sort the grid by colour' }).click()
+  await page.getByRole('menuitem', { name: 'Rainbow' }).click()
+
+  await expect.poll(async () => ascending((await gridHues(page)).slice(0, 8))).toBe(true)
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect.poll(() => gridHues(page)).toEqual(before)
+  expect(errors).toEqual([])
+})
+
+test('the sort menu works from the keyboard', async ({ page }) => {
+  await shuffledGrid(page)
+  const before = await gridHues(page)
+
+  await page.getByRole('button', { name: 'Sort the grid by colour' }).focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('menuitem', { name: 'Rainbow' })).toBeVisible()
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Enter')
+
+  await expect.poll(() => gridHues(page)).not.toEqual(before)
+  await expect(page.getByRole('menu')).toHaveCount(0)
+})
+
+test('there is nothing to sort with fewer than two images', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: 'Sort the tray by colour' })).toBeDisabled()
+  await addImages(page, [image('a.png')])
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await expect(page.getByRole('button', { name: 'Sort the tray by colour' })).toBeDisabled()
+})
 
 test('an image is given its colour on import, through the real worker', async ({ page }) => {
   await page.goto('/')
