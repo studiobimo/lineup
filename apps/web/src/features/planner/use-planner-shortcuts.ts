@@ -2,9 +2,11 @@ import { useEffect } from 'react'
 
 import { inDialog, inTextField } from '@/lib/dom'
 
+import { openCellMenu } from './cell-menu-store'
 import { dragStore } from './drag-target'
+import { instagram } from './network-profile'
 import { plannerStore } from './planner'
-import { isDelete, shortcutFor } from './shortcuts'
+import { cellStep, isDelete, shortcutFor } from './shortcuts'
 
 /** Focus moves on to the next cell, so a run of deletes does not start again from the top. */
 function removeCell(cell: HTMLElement) {
@@ -14,13 +16,38 @@ function removeCell(cell: HTMLElement) {
   if (next instanceof HTMLElement) next.focus()
 }
 
+function focusNeighbour(cell: HTMLElement, key: string) {
+  const cells = [...(cell.parentElement?.children ?? [])]
+  const target = cellStep(key, cells.indexOf(cell), cells.length, instagram.columns)
+  if (target === null) return false
+  ;(cells[target] as HTMLElement).focus()
+  return true
+}
+
 export function usePlannerShortcuts() {
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
-      if (isDelete(event) && event.target instanceof HTMLElement && event.target.dataset.dropId) {
-        event.preventDefault()
-        if (!dragStore.getState().dragging) removeCell(event.target)
-        return
+      const { target, key } = event
+      const dropId = target instanceof HTMLElement ? target.dataset.dropId : undefined
+      if (target instanceof HTMLElement && dropId) {
+        if (isDelete(event)) {
+          event.preventDefault()
+          if (!dragStore.getState().dragging) removeCell(target)
+          return
+        }
+        // The drag sensor has already had these, and it marks the ones that were for it.
+        if (!event.defaultPrevented && !dragStore.getState().dragging) {
+          if (key === 'Enter') {
+            event.preventDefault()
+            openCellMenu(dropId, target)
+            return
+          }
+          const plain = !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey
+          if (plain && focusNeighbour(target, key)) {
+            event.preventDefault()
+            return
+          }
+        }
       }
       const shortcut = shortcutFor(event)
       if (!shortcut || inTextField(event.target) || inDialog(event.target)) return

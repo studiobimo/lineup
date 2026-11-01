@@ -4,6 +4,8 @@ export type Shortcut = 'undo' | 'redo'
 export const shortcutList = [
   { action: 'undo', keys: ['mod', 'z'] },
   { action: 'redo', keys: ['mod', 'shift', 'z'] },
+  { action: 'focus', keys: ['arrows'] },
+  { action: 'actions', keys: ['enter'] },
   { action: 'delete', keys: ['delete'] },
   { action: 'pickUp', keys: ['space'] },
   { action: 'move', keys: ['arrows'] },
@@ -13,6 +15,20 @@ export const shortcutList = [
 
 export const isDelete = ({ key }: Pick<KeyboardEvent, 'key'>) =>
   key === 'Delete' || key === 'Backspace'
+
+/** The cell an arrow key lands on, by position, or null if there is none that way. */
+export function cellStep(key: string, index: number, count: number, columns: number) {
+  const target =
+    {
+      ArrowLeft: index - 1,
+      ArrowRight: index + 1,
+      ArrowUp: index - columns,
+      ArrowDown: index + columns,
+      Home: 0,
+      End: count - 1
+    }[key] ?? -1
+  return target >= 0 && target < count ? target : null
+}
 
 type Keys = Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>
 

@@ -113,7 +113,7 @@ may slip to the following release.
 | ARR-3 | I can insert instead of swap | Dropping near a cell's left or right edge, or holding Shift, inserts at the drop position and shifts the rest; the drop indicator shows which mode applies | Must |
 | ARR-4 | I can move a cell to the other container | One action from the cell's menu or a shortcut; dropping on a container's empty area inserts at the nearest position | Must |
 | ARR-5 | I can drag on a touch screen | Long-press picks up a cell; the page does not scroll while dragging; dragging near an edge scrolls the container | Must |
-| ARR-6 | I can arrange with the keyboard alone | Cells are focusable; a cell can be picked up, moved with arrow keys and dropped; screen readers announce each step | Must |
+| ARR-6 | I can arrange with the keyboard alone | Tab reaches each container once, and arrow keys move between its cells; Enter opens a cell's actions; Space picks a cell up to move with arrow keys and drop; screen readers announce each step | Must |
 | ARR-7 | I can move everything at once | "Move all to grid" and "Move all to tray" | Must |
 | ARR-8 | I can shuffle | Random order in the tray or the grid; needs at least two cells | Must |
 | ARR-9 | I can delete a cell | From its menu, its hover button or the Delete key on the focused cell; no confirmation, because it can be undone | Must |

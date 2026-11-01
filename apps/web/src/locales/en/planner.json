@@ -21,7 +21,7 @@
   "dropped": "Dropped.",
   "droppedNowhere": "Dropped back where it was.",
   "dragCancelled": "Move cancelled.",
-  "dragInstructions": "To pick up an image, press Space or Enter. Then use the arrow keys to move it, hold Shift to insert instead of swap, press Space or Enter to drop it, or Escape to cancel.",
+  "dragInstructions": "The arrow keys move between images, and Enter opens an image's actions. To pick one up, press Space. Then use the arrow keys to move it, hold Shift to insert instead of swap, press Space or Enter to drop it, or Escape to cancel.",
   "moveToGrid": "Move to the grid",
   "moveToTray": "Move to the tray",
   "remove": "Delete",

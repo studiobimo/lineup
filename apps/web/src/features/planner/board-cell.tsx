@@ -13,6 +13,7 @@ import { openLightbox } from './lightbox-store'
 import { GLIDING_Z, settle } from './motion'
 import { cellShape } from './network-profile'
 import { plannerStore } from './planner'
+import { setTabStop } from './tab-stop'
 import { Thumbnail } from './thumbnail'
 import { useCellDrag } from './use-board-drag'
 import { useNearViewport } from './use-near-viewport'
@@ -21,10 +22,18 @@ interface BoardCellProps {
   id: string
   container: Container
   position: number
+  /** Whether Tab lands here. A container is one stop however many cells it has. */
+  tabStop: boolean
 }
 
-/** Memoised, because every cell renders when one moves and these do not depend on position. */
-const CellActions = memo(function CellActions({ id, container }: Omit<BoardCellProps, 'position'>) {
+/**
+ * Memoised, because every cell renders when one moves and these do not depend on position. For the
+ * mouse: the keyboard has Enter on the cell, or these would be three more tab stops per image.
+ */
+const CellActions = memo(function CellActions({
+  id,
+  container
+}: Pick<BoardCellProps, 'id' | 'container'>) {
   const { t } = useTranslation('planner')
   const toTray = container === 'grid'
   return (
@@ -32,6 +41,7 @@ const CellActions = memo(function CellActions({ id, container }: Omit<BoardCellP
       <IconButton
         variant="outline"
         size="icon-xs"
+        tabIndex={-1}
         tooltip={cellTooltip}
         label={t('openImage')}
         onClick={() => openLightbox(id)}
@@ -41,6 +51,7 @@ const CellActions = memo(function CellActions({ id, container }: Omit<BoardCellP
       <IconButton
         variant="outline"
         size="icon-xs"
+        tabIndex={-1}
         tooltip={cellTooltip}
         label={t(toTray ? 'moveToTray' : 'moveToGrid')}
         onClick={() => plannerStore.getState().move(id, toTray ? 'tray' : 'grid')}
@@ -50,6 +61,7 @@ const CellActions = memo(function CellActions({ id, container }: Omit<BoardCellP
       <IconButton
         variant="outline"
         size="icon-xs"
+        tabIndex={-1}
         tooltip={cellTooltip}
         label={t('remove')}
         onClick={() => plannerStore.getState().remove([id])}
@@ -60,7 +72,13 @@ const CellActions = memo(function CellActions({ id, container }: Omit<BoardCellP
   )
 })
 
-export function BoardCell({ id, container, position }: BoardCellProps) {
+/** Memoised, so that moving focus renders the two cells it touches and not all 300. */
+export const BoardCell = memo(function BoardCell({
+  id,
+  container,
+  position,
+  tabStop
+}: BoardCellProps) {
   const { t } = useTranslation('planner')
   const cell = useRef<HTMLDivElement>(null)
   const near = useNearViewport(cell)
@@ -87,6 +105,8 @@ export function BoardCell({ id, container, position }: BoardCellProps) {
       ref={ref}
       {...attributes}
       {...listeners}
+      tabIndex={tabStop ? 0 : -1}
+      onFocus={() => setTabStop(container, id)}
       aria-label={t('cell', { position })}
       {...dropArea}
       data-mark={mark}
@@ -120,4 +140,4 @@ export function BoardCell({ id, container, position }: BoardCellProps) {
       {!mark && <CellActions id={id} container={container} />}
     </m.div>
   )
-}
+})

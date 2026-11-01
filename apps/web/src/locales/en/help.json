@@ -15,6 +15,8 @@
   "actions": {
     "undo": "Undo",
     "redo": "Redo",
+    "focus": "Move between images",
+    "actions": "Open the focused image's actions",
     "delete": "Delete the focused image",
     "pickUp": "Pick up or drop the focused image",
     "move": "Move the image you picked up",
@@ -28,6 +30,7 @@
     "z": "Z",
     "delete": "Delete",
     "space": "Space",
+    "enter": "Enter",
     "arrows": "Arrow keys",
     "escape": "Esc"
   },

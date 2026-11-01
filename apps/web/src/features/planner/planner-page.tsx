@@ -38,10 +38,12 @@ import { type BoardHold, holdBoard } from './board-lock'
 import { cellTooltip } from './cell-tooltip'
 import { useEmptyAreaMark } from './drag-target'
 import { ImportButtons, ImportProgress, ImportTargets } from './import-controls'
+import { CellMenu } from './cell-menu'
 import { closeLightbox, useLightboxId } from './lightbox-store'
 import { cellShape, gridColumns } from './network-profile'
 import { plannerStore, usePlanner } from './planner'
 import { useDropArea } from './use-board-drag'
+import { useTabStop } from './tab-stop'
 import { usePlannerShortcuts } from './use-planner-shortcuts'
 
 const SKELETON_CELLS = 6
@@ -52,6 +54,7 @@ function Cells({ container, className }: { container: Container; className?: str
   const { t } = useTranslation('planner')
   const ids = usePlanner((state) => state.board[container])
   const ready = usePlanner((state) => state.ready)
+  const focused = useTabStop(container)
   if (!ready) {
     return (
       <div
@@ -73,10 +76,17 @@ function Cells({ container, className }: { container: Container; className?: str
       </p>
     )
   }
+  const tabStop = focused && ids.includes(focused) ? focused : ids[0]
   return (
     <div className={cn('grid gap-0.5', className)} style={gridColumns}>
       {ids.map((id, index) => (
-        <BoardCell key={id} id={id} container={container} position={index + 1} />
+        <BoardCell
+          key={id}
+          id={id}
+          container={container}
+          position={index + 1}
+          tabStop={id === tabStop}
+        />
       ))}
     </div>
   )
@@ -282,6 +292,7 @@ export function PlannerPage() {
         <SaveFailure />
         <SharedTooltip handle={cellTooltip} />
         <OpenImage />
+        <CellMenu />
         {desktop && <TrayPanel />}
         <GridPanel desktop={desktop} />
       </div>

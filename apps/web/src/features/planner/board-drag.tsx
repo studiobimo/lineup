@@ -1,6 +1,7 @@
 import {
   type CollisionDetection,
   DndContext,
+  KeyboardCode,
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
@@ -58,6 +59,13 @@ interface Latest {
   inserting: boolean
 }
 
+// Only Space picks up: Enter on a cell opens its menu. Either still drops what is being carried.
+const keyboardCodes = {
+  start: [KeyboardCode.Space],
+  cancel: [KeyboardCode.Esc],
+  end: [KeyboardCode.Space, KeyboardCode.Enter, KeyboardCode.Tab]
+}
+
 export function BoardDrag({ children }: { children: ReactNode }) {
   const { t } = useTranslation('planner')
   const accessibility = useMemo(
@@ -70,7 +78,7 @@ export function BoardDrag({ children }: { children: ReactNode }) {
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: PICK_UP_DISTANCE } }),
     useSensor(TouchSensor, { activationConstraint: LONG_PRESS }),
-    useSensor(KeyboardSensor, { coordinateGetter: stepBetweenCells })
+    useSensor(KeyboardSensor, { coordinateGetter: stepBetweenCells, keyboardCodes })
   )
   const ghost = useDragGhost()
   const { lift, follow, glide, land } = ghost

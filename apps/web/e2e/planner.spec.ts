@@ -160,9 +160,9 @@ const order = (page: Page) =>
   )
 
 /** The sensor starts listening for arrow keys on the tick after a cell is picked up. */
-async function pickUpWithKeyboard(page: Page, key: 'Space' | 'Enter') {
+async function pickUpWithKeyboard(page: Page) {
   await page.getByRole('group', { name: 'Image 1' }).last().focus()
-  await page.keyboard.press(key)
+  await page.keyboard.press('Space')
   await expect(page.locator('[data-ghost]')).toBeVisible()
   await page.waitForTimeout(50)
 }
@@ -243,7 +243,7 @@ test('a cell can be picked up, moved and dropped with the keyboard', async ({ pa
   const { before, cells } = await boardOfFour(page)
   const [a, b, c] = before.grid
 
-  await pickUpWithKeyboard(page, 'Space')
+  await pickUpWithKeyboard(page)
   await expect(page.getByRole('status').filter({ hasText: 'Picked up image 1' })).toHaveCount(1)
   await page.keyboard.press('ArrowRight')
   await page.keyboard.press('ArrowRight')
@@ -257,7 +257,7 @@ test('a cell can be picked up, moved and dropped with the keyboard', async ({ pa
 test('Escape puts a cell carried by keyboard back', async ({ page }) => {
   const { before } = await boardOfFour(page)
 
-  await pickUpWithKeyboard(page, 'Enter')
+  await pickUpWithKeyboard(page)
   await page.keyboard.press('ArrowRight')
   await expect(page.locator('[data-mark="swap"]')).toHaveCount(1)
   await page.keyboard.press('Escape')
@@ -272,6 +272,53 @@ test('Space on a button inside a cell does not pick the cell up', async ({ page 
   await remove.focus()
   await page.keyboard.press('Space')
   await expect(page.locator('[data-ghost]')).toHaveCount(0)
+})
+
+test('a container is one tab stop, and arrow keys move inside it', async ({ page }) => {
+  await boardOfFour(page)
+  const grid = page.locator('section').getByRole('group', { name: /^Image/ })
+
+  await expect(page.locator('[data-drop-id][tabindex="0"]')).toHaveCount(2)
+  await expect(page.getByRole('button', { name: 'Delete' }).first()).toHaveAttribute(
+    'tabindex',
+    '-1'
+  )
+
+  await grid.nth(0).focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(grid.nth(1)).toBeFocused()
+  await page.keyboard.press('End')
+  await expect(grid.nth(2)).toBeFocused()
+  await page.keyboard.press('ArrowRight')
+  await expect(grid.nth(2)).toBeFocused()
+  await page.keyboard.press('Home')
+  await expect(grid.nth(0)).toBeFocused()
+
+  // Tab leaves the grid at once, and coming back lands where focus was.
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('Tab')
+  await expect(page.locator('section [data-drop-id]:focus')).toHaveCount(0)
+  await page.keyboard.press('Shift+Tab')
+  await expect(grid.nth(1)).toBeFocused()
+})
+
+test("Enter opens a cell's actions, and focus carries on from them", async ({ page }) => {
+  const { before } = await boardOfFour(page)
+  const grid = page.locator('section').getByRole('group', { name: /^Image/ })
+
+  await grid.nth(0).focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('menuitem', { name: 'Open full size' })).toBeVisible()
+  await expect(page.locator('[data-ghost]')).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  await expect(grid.nth(0)).toBeFocused()
+
+  await page.keyboard.press('Enter')
+  await page.getByRole('menuitem', { name: 'Delete' }).click()
+  await expect(grid).toHaveCount(2)
+  await expect(grid.nth(0)).toBeFocused()
+  expect((await order(page)).grid).toEqual(before.grid.slice(1))
 })
 
 test('clearing asks first, says how many, and can be undone', async ({ page }) => {
