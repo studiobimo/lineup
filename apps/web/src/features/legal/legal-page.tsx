@@ -1,7 +1,10 @@
 import { Link } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { LegalName } from './legal-head'
+import { site } from '@/config/site'
+
+type LegalName = 'privacy' | 'terms'
 
 interface Section {
   heading: string
@@ -16,9 +19,16 @@ const other = {
 export function LegalPage({ name }: { name: LegalName }) {
   const { t } = useTranslation('legal')
   const sections = t(`${name}.sections`, { returnObjects: true }) as Section[]
+  const title = t(`${name}.title`)
+  useEffect(() => {
+    document.title = `${title} · ${site.name}`
+    return () => {
+      document.title = site.title
+    }
+  }, [title])
   return (
     <article className="mx-auto max-w-prose px-gutter py-10">
-      <h1 className="font-heading text-3xl">{t(`${name}.title`)}</h1>
+      <h1 className="font-heading text-3xl">{title}</h1>
       <p className="mt-2 text-sm text-muted-foreground">{t('updated')}</p>
       <p className="mt-6">{t(`${name}.summary`)}</p>
       {sections.map(({ heading, paragraphs }) => (

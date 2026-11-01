@@ -1,5 +1,4 @@
 import i18n from 'i18next'
-import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
 
 import { site } from '@/config/site'
@@ -25,26 +24,23 @@ for (const [path, catalog] of Object.entries(catalogs)) {
 /** The language of site.locale. Its catalogs are the source the others are held to. */
 export const defaultLanguage = site.locale.split('_')[0]
 
-void i18n
-  .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
-    resources,
-    fallbackLng: defaultLanguage,
-    supportedLngs: Object.keys(resources),
-    defaultNS: 'common',
-    // React escapes what it renders.
-    interpolation: { escapeValue: false },
-    initAsync: false,
-    detection: { order: ['querystring', 'localStorage', 'navigator'], caches: ['localStorage'] },
-    // A key with no string is a bug: a test that renders it fails, the dev server warns.
-    saveMissing: import.meta.env.DEV,
-    missingKeyHandler: (_languages, namespace, key) => {
-      const message = `i18n: no string for ${namespace}:${key}`
-      if (import.meta.env.MODE === 'test') throw new Error(message)
-      console.warn(message)
-    }
-  })
+void i18n.use(initReactI18next).init({
+  resources,
+  lng: defaultLanguage,
+  fallbackLng: defaultLanguage,
+  supportedLngs: Object.keys(resources),
+  defaultNS: 'common',
+  // React escapes what it renders.
+  interpolation: { escapeValue: false },
+  initAsync: false,
+  // A key with no string is a bug: a test that renders it fails, the dev server warns.
+  saveMissing: import.meta.env.DEV,
+  missingKeyHandler: (_languages, namespace, key) => {
+    const message = `i18n: no string for ${namespace}:${key}`
+    if (import.meta.env.MODE === 'test') throw new Error(message)
+    console.warn(message)
+  }
+})
 
 // Screen readers pick their pronunciation from <html lang>, which index.html only starts.
 const setLang = (language: string) => (document.documentElement.lang = language)
