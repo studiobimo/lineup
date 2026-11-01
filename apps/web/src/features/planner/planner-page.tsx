@@ -20,7 +20,7 @@ import {
   EmptyHeader,
   EmptyTitle
 } from '@/components/ui/empty'
-import { ToastProvider, toastManager } from '@/components/ui/toast'
+import { toastManager } from '@/components/ui/toast'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 
@@ -203,17 +203,15 @@ export function PlannerPage() {
   }
 
   return (
-    <ToastProvider>
-      <BoardDrag>
-        <div className={cn('flex', !desktop && 'flex-col')}>
-          <h1 className="sr-only">{t('title')}</h1>
-          <ImportTargets />
-          <SaveFailure />
-          <SharedTooltip handle={cellTooltip} />
-          {desktop && <TrayPanel />}
-          <GridPanel desktop={desktop} />
-        </div>
-      </BoardDrag>
-    </ToastProvider>
+    <BoardDrag>
+      <div className={cn('flex', !desktop && 'flex-col')}>
+        <h1 className="sr-only">{t('title')}</h1>
+        <ImportTargets />
+        <SaveFailure />
+        <SharedTooltip handle={cellTooltip} />
+        {desktop && <TrayPanel />}
+        <GridPanel desktop={desktop} />
+      </div>
+    </BoardDrag>
   )
 }

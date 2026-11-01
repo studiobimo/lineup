@@ -5,7 +5,6 @@ import {
   useSensor,
   useSensors
 } from '@dnd-kit/core'
-import { LazyMotion, MotionConfig } from 'motion/react'
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { Trans } from 'react-i18next'
 
@@ -37,9 +36,6 @@ const announcements = {
   onDragEnd: quiet,
   onDragCancel: quiet
 }
-
-// After first paint, because this is most of Motion's weight and nothing moves until then.
-const loadMotion = () => import('./motion-features').then(({ features }) => features)
 
 function place(id: string, target: DropTarget) {
   const { swap, move } = plannerStore.getState()
@@ -124,35 +120,31 @@ export function BoardDrag({ children }: { children: ReactNode }) {
   }
 
   return (
-    <LazyMotion features={loadMotion} strict>
-      <MotionConfig reducedMotion="user">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={collide}
-          accessibility={{ announcements }}
-          onDragStart={({ active: { id }, activatorEvent }) => {
-            const cell = String(id)
-            const { clientX, clientY, shiftKey } = activatorEvent as PointerEvent
-            const from = cellBox(cell)
-            latest.current.active = cell
-            latest.current.inserting = shiftKey
-            setActive(cell)
-            if (from) lift(cell, { x: clientX, y: clientY }, from)
-          }}
-          onDragMove={aim}
-          onDragEnd={() => release(true)}
-          onDragCancel={() => release(false)}
-        >
-          {children}
-          <CellFlights />
-          <DragGhost ghost={ghost} />
-          {active && (
-            <p className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md pointer-coarse:hidden">
-              <Trans i18nKey="planner:dragHint" components={{ key: <Kbd /> }} />
-            </p>
-          )}
-        </DndContext>
-      </MotionConfig>
-    </LazyMotion>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={collide}
+      accessibility={{ announcements }}
+      onDragStart={({ active: { id }, activatorEvent }) => {
+        const cell = String(id)
+        const { clientX, clientY, shiftKey } = activatorEvent as PointerEvent
+        const from = cellBox(cell)
+        latest.current.active = cell
+        latest.current.inserting = shiftKey
+        setActive(cell)
+        if (from) lift(cell, { x: clientX, y: clientY }, from)
+      }}
+      onDragMove={aim}
+      onDragEnd={() => release(true)}
+      onDragCancel={() => release(false)}
+    >
+      {children}
+      <CellFlights />
+      <DragGhost ghost={ghost} />
+      {active && (
+        <p className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md pointer-coarse:hidden">
+          <Trans i18nKey="planner:dragHint" components={{ key: <Kbd /> }} />
+        </p>
+      )}
+    </DndContext>
   )
 }
