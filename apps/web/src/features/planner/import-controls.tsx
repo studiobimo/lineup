@@ -3,6 +3,7 @@ import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
+import { Group } from '@/components/ui/group'
 import { Progress } from '@/components/ui/progress'
 
 import { fromDrop, fromFiles } from './import-source'
@@ -106,20 +107,27 @@ export function ImportButtons() {
   }
 
   return (
-    <div className="flex flex-wrap gap-2 px-4 pb-4">
+    <div className="px-4 pb-4">
       <input ref={files} type="file" accept="image/*" multiple hidden onChange={choose} />
       <input ref={folder} type="file" multiple hidden onChange={choose} />
-      <IconButton label={t('addImages')} disabled={busy} onClick={() => files.current?.click()}>
-        <ImagePlus />
-      </IconButton>
-      <IconButton
-        label={t('addFolder')}
-        variant="outline"
-        disabled={busy}
-        onClick={() => folder.current?.click()}
-      >
-        <FolderPlus />
-      </IconButton>
+      <Group aria-label={t('addToTray')}>
+        <IconButton
+          label={t('addImages')}
+          variant="outline"
+          disabled={busy}
+          onClick={() => files.current?.click()}
+        >
+          <ImagePlus />
+        </IconButton>
+        <IconButton
+          label={t('addFolder')}
+          variant="outline"
+          disabled={busy}
+          onClick={() => folder.current?.click()}
+        >
+          <FolderPlus />
+        </IconButton>
+      </Group>
     </div>
   )
 }

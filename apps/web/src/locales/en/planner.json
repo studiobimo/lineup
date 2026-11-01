@@ -15,6 +15,7 @@
   "elsewhereTitle": "This board is open in another tab",
   "elsewhereDescription": "One tab at a time can change a board, so nothing gets overwritten. This tab takes over by itself when the other one closes.",
   "useHere": "Use it here",
+  "addToTray": "Add to the tray",
   "addImages": "Add images",
   "addFolder": "Add a folder",
   "importFailed": "Those images could not be added. Please try again.",
