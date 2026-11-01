@@ -40,9 +40,9 @@ export function SortMenu({ container, disabled }: SortMenuProps) {
     })
   }
 
-  const sort = (strategy: SortStrategy) => {
+  const sort = async (strategy: SortStrategy) => {
     const { board } = plannerStore.getState()
-    plannerStore.getState().sortByColour(container, strategy)
+    await plannerStore.getState().sortByColour(container, strategy)
     if (plannerStore.getState().board !== board) offerUndo()
   }
 
@@ -58,7 +58,7 @@ export function SortMenu({ container, disabled }: SortMenuProps) {
       />
       <MenuPopup>
         {sortStrategies.map((strategy) => (
-          <MenuItem key={strategy} onClick={() => sort(strategy)}>
+          <MenuItem key={strategy} onClick={() => void sort(strategy)}>
             {t(`sort.${strategy}`)}
           </MenuItem>
         ))}

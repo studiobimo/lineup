@@ -40,7 +40,7 @@ export interface PlannerState {
   swap(first: string, second: string): void
   moveAll(from: Container): void
   shuffle(container: Container): void
-  sortByColour(container: Container, strategy: SortStrategy): void
+  sortByColour(container: Container, strategy: SortStrategy): Promise<void>
   /** Not a change to the board, so it is no part of undo. */
   setColour(id: string, colour: ImageColour): void
   toggleLock(id: string): void
@@ -151,10 +151,12 @@ export function createPlannerStore(boardStore: BoardStore) {
       shuffle: (container) => commit(shuffle(get().board, container)),
       toggleLock: (id) => commit(toggleLock(get().board, id)),
 
-      sortByColour(container, strategy) {
+      async sortByColour(container, strategy) {
         const { board, images } = get()
         const cells = board[container].map((id) => images[id])
-        commit({ ...board, [container]: sortByColour(cells, strategy) })
+        const order = await sortByColour(cells, strategy)
+        // An order for a board that has since moved on would undo whatever moved it.
+        if (get().board === board) commit({ ...board, [container]: order })
       },
 
       setColour(id, colour) {

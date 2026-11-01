@@ -73,7 +73,7 @@ describe('the planner store', () => {
 
     it('is one undo step that restores the exact order, and redoes', async () => {
       const { boardStore, state } = await coloured()
-      state().sortByColour('grid', 'rainbow')
+      await state().sortByColour('grid', 'rainbow')
       expect(state().board.grid).toEqual(['red', 'green', 'blue'])
       expect(boardStore.saved.grid).toEqual(['red', 'green', 'blue'])
       expect(state().past).toHaveLength(1)
@@ -86,21 +86,30 @@ describe('the planner store', () => {
 
     it('leaves the other container alone', async () => {
       const { state } = await coloured()
-      state().sortByColour('grid', 'rainbow')
+      await state().sortByColour('grid', 'rainbow')
       expect(state().board.tray).toEqual(['grey'])
     })
 
     it('is not a mode: the next manual move stays where it is put', async () => {
       const { state } = await coloured()
-      state().sortByColour('grid', 'rainbow')
+      await state().sortByColour('grid', 'rainbow')
       state().swap('red', 'blue')
       expect(state().board.grid).toEqual(['blue', 'green', 'red'])
     })
 
+    it('drops an order that a newer change has overtaken', async () => {
+      const { state } = await coloured()
+      const sorting = state().sortByColour('grid', 'rainbow')
+      state().swap('blue', 'green')
+      await sorting
+      expect(state().board.grid).toEqual(['green', 'red', 'blue'])
+      expect(state().past).toHaveLength(1)
+    })
+
     it('adds no undo step when the order is already right', async () => {
       const { state } = await coloured()
-      state().sortByColour('grid', 'rainbow')
-      state().sortByColour('grid', 'rainbow')
+      await state().sortByColour('grid', 'rainbow')
+      await state().sortByColour('grid', 'rainbow')
       expect(state().past).toHaveLength(1)
     })
   })

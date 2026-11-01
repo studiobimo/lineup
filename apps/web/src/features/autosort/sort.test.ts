@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { extractColour } from './colour'
-import { sortByColour, type SortStrategy } from './sort'
+import { sortByColour, sortStrategies, type SortStrategy } from './sort'
 
 const swatches: Record<string, [number, number, number]> = {
   red: [220, 30, 30],
@@ -30,8 +30,8 @@ const cells = Object.keys(swatches).map(cell)
 const sorted = (strategy: SortStrategy) => sortByColour([...cells].reverse(), strategy)
 
 describe('sortByColour', () => {
-  it('runs a rainbow from red, with the greys together at the end', () => {
-    expect(sorted('rainbow')).toEqual([
+  it('runs a rainbow from red, with the greys together at the end', async () => {
+    expect(await sorted('rainbow')).toEqual([
       'red',
       'orange',
       'yellow',
@@ -48,22 +48,22 @@ describe('sortByColour', () => {
     ])
   })
 
-  it('runs light to dark across every image', () => {
-    const order = sorted('lightToDark')
+  it('runs light to dark across every image', async () => {
+    const order = await sorted('lightToDark')
     expect(order[0]).toBe('white')
     expect(order.at(-1)).toBe('black')
     const lightness = order.map((id) => cell(id).colour.dominant.lightness)
     expect(lightness).toEqual([...lightness].sort((one, other) => other - one))
   })
 
-  it('groups colour families, each light to dark, with the greys at the end', () => {
-    const order = sorted('grouped')
+  it('groups colour families, each light to dark, with the greys at the end', async () => {
+    const order = await sorted('grouped')
     expect(order.indexOf('paleBlue')).toBeLessThan(order.indexOf('blue'))
     expect(order.indexOf('blue')).toBeLessThan(order.indexOf('navy'))
     expect(order.slice(-3)).toEqual(['white', 'grey', 'black'])
   })
 
-  it('never lets a grey land among the colours, whatever its stray hue', () => {
+  it('never lets a grey land among the colours, whatever its stray hue', async () => {
     const stray = {
       id: 'stray',
       colour: {
@@ -73,35 +73,42 @@ describe('sortByColour', () => {
         vivid: 0
       }
     }
-    const order = sortByColour([stray, cell('green'), cell('blue'), cell('black')], 'rainbow')
+    const order = await sortByColour([stray, cell('green'), cell('blue'), cell('black')], 'rainbow')
     expect(order).toEqual(['green', 'blue', 'stray', 'black'])
   })
 
-  it('gives the same order for the same images, however they start', () => {
-    for (const strategy of ['rainbow', 'lightToDark', 'grouped'] as const) {
-      expect(sortByColour([...cells].reverse(), strategy)).toEqual(sortByColour(cells, strategy))
+  it('gives the same order for the same images, however they start', async () => {
+    for (const strategy of sortStrategies) {
+      expect(await sortByColour([...cells].reverse(), strategy)).toEqual(
+        await sortByColour(cells, strategy)
+      )
     }
   })
 
-  it('breaks a tie on the id', () => {
+  it('breaks a tie on the id', async () => {
     const twin = { ...cell('red'), id: 'a-twin' }
-    expect(sortByColour([cell('red'), twin], 'rainbow')).toEqual(['a-twin', 'red'])
+    expect(await sortByColour([cell('red'), twin], 'rainbow')).toEqual(['a-twin', 'red'])
   })
 
-  it('leaves an image with no colour yet at the end', () => {
-    expect(sortByColour([{ id: 'unread' }, cell('black')], 'lightToDark')).toEqual([
+  it('leaves an image with no colour yet at the end', async () => {
+    expect(await sortByColour([{ id: 'unread' }, cell('black')], 'lightToDark')).toEqual([
       'black',
       'unread'
     ])
   })
 
-  it('does not touch what it is given', () => {
+  it('puts dark bands first, and an image with no colour yet after them', async () => {
+    const order = await sortByColour([cell('white'), { id: 'unread' }, cell('black')], 'bands2')
+    expect(order).toEqual(['black', 'white', 'unread'])
+  })
+
+  it('does not touch what it is given', async () => {
     const input = [...cells]
-    sortByColour(input, 'rainbow')
+    await sortByColour(input, 'rainbow')
     expect(input).toEqual(cells)
   })
 
-  it('sorts 300 images in under 100 ms', () => {
+  it('sorts 300 images in under 100 ms', async () => {
     const many = Array.from({ length: 300 }, (_, index) => ({
       id: String(index),
       colour: {
@@ -116,7 +123,7 @@ describe('sortByColour', () => {
       }
     }))
     const start = performance.now()
-    sortByColour(many, 'grouped')
+    await sortByColour(many, 'grouped')
     expect(performance.now() - start).toBeLessThan(100)
   })
 })

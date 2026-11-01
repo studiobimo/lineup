@@ -2,8 +2,9 @@ import type { ImageRecord } from '@/features/planner/board-store'
 
 import { instagram } from '@/features/planner/network-profile'
 
-import { bands } from './bands'
-import { fromRed, NEUTRAL_CHROMA, type Oklch } from './colour'
+import { arrangeBands } from './arrange-bands'
+import type { BandCell } from './bands'
+import { fromRed, type ImageColour, NEUTRAL_CHROMA, type Oklch } from './colour'
 
 const keyedStrategies = ['rainbow', 'lightToDark', 'grouped'] as const
 
@@ -22,6 +23,8 @@ const NEUTRALS = 1
 const NO_COLOUR = 2
 
 const FAMILY_SPAN = 60
+// With a smaller share of vivid pixels a photo's hue is noise, whatever its dominant colour says.
+const MUTED = 0.05
 
 const keys: Record<(typeof keyedStrategies)[number], (colour: Oklch) => SortKey> = {
   rainbow({ chroma, hue, lightness }) {
@@ -35,6 +38,11 @@ const keys: Record<(typeof keyedStrategies)[number], (colour: Oklch) => SortKey>
   }
 }
 
+function toBandCell(id: string, { dominant, tone, vivid }: ImageColour): BandCell {
+  const neutral = dominant.chroma < NEUTRAL_CHROMA || vivid < MUTED
+  return { id, tone, vivid, hue: neutral ? null : fromRed(dominant.hue) }
+}
+
 function compare(one: SortKey, other: SortKey) {
   for (let index = 0; index < Math.max(one.length, other.length); index += 1) {
     const difference = (one[index] ?? 0) - (other[index] ?? 0)
@@ -44,11 +52,15 @@ function compare(one: SortKey, other: SortKey) {
 }
 
 /** The new order of `cells`. An image with no colour yet goes last, so it is never lost in the rest. */
-export function sortByColour(cells: Cell[], strategy: SortStrategy) {
+export async function sortByColour(cells: Cell[], strategy: SortStrategy) {
   if (strategy === 'bands2' || strategy === 'bands4') {
-    const coloured = cells.flatMap(({ id, colour }) => (colour ? [{ id, colour }] : []))
+    const order = await arrangeBands({
+      cells: cells.flatMap(({ id, colour }) => (colour ? [toBandCell(id, colour)] : [])),
+      rowsPerBand: bandRows[strategy],
+      columns: instagram.columns
+    })
     const waiting = cells.filter(({ colour }) => !colour).map(({ id }) => id)
-    return [...bands(coloured, bandRows[strategy], instagram.columns), ...waiting.sort()]
+    return [...order, ...waiting.sort()]
   }
   return cells
     .map(({ id, colour }) => ({
