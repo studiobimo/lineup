@@ -104,7 +104,7 @@ export function ImportButtons() {
   }
 
   return (
-    <div className="px-4 pb-4">
+    <>
       <input ref={files} type="file" accept="image/*" multiple hidden onChange={choose} />
       <input ref={folder} type="file" multiple hidden onChange={choose} />
       <Group aria-label={t('addToTray')}>
@@ -125,6 +125,6 @@ export function ImportButtons() {
           <FolderPlus />
         </IconButton>
       </Group>
-    </div>
+    </>
   )
 }

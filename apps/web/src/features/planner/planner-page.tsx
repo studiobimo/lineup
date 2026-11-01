@@ -20,11 +20,13 @@ import {
   EmptyHeader,
   EmptyTitle
 } from '@/components/ui/empty'
+import { Group } from '@/components/ui/group'
 import { toastManager } from '@/components/ui/toast'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 
 import type { Container } from './board'
+import { ClearBoard, ContainerActions } from './board-actions'
 import { BoardCell } from './board-cell'
 import { BoardDrag } from './board-drag'
 import { type BoardHold, holdBoard } from './board-lock'
@@ -79,9 +81,9 @@ function History() {
   const canUndo = usePlanner((state) => state.past.length > 0)
   const canRedo = usePlanner((state) => state.future.length > 0)
   return (
-    <div className="flex gap-1">
+    <Group aria-label={t('history')}>
       <IconButton
-        variant="ghost"
+        variant="outline"
         label={t('undo')}
         disabled={!canUndo}
         onClick={() => plannerStore.getState().undo()}
@@ -89,14 +91,14 @@ function History() {
         <Undo2 />
       </IconButton>
       <IconButton
-        variant="ghost"
+        variant="outline"
         label={t('redo')}
         disabled={!canRedo}
         onClick={() => plannerStore.getState().redo()}
       >
         <Redo2 />
       </IconButton>
-    </div>
+    </Group>
   )
 }
 
@@ -120,6 +122,15 @@ function MobileTray() {
   )
 }
 
+function TrayToolbar() {
+  return (
+    <div className="flex flex-wrap gap-2 px-4 pb-4">
+      <ImportButtons />
+      <ContainerActions container="tray" />
+    </div>
+  )
+}
+
 function TrayPanel() {
   const { t } = useTranslation('planner')
   const { ref, dropArea } = useDropArea('tray')
@@ -136,7 +147,7 @@ function TrayPanel() {
       )}
     >
       <h2 className="p-4 text-xl">{t('tray')}</h2>
-      <ImportButtons />
+      <TrayToolbar />
       <ImportProgress />
       <Cells container="tray" className="px-4 pb-4" />
     </m.aside>
@@ -157,12 +168,15 @@ function GridPanel({ desktop }: { desktop: boolean }) {
       <div className="mx-auto max-w-3xl">
         <div className="flex items-center justify-between gap-2 p-4">
           <h2 className="text-xl">{t('grid')}</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {!desktop && <MobileTray />}
+            <ContainerActions container="grid">
+              <ClearBoard />
+            </ContainerActions>
             <History />
           </div>
         </div>
-        {!desktop && <ImportButtons />}
+        {!desktop && <TrayToolbar />}
         {!desktop && <ImportProgress />}
         {/* On a phone the grid runs edge to edge, as it does in Instagram. */}
         {ready && <Cells container="grid" className={cn(desktop && 'px-4 pb-4')} />}

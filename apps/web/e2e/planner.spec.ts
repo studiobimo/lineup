@@ -284,6 +284,22 @@ test('Space on a button inside a cell does not pick the cell up', async ({ page 
   await expect(page.locator('[data-ghost]')).toHaveCount(0)
 })
 
+test('clearing asks first, says how many, and can be undone', async ({ page }) => {
+  const errors = watchErrors(page)
+  const { before } = await boardOfFour(page)
+
+  await page.getByRole('button', { name: 'Clear' }).click()
+  await expect(page.getByRole('button', { name: 'Tray (1)' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Grid (3)' })).toBeVisible()
+  await page.getByRole('button', { name: 'Both (4)' }).click()
+  await expect(page.getByRole('alertdialog')).toHaveCount(0)
+  await expect.poll(() => order(page)).toEqual({ tray: [], grid: [] })
+
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect.poll(() => order(page)).toEqual(before)
+  expect(errors).toEqual([])
+})
+
 test('holding Shift inserts on the side the pointer is on', async ({ page }) => {
   const { before, cells } = await boardOfFour(page)
   const [a, b, c] = before.grid

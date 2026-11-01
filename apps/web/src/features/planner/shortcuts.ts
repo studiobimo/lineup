@@ -1,5 +1,8 @@
 export type Shortcut = 'undo' | 'redo'
 
+export const isDelete = ({ key }: Pick<KeyboardEvent, 'key'>) =>
+  key === 'Delete' || key === 'Backspace'
+
 type Keys = Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>
 
 /** Command on a Mac and Control elsewhere, so both work on both. */
