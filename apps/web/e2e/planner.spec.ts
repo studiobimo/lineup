@@ -142,6 +142,48 @@ test('pasting an image adds it', async ({ page }) => {
   await expect(page.getByRole('img')).toHaveCount(1)
 })
 
+// What a full device does to a write, so the app's own handling of it runs for real.
+const fillStorage = (page: Page) =>
+  page.evaluateHandle(() => {
+    const { put } = IDBObjectStore.prototype
+    IDBObjectStore.prototype.put = () => {
+      throw new DOMException('full', 'QuotaExceededError')
+    }
+    return () => {
+      IDBObjectStore.prototype.put = put
+    }
+  })
+
+test('a full device is explained, and the next import still works', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByText('Move images here to plan your feed.')).toBeVisible()
+  const free = await fillStorage(page)
+
+  await addImages(page, [image('one.png')])
+  await expect(page.getByText('This device is out of room for images')).toBeVisible()
+  await expect(page.getByRole('img')).toHaveCount(0)
+
+  await free.evaluate((restore) => restore())
+  await addImages(page, [image('two.png')])
+  await expect(page.getByRole('img')).toHaveCount(1)
+})
+
+test('a save that fails is reported until one goes through', async ({ page }) => {
+  await page.goto('/')
+  await addImages(page, [image('one.png'), image('two.png')])
+  await expect(page.getByRole('img')).toHaveCount(2)
+  const free = await fillStorage(page)
+
+  await page.getByRole('button', { name: 'Move to the grid' }).first().click()
+  const warning = page.getByText('Your latest changes are not saved yet')
+  await expect(warning).toBeVisible()
+
+  await free.evaluate((restore) => restore())
+  await page.getByRole('button', { name: 'Move to the grid' }).first().click()
+  await expect(warning).toBeHidden()
+  await expect.poll(() => savedGridSize(page)).toBe(2)
+})
+
 test('adding a folder takes the images in it and its subfolders', async ({ page }, testInfo) => {
   const folder = testInfo.outputPath('holiday')
   mkdirSync(join(folder, 'day two'), { recursive: true })

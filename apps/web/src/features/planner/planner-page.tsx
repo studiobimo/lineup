@@ -18,7 +18,7 @@ import {
   EmptyHeader,
   EmptyTitle
 } from '@/components/ui/empty'
-import { ToastProvider } from '@/components/ui/toast'
+import { ToastProvider, toastManager } from '@/components/ui/toast'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 
@@ -48,6 +48,23 @@ function Cells({ container, className }: { container: Container; className?: str
       ))}
     </div>
   )
+}
+
+/** Stays up until a save goes through, because this is not something to miss. */
+function SaveFailure() {
+  const { t } = useTranslation('planner')
+  const failed = usePlanner((state) => state.saveFailed)
+  useEffect(() => {
+    if (!failed) return
+    const id = toastManager.add({
+      type: 'error',
+      title: t('saveFailed'),
+      description: t('saveFailedHelp'),
+      timeout: 0
+    })
+    return () => toastManager.close(id)
+  }, [failed, t])
+  return null
 }
 
 function History() {
@@ -136,6 +153,7 @@ export function PlannerPage() {
       <div className={cn('flex', !desktop && 'flex-col')}>
         <h1 className="sr-only">{t('title')}</h1>
         <ImportTargets />
+        <SaveFailure />
         {desktop && (
           <aside
             data-scroll-root
