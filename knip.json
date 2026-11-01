@@ -16,8 +16,7 @@
         "@fontsource-variable/space-grotesk",
         "shadcn",
         "tailwindcss",
-        "tw-animate-css",
-        "zod"
+        "tw-animate-css"
       ]
     },
     "packages/*": {}

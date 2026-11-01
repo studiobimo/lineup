@@ -116,6 +116,31 @@ export const savedBoard = (page: Page) => readStore<SavedBoard>(page, 'board', '
 
 export const savedImages = (page: Page) => readStore<SavedImage[]>(page, 'images')
 
+/** A digest of every stored image's bytes, by id, to compare two boards without moving them. */
+export const savedBytes = (page: Page, store: 'thumbnails' | 'publishCopies') =>
+  page.evaluate(
+    (store) =>
+      new Promise<Record<string, string>>((resolve) => {
+        const opening = indexedDB.open('lineup')
+        opening.onsuccess = () => {
+          const records = opening.result.transaction(store).objectStore(store)
+          const keys = records.getAllKeys()
+          const blobs = records.getAll()
+          blobs.onsuccess = async () => {
+            opening.result.close()
+            const digests = await Promise.all(
+              (blobs.result as Blob[]).map(async (blob) => {
+                const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
+                return [...new Uint8Array(digest)].join('.')
+              })
+            )
+            resolve(Object.fromEntries(keys.result.map((key, index) => [key, digests[index]])))
+          }
+        }
+      }),
+    store
+  )
+
 export const savedGridSize = (page: Page) => savedBoard(page).then(({ grid }) => grid.length)
 
 /** A write outlives the click that started it, so reloading straight away can lose it. */

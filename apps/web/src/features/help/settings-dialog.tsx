@@ -16,6 +16,8 @@ import { saveProfile, toHandle, useProfile } from '@/features/planner/profile-st
 import { useDialogPresence } from '@/hooks/use-dialog-presence'
 import { getTheme, setTheme, subscribeToTheme, type Theme } from '@/lib/theme'
 
+import { BackupActions } from './backup-actions'
+
 const themes: Theme[] = ['light', 'dark']
 
 const size = (bytes: number) =>
@@ -27,7 +29,7 @@ const size = (bytes: number) =>
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation('help')
-  const { dialog } = useDialogPresence(onClose)
+  const { dialog, close } = useDialogPresence(onClose)
   const theme = useSyncExternalStore(subscribeToTheme, getTheme)
   const [usage, setUsage] = useState<StorageUsage>()
   const { handle, name } = useProfile()
@@ -115,6 +117,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               </Progress>
             )}
             <p className="mt-2 text-sm text-muted-foreground">{t('storageNote')}</p>
+            <BackupActions onRestored={close} />
+            <p className="mt-2 text-sm text-muted-foreground">{t('backupNote')}</p>
           </section>
         </DialogPanel>
       </DialogPopup>

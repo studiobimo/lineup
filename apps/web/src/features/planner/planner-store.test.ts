@@ -123,6 +123,23 @@ describe('the planner store', () => {
       ['move all', (state) => state.moveAll('tray')],
       ['shuffle', (state) => state.shuffle('grid')],
       ['lock', (state) => state.toggleLock('d')],
+      [
+        'restore',
+        (state) =>
+          state.restore({
+            board: { tray: ['a'], grid: ['z'], locked: ['z'] },
+            images: [
+              {
+                id: 'z',
+                width: 1,
+                height: 1,
+                createdAt: '2026-11-01T12:00:00Z',
+                thumbnail: new Blob(),
+                publish: new Blob()
+              }
+            ]
+          })
+      ],
       ['delete', (state) => state.remove(['a', 'd'])],
       ['clear', (state) => state.clear(['tray', 'grid'])]
     ]

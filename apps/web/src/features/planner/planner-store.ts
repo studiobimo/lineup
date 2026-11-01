@@ -16,6 +16,7 @@ import {
   swap,
   toggleLock
 } from './board'
+import type { Backup } from './backup'
 import { type Board, type BoardStore, emptyBoard, type ImageRecord } from './board-store'
 import type { ProcessedImage } from './process-image'
 
@@ -44,11 +45,24 @@ export interface PlannerState {
   /** Not a change to the board, so it is no part of undo. */
   setColour(id: string, colour: ImageColour): void
   toggleLock(id: string): void
+  /** One undo step, so the board it replaced is still there. */
+  restore(backup: Backup): Promise<void>
   remove(ids: string[]): void
   clear(containers: Container[]): void
   undo(): void
   redo(): void
 }
+
+/** A stored image without its bytes, which never join the state. */
+const toRecord = ({ id, width, height, createdAt, colour, takenAt, place }: ImageRecord) => ({
+  id,
+  width,
+  height,
+  createdAt,
+  colour,
+  takenAt,
+  place
+})
 
 export function createPlannerStore(boardStore: BoardStore) {
   return createStore<PlannerState>((set, get) => {
@@ -73,14 +87,15 @@ export function createPlannerStore(boardStore: BoardStore) {
     }
 
     /** Every change to the board comes through here, so every change can be undone. */
-    const commit = (proposed: Board) => {
+    const record = (next: Board) => {
       const { board, past, session } = get()
-      const next = keepLocked(board, proposed)
       if (session !== 'active' || sameBoard(board, next)) return
       set({ board: next, past: [...past, board].slice(-HISTORY_LIMIT), future: [] })
       void report(boardStore.saveBoard(next))
       purge()
     }
+
+    const commit = (proposed: Board) => record(keepLocked(get().board, proposed))
 
     return {
       board: emptyBoard,
@@ -127,15 +142,7 @@ export function createPlannerStore(boardStore: BoardStore) {
         const createdAt = new Date().toISOString()
         const stored = added.map((image) => ({ ...image, id: crypto.randomUUID(), createdAt }))
         await Promise.all(stored.map((image) => boardStore.putImage(image)))
-        const records = stored.map(({ id, width, height, colour, takenAt, place }) => ({
-          id,
-          width,
-          height,
-          colour,
-          takenAt,
-          place,
-          createdAt
-        }))
+        const records = stored.map(toRecord)
         set(({ images }) => ({
           images: { ...images, ...Object.fromEntries(records.map((r) => [r.id, r])) }
         }))
@@ -152,6 +159,18 @@ export function createPlannerStore(boardStore: BoardStore) {
       moveAll: (from) => commit(moveAll(get().board, from)),
       shuffle: (container) => commit(shuffle(get().board, container)),
       toggleLock: (id) => commit(toggleLock(get().board, id)),
+
+      async restore({ board, images }) {
+        if (get().session !== 'active') return
+        // One at a time, so that a large backup is never all in memory on its way to the store.
+        for (const image of images) await boardStore.putImage(image)
+        const records = images.map(toRecord)
+        set(({ images: known }) => ({
+          images: { ...known, ...Object.fromEntries(records.map((image) => [image.id, image])) }
+        }))
+        // Exactly the backup's board, so its locks are not held to where this one's were.
+        record(board)
+      },
 
       async sortByColour(container, strategy) {
         const { board, images } = get()
