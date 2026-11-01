@@ -1,21 +1,22 @@
 import { type RefObject, useEffect } from 'react'
 
-import { boardStore } from './planner'
-
 /**
- * Draws a thumbnail on a canvas that exists only while its cell is near the screen. Removing the
- * canvas is what frees the bitmap. An <img> will not do: Chromium keeps what it loaded from a blob:
- * URL after the element and the URL are gone, which on a 300-image board added 120 MB with every
- * scroll through it.
+ * Draws a stored image on a canvas that exists only while it is needed. Removing the canvas is what
+ * frees the bitmap. An <img> will not do: Chromium keeps what it loaded from a blob: URL after the
+ * element and the URL are gone, which on a 300-image board added 120 MB with every scroll through
+ * it.
  */
-export function useThumbnail(canvas: RefObject<HTMLCanvasElement | null>, id: string) {
+export function useCanvasImage(
+  canvas: RefObject<HTMLCanvasElement | null>,
+  id: string,
+  read: (id: string) => Promise<Blob | undefined>
+) {
   useEffect(() => {
     const element = canvas.current
     const context = element?.getContext('bitmaprenderer')
     if (!element || !context) return
     let cancelled = false
-    void boardStore
-      .getThumbnail(id)
+    void read(id)
       .then((blob) => blob && createImageBitmap(blob))
       .then((bitmap) => {
         if (!bitmap) return
@@ -30,5 +31,5 @@ export function useThumbnail(canvas: RefObject<HTMLCanvasElement | null>, id: st
     return () => {
       cancelled = true
     }
-  }, [canvas, id])
+  }, [canvas, id, read])
 }

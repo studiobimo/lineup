@@ -1,13 +1,14 @@
 import type { Announcements } from '@dnd-kit/core'
 import type { TFunction } from 'i18next'
 
+import { containerOf } from './board'
 import { plannerStore } from './planner'
 
 /** What a screen reader says, since the library would otherwise read out each cell's id. */
 export function dragAnnouncements(t: TFunction<'planner'>): Announcements {
   const place = (id: string | number) => {
     const { board } = plannerStore.getState()
-    const container = board.tray.includes(String(id)) ? 'tray' : 'grid'
+    const container = containerOf(board, String(id))
     const position = board[container].indexOf(String(id)) + 1
     return t('place', { context: container, position })
   }

@@ -1,6 +1,6 @@
 import { Redo2, Undo2 } from 'lucide-react'
 import { m } from 'motion/react'
-import { useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton, SharedTooltip } from '@/components/icon-button'
@@ -33,10 +33,13 @@ import { type BoardHold, holdBoard } from './board-lock'
 import { cellTooltip } from './cell-tooltip'
 import { useEmptyAreaMark } from './drag-target'
 import { ImportButtons, ImportProgress, ImportTargets } from './import-controls'
+import { useLightboxId } from './lightbox-store'
 import { instagram } from './network-profile'
 import { plannerStore, usePlanner } from './planner'
 import { useDropArea } from './use-board-drag'
 import { usePlannerShortcuts } from './use-planner-shortcuts'
+
+const Lightbox = lazy(() => import('./lightbox').then(({ Lightbox }) => ({ default: Lightbox })))
 
 const columns = { gridTemplateColumns: `repeat(${instagram.columns}, minmax(0, 1fr))` }
 
@@ -119,6 +122,16 @@ function MobileTray() {
         </DrawerPanel>
       </DrawerPopup>
     </Drawer>
+  )
+}
+
+function OpenImage() {
+  const id = useLightboxId()
+  if (!id) return null
+  return (
+    <Suspense>
+      <Lightbox id={id} />
+    </Suspense>
   )
 }
 
@@ -225,6 +238,7 @@ export function PlannerPage() {
         <ImportTargets />
         <SaveFailure />
         <SharedTooltip handle={cellTooltip} />
+        <OpenImage />
         {desktop && <TrayPanel />}
         <GridPanel desktop={desktop} />
       </div>

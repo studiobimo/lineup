@@ -300,6 +300,36 @@ test('clearing asks first, says how many, and can be undone', async ({ page }) =
   expect(errors).toEqual([])
 })
 
+test('an image opens full size, steps along, zooms, and closes', async ({ page }) => {
+  const errors = watchErrors(page)
+  const { cells } = await boardOfFour(page)
+  const dialog = page.getByRole('dialog')
+  const zoom = dialog.locator('[data-zoom]')
+
+  await cells.nth(0).dblclick()
+  await expect(dialog.getByText('1 of 3')).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Previous image' })).toBeDisabled()
+  // A canvas with nothing drawn on it is 300 wide, and these images are 2.
+  await expect
+    .poll(() => dialog.locator('canvas').evaluate((c: HTMLCanvasElement) => c.width))
+    .toBe(2)
+
+  await page.keyboard.press('ArrowRight')
+  await expect(dialog.getByText('2 of 3')).toBeVisible()
+
+  await dialog.getByRole('button', { name: 'Zoom in' }).click()
+  await expect(zoom).toHaveAttribute('data-zoom', '2')
+  await dialog.getByRole('button', { name: 'Zoom out' }).click()
+  await expect(zoom).toHaveAttribute('data-zoom', '1')
+
+  await page.keyboard.press('Control+z')
+  expect((await order(page)).grid).toHaveLength(3)
+
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
 test('holding Shift inserts on the side the pointer is on', async ({ page }) => {
   const { before, cells } = await boardOfFour(page)
   const [a, b, c] = before.grid

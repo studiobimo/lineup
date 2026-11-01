@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Trash2 } from 'lucide-react'
+import { ArrowRightLeft, Maximize2, Trash2 } from 'lucide-react'
 import { m, useMotionValue } from 'motion/react'
 import { memo, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import type { Container } from './board'
 import { cellTooltip } from './cell-tooltip'
 import { useAirborne, useDropMark } from './drag-target'
+import { openLightbox } from './lightbox-store'
 import { GLIDING_Z, settle } from './motion'
 import { instagram } from './network-profile'
 import { plannerStore } from './planner'
@@ -30,6 +31,15 @@ const CellActions = memo(function CellActions({ id, container }: Omit<BoardCellP
   const toTray = container === 'grid'
   return (
     <div className="absolute inset-x-0 top-0 flex justify-end gap-1 p-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
+      <IconButton
+        variant="outline"
+        size="icon-xs"
+        tooltip={cellTooltip}
+        label={t('openImage')}
+        onClick={() => openLightbox(id)}
+      >
+        <Maximize2 />
+      </IconButton>
       <IconButton
         variant="outline"
         size="icon-xs"
@@ -95,6 +105,7 @@ export function BoardCell({ id, container, position }: BoardCellProps) {
       style={{ aspectRatio: `${width} / ${height}`, zIndex }}
     >
       <div
+        onDoubleClick={() => openLightbox(id)}
         className={cn(
           'size-full transition duration-200 ease-out',
           mark === 'swap' && 'scale-95 opacity-50'
