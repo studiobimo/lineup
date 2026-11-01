@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 import { expect, type Page, test } from '@playwright/test'
 
-import { addImages, image, savedBoard, savedImages, watchErrors, withCaptureDate } from './fixtures'
+import { addImages, image, savedBoard, savedImages, watchErrors, withExif } from './fixtures'
 
 const photos = new URL('../../../test-images/', import.meta.url)
 
@@ -166,29 +166,61 @@ test('bands put the dark images first and the light ones after', async ({ page }
   await expect.poll(darkFirst).toBe(true)
 })
 
-test('a capture date is kept only when the setting is on', async ({ page }) => {
+test('a date and a city are kept only when asked for, and a position never', async ({ page }) => {
   const photo = (name: string) => ({
     name,
     mimeType: 'image/jpeg',
-    buffer: withCaptureDate(readFileSync(testImages[0]), '2024:05:06 12:00:00')
+    buffer: withExif(readFileSync(testImages[0]), {
+      taken: '2024:05:06 12:00:00',
+      north: 26,
+      west: 80
+    })
   })
+  const facts = async () => {
+    const images = await savedImages(page)
+    return images.map(({ takenAt, place }) => [takenAt?.slice(0, 10), place]).sort()
+  }
   await page.goto('/')
   await addImages(page, [photo('off.jpg')])
   await expect(page.getByRole('img')).toHaveCount(1)
 
   await page.getByRole('button', { name: 'Settings' }).click()
-  const setting = page.getByRole('switch', { name: 'Read capture dates' })
-  await expect(setting).not.toBeChecked()
-  await setting.click()
+  const dates = page.getByRole('switch', { name: 'Read capture dates' })
+  const locations = page.getByRole('switch', { name: 'Read locations' })
+  await expect(dates).not.toBeChecked()
+  await expect(locations).not.toBeChecked()
+  await dates.click()
+  await locations.click()
   await page.keyboard.press('Escape')
   await addImages(page, [photo('on.jpg')])
   await expect(page.getByRole('img')).toHaveCount(2)
 
-  await expect
-    .poll(async () => (await savedImages(page)).map(({ takenAt }) => takenAt?.slice(0, 10)).sort())
-    .toEqual(['2024-05-06', undefined])
+  await expect.poll(facts).toEqual([
+    [undefined, undefined],
+    ['2024-05-06', 'Hollywood, US']
+  ])
+  expect(JSON.stringify(await savedImages(page))).not.toMatch(/latitude|longitude/i)
+
+  // The copy that goes to Instagram is re-encoded, so the photo's metadata stays behind.
+  const copiesWithExif = await page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        const opening = indexedDB.open('lineup')
+        opening.onsuccess = () => {
+          const copies = opening.result.transaction('publishCopies').objectStore('publishCopies')
+          const reading = copies.getAll()
+          reading.onsuccess = async () => {
+            opening.result.close()
+            const texts = await Promise.all((reading.result as Blob[]).map((copy) => copy.text()))
+            resolve(texts.length === 2 ? texts.filter((text) => text.includes('Exif')).length : -1)
+          }
+        }
+      })
+  )
+  expect(copiesWithExif).toBe(0)
 
   await page.reload()
   await page.getByRole('button', { name: 'Settings' }).click()
-  await expect(setting).toBeChecked()
+  await expect(dates).toBeChecked()
+  await expect(locations).toBeChecked()
 })

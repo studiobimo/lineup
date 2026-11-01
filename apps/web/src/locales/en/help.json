@@ -48,7 +48,8 @@
   },
   "photos": "Photos",
   "captureDates": "Read capture dates",
-  "captureDatesNote": "Reads when each photo was taken as you add it, so Bands can keep a shoot together. The date stays in this browser. Photos already on the board keep none, because Lineup does not keep originals, and photos added while this is on keep theirs after you turn it off.",
+  "locations": "Read locations",
+  "photosNote": "As you add a photo, Bands can use when it was taken and the city it was taken in to keep a shoot together. Lineup keeps the city, never the exact position, and neither leaves this browser. Photos already on the board have none, because Lineup does not keep originals. Turning a switch off does not remove what was already read.",
   "storage": "Storage on this device",
   "storageUsed": "{{used}} of {{quota}} used",
   "storageNote": "Your images are kept in this browser and never leave it until you schedule a post."

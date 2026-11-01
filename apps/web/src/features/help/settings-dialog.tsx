@@ -29,7 +29,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const theme = useSyncExternalStore(subscribeToTheme, getTheme)
   const [usage, setUsage] = useState<StorageUsage>()
   const { handle, name } = useProfile()
-  const { readCaptureDates } = useImportSettings()
+  const { readCaptureDates, readLocations } = useImportSettings()
 
   useEffect(() => {
     void boardStore.storageUsage().then(setUsage)
@@ -94,7 +94,14 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 onCheckedChange={(checked) => saveImportSettings({ readCaptureDates: checked })}
               />
             </Label>
-            <p className="mt-2 text-sm text-muted-foreground">{t('captureDatesNote')}</p>
+            <Label className="mt-2 flex items-center justify-between gap-4 font-normal">
+              {t('locations')}
+              <Switch
+                checked={readLocations}
+                onCheckedChange={(checked) => saveImportSettings({ readLocations: checked })}
+              />
+            </Label>
+            <p className="mt-2 text-sm text-muted-foreground">{t('photosNote')}</p>
           </section>
           <section>
             <h3 className="mb-2 text-sm font-medium">{t('storage')}</h3>

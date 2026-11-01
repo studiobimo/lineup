@@ -18,22 +18,52 @@ export async function choose(page: Page, button: string, files: Chosen) {
 
 export const addImages = (page: Page, files: Chosen) => choose(page, 'Add images', files)
 
-/** Adds the least Exif that says when a photo was taken, `taken` as `YYYY:MM:DD HH:MM:SS`. */
-export function withCaptureDate(jpeg: Buffer, taken: string) {
-  const tiff = Buffer.alloc(64)
+interface PhotoFacts {
+  /** As Exif writes it: `YYYY:MM:DD HH:MM:SS`. */
+  taken: string
+  /** Whole degrees, north and west, which is all a test needs. */
+  north: number
+  west: number
+}
+
+/** Adds the least Exif that says when and where a photo was taken. */
+export function withExif(jpeg: Buffer, { taken, north, west }: PhotoFacts) {
+  const tiff = Buffer.alloc(200)
+  const [ASCII, LONG, RATIONAL] = [2, 4, 5]
+  const [exifAt, gpsAt, takenAt, latitudeAt, longitudeAt] = [38, 56, 112, 132, 156]
+  const directory = (at: number, entries: [number, number, number, number][]) => {
+    tiff.writeUInt16LE(entries.length, at)
+    for (const [index, [tag, type, count, value]] of entries.entries()) {
+      const entry = at + 2 + index * 12
+      tiff.writeUInt16LE(tag, entry)
+      tiff.writeUInt16LE(type, entry + 2)
+      tiff.writeUInt32LE(count, entry + 4)
+      tiff.writeUInt32LE(value, entry + 8)
+    }
+  }
+  const degrees = (at: number, value: number) => {
+    tiff.writeUInt32LE(value, at)
+    tiff.writeUInt32LE(1, at + 4)
+    tiff.writeUInt32LE(1, at + 12)
+    tiff.writeUInt32LE(1, at + 20)
+  }
   tiff.write('II', 0, 'latin1')
   tiff.writeUInt16LE(42, 2)
   tiff.writeUInt32LE(8, 4)
-  const entry = (at: number, tag: number, type: number, count: number, value: number) => {
-    tiff.writeUInt16LE(1, at)
-    tiff.writeUInt16LE(tag, at + 2)
-    tiff.writeUInt16LE(type, at + 4)
-    tiff.writeUInt32LE(count, at + 6)
-    tiff.writeUInt32LE(value, at + 10)
-  }
-  entry(8, 0x8769, 4, 1, 26)
-  entry(26, 0x9003, 2, 20, 44)
-  tiff.write(taken, 44, 'latin1')
+  directory(8, [
+    [0x8769, LONG, 1, exifAt],
+    [0x8825, LONG, 1, gpsAt]
+  ])
+  directory(exifAt, [[0x9003, ASCII, 20, takenAt]])
+  directory(gpsAt, [
+    [1, ASCII, 2, 'N'.charCodeAt(0)],
+    [2, RATIONAL, 3, latitudeAt],
+    [3, ASCII, 2, 'W'.charCodeAt(0)],
+    [4, RATIONAL, 3, longitudeAt]
+  ])
+  tiff.write(taken, takenAt, 'latin1')
+  degrees(latitudeAt, north)
+  degrees(longitudeAt, west)
   const body = Buffer.concat([Buffer.from('Exif\0\0', 'latin1'), tiff])
   const segment = Buffer.alloc(4)
   segment.writeUInt16BE(0xffe1, 0)
@@ -61,6 +91,7 @@ export interface SavedImage {
   id: string
   colour?: { dominant: { hue: number }; tone: number }
   takenAt?: string
+  place?: string
 }
 
 /** What a reload would find. On the page it is the store, not what is drawn. */
