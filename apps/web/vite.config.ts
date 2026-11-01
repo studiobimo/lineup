@@ -15,6 +15,9 @@ export default defineConfig(
   mergeConfig(await app({ site }), {
     build: { assetsInlineLimit: 0 },
     plugins: report,
+    // Every source file, not just what the first page reaches. Otherwise a lazy dialog's new
+    // dependency is found while it loads, and the dev server fails that request with a 504.
+    optimizeDeps: { entries: ['src/**/*.{ts,tsx}'] },
     // The default worker format inlines dynamic imports, which would load the metadata reader and
     // the city list with every import, for people who have not turned either on.
     worker: { format: 'es' }
