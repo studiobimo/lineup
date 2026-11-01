@@ -41,7 +41,8 @@ export async function importImages(
   try {
     for (const [index, file] of files.entries()) {
       try {
-        images.push(await runInWorker<ProcessedImage>(worker, { kind: 'process', file, read }))
+        const image = await runInWorker<ProcessedImage>(worker, { kind: 'process', file, read })
+        images.push({ ...image, original: file })
       } catch {
         failed += 1
       }

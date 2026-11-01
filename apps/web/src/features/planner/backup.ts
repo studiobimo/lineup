@@ -74,8 +74,9 @@ export async function createBackup(store: BackupSource, board: Board) {
     images.push({ ...record, thumbnail, publish })
   }
 
+  // Parsed, so that what a store knows beyond the format, such as a file's name, stays behind.
   const manifest = new TextEncoder().encode(
-    JSON.stringify({ version: FORMAT_VERSION, board, images } satisfies Manifest)
+    JSON.stringify(manifestSchema.parse({ version: FORMAT_VERSION, board, images }))
   )
   const length = new DataView(new ArrayBuffer(Uint32Array.BYTES_PER_ELEMENT))
   length.setUint32(0, manifest.length, true)

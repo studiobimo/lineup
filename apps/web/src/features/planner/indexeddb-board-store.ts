@@ -12,7 +12,8 @@ import {
   emptyBoard,
   emptyHistory,
   type History,
-  type ImageRecord
+  type ImageRecord,
+  toRecord
 } from './board-store'
 
 interface LineupDb extends DBSchema {
@@ -86,14 +87,14 @@ export function createIndexedDbBoardStore(name = 'lineup', steps = migrations): 
       return db.getAll('images')
     },
 
-    async putImage({ thumbnail, publish, ...record }) {
+    async putImage(image) {
       const db = await open()
       // One transaction: a crash cannot leave a record without its bytes.
       const transaction = db.transaction(['images', 'thumbnails', 'publishCopies'], 'readwrite')
       await Promise.all([
-        transaction.objectStore('images').put(record),
-        transaction.objectStore('thumbnails').put(thumbnail, record.id),
-        transaction.objectStore('publishCopies').put(publish, record.id),
+        transaction.objectStore('images').put(toRecord(image)),
+        transaction.objectStore('thumbnails').put(image.thumbnail, image.id),
+        transaction.objectStore('publishCopies').put(image.publish, image.id),
         transaction.done
       ])
     },

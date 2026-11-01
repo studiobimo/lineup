@@ -19,6 +19,10 @@ export interface ImageRecord {
   takenAt?: string
   /** A city and a country, if the locations setting was on. Coordinates are never kept. */
   place?: string
+  /** A folder board's original, by its path in the folder. */
+  fileName?: string
+  /** Worked out on each load, not stored: that original was not in the folder. */
+  missing?: boolean
 }
 
 /** Whole boards, oldest first in `past`, so that a step can never be half undone. */
@@ -35,6 +39,8 @@ export interface StorageUsage {
 export interface StoredImage extends ImageRecord {
   thumbnail: Blob
   publish: Blob
+  /** For a store that keeps originals. A browser board does not, and a backup has none. */
+  original?: Blob
 }
 
 /**
@@ -42,6 +48,29 @@ export interface StoredImage extends ImageRecord {
  * (ADR-0002). Bytes come out one image at a time and never join the records: application state
  * holds records only, however many images a board has.
  */
+/** An image without its bytes, which never join the state or a store's records. */
+export const toRecord = ({
+  id,
+  width,
+  height,
+  createdAt,
+  colour,
+  takenAt,
+  place,
+  fileName,
+  missing
+}: ImageRecord): ImageRecord => ({
+  id,
+  width,
+  height,
+  createdAt,
+  colour,
+  takenAt,
+  place,
+  fileName,
+  missing
+})
+
 export interface BoardStore {
   loadBoard(): Promise<Board>
   saveBoard(board: Board): Promise<void>

@@ -19,6 +19,8 @@ interface Size {
 export interface ProcessedImage extends Size, PhotoMetadata {
   thumbnail: Blob
   publish: Blob
+  /** Added back on the main thread, which still has the file: the worker never returns it. */
+  original?: Blob
   colour: ImageColour
 }
 

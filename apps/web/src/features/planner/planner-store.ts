@@ -17,7 +17,7 @@ import {
   toggleLock
 } from './board'
 import type { Backup } from './backup'
-import { type Board, type BoardStore, emptyBoard, type ImageRecord } from './board-store'
+import { type Board, type BoardStore, emptyBoard, type ImageRecord, toRecord } from './board-store'
 import type { ProcessedImage } from './process-image'
 
 const HISTORY_LIMIT = 50
@@ -52,17 +52,6 @@ export interface PlannerState {
   undo(): void
   redo(): void
 }
-
-/** A stored image without its bytes, which never join the state. */
-const toRecord = ({ id, width, height, createdAt, colour, takenAt, place }: ImageRecord) => ({
-  id,
-  width,
-  height,
-  createdAt,
-  colour,
-  takenAt,
-  place
-})
 
 export function createPlannerStore(boardStore: BoardStore) {
   return createStore<PlannerState>((set, get) => {

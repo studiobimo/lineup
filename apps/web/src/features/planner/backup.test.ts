@@ -49,6 +49,17 @@ describe('a backup', () => {
     ])
   })
 
+  it('leaves out what only a folder knows, such as the name of a person’s file', async () => {
+    const source = {
+      ...store(),
+      listImages: async () =>
+        ['a', 'b'].map((id) => ({ ...record(id), fileName: 'holiday.jpg', missing: true }))
+    }
+    const file = await createBackup(source, board)
+    expect((await readBackup(file)).images[0]).not.toHaveProperty('fileName')
+    expect(await file.text()).not.toContain('holiday')
+  })
+
   it('reads no bytes into the manifest, however large the images', async () => {
     const big = { ...store(), getPublishCopy: async () => new Blob([new Uint8Array(4096)]) }
     const file = await createBackup(big, board)
