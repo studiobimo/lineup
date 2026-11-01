@@ -1,8 +1,9 @@
 import { CircleHelp, Settings } from 'lucide-react'
-import { lazy, Suspense, useState } from 'react'
+import { lazy, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
+import { LazyOverlay } from '@/components/lazy-overlay'
 
 const HelpDialog = lazy(() =>
   import('./help-dialog').then(({ HelpDialog }) => ({ default: HelpDialog }))
@@ -23,10 +24,11 @@ export function ShellActions() {
       <IconButton variant="ghost" label={t('settings')} onClick={() => setOpen('settings')}>
         <Settings />
       </IconButton>
-      <Suspense>
-        {open === 'help' && <HelpDialog onClose={close} />}
-        {open === 'settings' && <SettingsDialog onClose={close} />}
-      </Suspense>
+      {open && (
+        <LazyOverlay onClose={close}>
+          {open === 'help' ? <HelpDialog onClose={close} /> : <SettingsDialog onClose={close} />}
+        </LazyOverlay>
+      )}
     </>
   )
 }

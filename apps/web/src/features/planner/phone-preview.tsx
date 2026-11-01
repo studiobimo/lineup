@@ -11,19 +11,17 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 
-import { gridColumns, instagram } from './network-profile'
+import { cellShape, gridColumns } from './network-profile'
 import { usePlanner } from './planner'
 import { Thumbnail } from './thumbnail'
 import { useNearViewport } from './use-near-viewport'
-
-const { width, height } = instagram.cellRatio
 
 function PreviewCell({ id, position }: { id: string; position: number }) {
   const { t } = useTranslation('planner')
   const cell = useRef<HTMLDivElement>(null)
   const near = useNearViewport(cell)
   return (
-    <div ref={cell} className="bg-muted" style={{ aspectRatio: `${width} / ${height}` }}>
+    <div ref={cell} className="bg-muted" style={cellShape}>
       {near && <Thumbnail id={id} label={t('cell', { position })} />}
     </div>
   )

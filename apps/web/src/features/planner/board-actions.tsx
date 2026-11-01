@@ -1,8 +1,9 @@
 import { ChevronsLeft, ChevronsRight, Eraser, Shuffle, Smartphone } from 'lucide-react'
-import { lazy, type ReactNode, Suspense, useState } from 'react'
+import { lazy, type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
+import { LazyOverlay } from '@/components/lazy-overlay'
 import {
   AlertDialog,
   AlertDialogClose,
@@ -67,9 +68,9 @@ export function PreviewOnPhone() {
         <Smartphone />
       </IconButton>
       {open && (
-        <Suspense>
+        <LazyOverlay onClose={() => setOpen(false)}>
           <PhonePreview onClose={() => setOpen(false)} />
-        </Suspense>
+        </LazyOverlay>
       )}
     </>
   )

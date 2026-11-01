@@ -22,6 +22,8 @@ export interface PlannerState {
   past: Board[]
   future: Board[]
   ready: boolean
+  /** The board could not be read, so nothing can be shown or safely saved over it. */
+  loadFailed: boolean
   /** Only the active tab writes or purges (ADR-0010). */
   session: 'starting' | 'active' | 'elsewhere'
   /** The last write to the store failed: what is on screen may not survive a reload. */
@@ -76,14 +78,20 @@ export function createPlannerStore(boardStore: BoardStore) {
       past: [],
       future: [],
       ready: false,
+      loadFailed: false,
       session: 'starting',
       saveFailed: false,
 
       async load() {
-        const [stored, records] = await Promise.all([
-          boardStore.loadBoard(),
-          boardStore.listImages()
-        ])
+        set({ loadFailed: false })
+        const reading = await Promise.all([boardStore.loadBoard(), boardStore.listImages()]).catch(
+          () => null
+        )
+        if (!reading) {
+          set({ loadFailed: true })
+          return
+        }
+        const [stored, records] = reading
         const images = Object.fromEntries(records.map((record) => [record.id, record]))
         const known = (id: string) => id in images
         set({

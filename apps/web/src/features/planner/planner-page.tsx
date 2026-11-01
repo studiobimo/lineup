@@ -1,9 +1,11 @@
 import { Redo2, Undo2 } from 'lucide-react'
 import { m } from 'motion/react'
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { lazy, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { AreaBoundary } from '@/components/area-boundary'
 import { IconButton, SharedTooltip } from '@/components/icon-button'
+import { LazyOverlay } from '@/components/lazy-overlay'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -21,6 +23,7 @@ import {
   EmptyTitle
 } from '@/components/ui/empty'
 import { Group } from '@/components/ui/group'
+import { Skeleton } from '@/components/ui/skeleton'
 import { toastManager } from '@/components/ui/toast'
 import { Intro } from '@/features/help/intro'
 import { useMediaQuery } from '@/hooks/use-media-query'
@@ -34,17 +37,34 @@ import { type BoardHold, holdBoard } from './board-lock'
 import { cellTooltip } from './cell-tooltip'
 import { useEmptyAreaMark } from './drag-target'
 import { ImportButtons, ImportProgress, ImportTargets } from './import-controls'
-import { useLightboxId } from './lightbox-store'
-import { gridColumns } from './network-profile'
+import { closeLightbox, useLightboxId } from './lightbox-store'
+import { cellShape, gridColumns } from './network-profile'
 import { plannerStore, usePlanner } from './planner'
 import { useDropArea } from './use-board-drag'
 import { usePlannerShortcuts } from './use-planner-shortcuts'
+
+const SKELETON_CELLS = 6
 
 const Lightbox = lazy(() => import('./lightbox').then(({ Lightbox }) => ({ default: Lightbox })))
 
 function Cells({ container, className }: { container: Container; className?: string }) {
   const { t } = useTranslation('planner')
   const ids = usePlanner((state) => state.board[container])
+  const ready = usePlanner((state) => state.ready)
+  if (!ready) {
+    return (
+      <div
+        role="status"
+        aria-label={t('loading')}
+        className={cn('grid gap-0.5', className)}
+        style={gridColumns}
+      >
+        {Array.from({ length: SKELETON_CELLS }, (_, cell) => (
+          <Skeleton key={cell} style={cellShape} />
+        ))}
+      </div>
+    )
+  }
   if (ids.length === 0) {
     return (
       <p className="p-4 text-sm text-muted-foreground">
@@ -128,9 +148,9 @@ function OpenImage() {
   const id = useLightboxId()
   if (!id) return null
   return (
-    <Suspense>
+    <LazyOverlay onClose={closeLightbox}>
       <Lightbox id={id} />
-    </Suspense>
+    </LazyOverlay>
   )
 }
 
@@ -161,14 +181,15 @@ function TrayPanel() {
       <h2 className="p-4 text-xl">{t('tray')}</h2>
       <TrayToolbar />
       <ImportProgress />
-      <Cells container="tray" className="px-4 pb-4" />
+      <AreaBoundary>
+        <Cells container="tray" className="px-4 pb-4" />
+      </AreaBoundary>
     </m.aside>
   )
 }
 
 function GridPanel({ desktop }: { desktop: boolean }) {
   const { t } = useTranslation('planner')
-  const ready = usePlanner((state) => state.ready)
   const { ref, dropArea } = useDropArea('grid')
   const marked = useEmptyAreaMark('grid')
   return (
@@ -193,7 +214,9 @@ function GridPanel({ desktop }: { desktop: boolean }) {
         {!desktop && <TrayToolbar />}
         {!desktop && <ImportProgress />}
         {/* On a phone the grid runs edge to edge, as it does in Instagram. */}
-        {ready && <Cells container="grid" className={cn(desktop && 'px-4 pb-4')} />}
+        <AreaBoundary>
+          <Cells container="grid" className={cn(desktop && 'px-4 pb-4')} />
+        </AreaBoundary>
       </div>
     </section>
   )
@@ -203,6 +226,7 @@ export function PlannerPage() {
   const { t } = useTranslation('planner')
   const desktop = useMediaQuery('md')
   const session = usePlanner((state) => state.session)
+  const loadFailed = usePlanner((state) => state.loadFailed)
   const hold = useRef<BoardHold>(null)
   usePlannerShortcuts()
 
@@ -215,6 +239,22 @@ export function PlannerPage() {
       plannerStore.setState({ session: 'starting' })
     }
   }, [])
+
+  if (loadFailed) {
+    return (
+      <Empty className="min-h-[calc(100dvh-3.5rem)]">
+        <EmptyHeader>
+          <EmptyTitle>
+            <h1>{t('loadFailedTitle')}</h1>
+          </EmptyTitle>
+          <EmptyDescription>{t('loadFailedDescription')}</EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button onClick={() => void plannerStore.getState().load()}>{t('tryAgain')}</Button>
+        </EmptyContent>
+      </Empty>
+    )
+  }
 
   if (session === 'elsewhere') {
     return (

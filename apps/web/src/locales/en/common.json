@@ -3,6 +3,13 @@
     "title": "Welcome to {{name}}",
     "description": "Plan your Instagram feed before it goes live: arrange, sort by colour, group into albums and schedule posts."
   },
+  "errors": {
+    "area": "This part of the page ran into a problem. The rest of it still works.",
+    "overlay": "That could not be opened. Reload the page and try again.",
+    "routeTitle": "This page ran into a problem",
+    "routeDescription": "Your board is safe on this device.",
+    "retry": "Try again"
+  },
   "theme": {
     "light": "Switch to light theme",
     "dark": "Switch to dark theme"

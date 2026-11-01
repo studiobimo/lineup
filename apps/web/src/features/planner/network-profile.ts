@@ -5,4 +5,8 @@ export const instagram = {
   carouselLimit: 20
 } as const
 
+const { width, height } = instagram.cellRatio
+
+export const cellShape = { aspectRatio: `${width} / ${height}` }
+
 export const gridColumns = { gridTemplateColumns: `repeat(${instagram.columns}, minmax(0, 1fr))` }

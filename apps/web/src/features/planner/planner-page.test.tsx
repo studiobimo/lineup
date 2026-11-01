@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { boardStore, plannerStore } from './planner'
 import { PlannerPage } from './planner-page'
@@ -141,5 +141,23 @@ describe('PlannerPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Undo' }))
     expect(plannerStore.getState().board.grid).toEqual([first, second])
+  })
+
+  it('shows a skeleton until the board has loaded', async () => {
+    render(<PlannerPage />)
+    expect(screen.getByRole('status', { name: 'Loading your board' })).toBeInTheDocument()
+    await screen.findByText('Move images here to plan your feed.')
+    expect(screen.queryByRole('status', { name: 'Loading your board' })).not.toBeInTheDocument()
+  })
+
+  it('offers to try again when the board cannot be read', async () => {
+    const user = userEvent.setup()
+    const read = vi.spyOn(boardStore, 'loadBoard').mockRejectedValueOnce(new Error('blocked'))
+    render(<PlannerPage />)
+
+    await screen.findByRole('heading', { name: 'Your board could not be opened' })
+    read.mockRestore()
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    await screen.findByText('Move images here to plan your feed.')
   })
 })

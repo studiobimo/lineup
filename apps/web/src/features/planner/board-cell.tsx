@@ -11,13 +11,11 @@ import { cellTooltip } from './cell-tooltip'
 import { useAirborne, useDropMark } from './drag-target'
 import { openLightbox } from './lightbox-store'
 import { GLIDING_Z, settle } from './motion'
-import { instagram } from './network-profile'
+import { cellShape } from './network-profile'
 import { plannerStore } from './planner'
 import { Thumbnail } from './thumbnail'
 import { useCellDrag } from './use-board-drag'
 import { useNearViewport } from './use-near-viewport'
-
-const { width, height } = instagram.cellRatio
 
 interface BoardCellProps {
   id: string
@@ -102,7 +100,7 @@ export function BoardCell({ id, container, position }: BoardCellProps) {
         isDragging && 'opacity-30',
         airborne && 'opacity-0'
       )}
-      style={{ aspectRatio: `${width} / ${height}`, zIndex }}
+      style={{ ...cellShape, zIndex }}
     >
       <div
         onDoubleClick={() => openLightbox(id)}
