@@ -45,6 +45,54 @@ async function loaded(board: Board = start) {
 }
 
 describe('the planner store', () => {
+  describe('sorting by colour', () => {
+    const shade = (hue: number, lightness = 0.6) => {
+      const dominant = { lightness, chroma: 0.2, hue }
+      return { dominant, palette: [dominant] }
+    }
+
+    async function coloured() {
+      const opened = await loaded({ tray: ['grey'], grid: ['blue', 'red', 'green'] })
+      opened.state().setColour('blue', shade(264))
+      opened.state().setColour('red', shade(29))
+      opened.state().setColour('green', shade(142))
+      return opened
+    }
+
+    it('is one undo step that restores the exact order, and redoes', async () => {
+      const { boardStore, state } = await coloured()
+      state().sortByColour('grid', 'rainbow')
+      expect(state().board.grid).toEqual(['red', 'green', 'blue'])
+      expect(boardStore.saved.grid).toEqual(['red', 'green', 'blue'])
+      expect(state().past).toHaveLength(1)
+
+      state().undo()
+      expect(state().board.grid).toEqual(['blue', 'red', 'green'])
+      state().redo()
+      expect(state().board.grid).toEqual(['red', 'green', 'blue'])
+    })
+
+    it('leaves the other container alone', async () => {
+      const { state } = await coloured()
+      state().sortByColour('grid', 'rainbow')
+      expect(state().board.tray).toEqual(['grey'])
+    })
+
+    it('is not a mode: the next manual move stays where it is put', async () => {
+      const { state } = await coloured()
+      state().sortByColour('grid', 'rainbow')
+      state().swap('red', 'blue')
+      expect(state().board.grid).toEqual(['blue', 'green', 'red'])
+    })
+
+    it('adds no undo step when the order is already right', async () => {
+      const { state } = await coloured()
+      state().sortByColour('grid', 'rainbow')
+      state().sortByColour('grid', 'rainbow')
+      expect(state().past).toHaveLength(1)
+    })
+  })
+
   describe('every action can be undone and redone exactly', () => {
     const actions: [string, (state: PlannerState) => void | Promise<void>][] = [
       ['import', (state) => state.addImages([processed, processed])],
