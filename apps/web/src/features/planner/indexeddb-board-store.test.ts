@@ -67,6 +67,14 @@ describe('the IndexedDB board store', () => {
     expect(await store.getThumbnail('b')).toBeDefined()
   })
 
+  it('keeps the undo history, and has an empty one to begin with', async () => {
+    const store = createIndexedDbBoardStore(crypto.randomUUID())
+    expect(await store.loadHistory()).toEqual({ past: [], future: [] })
+    const history = { past: [{ tray: ['a'], grid: [] }], future: [] }
+    await store.saveHistory(history)
+    expect(await store.loadHistory()).toEqual(history)
+  })
+
   it('opens a board saved by an earlier schema, through the migrations after it', async () => {
     const name = uniqueName()
     await createIndexedDbBoardStore(name).saveBoard({ tray: ['a'], grid: [] })

@@ -49,6 +49,23 @@ test('imports, arranges, undoes and comes back after a reload', async ({ page })
   expect(errors).toEqual([])
 })
 
+test('undo reaches past a reload, and brings back a deleted image', async ({ page }) => {
+  const { before, cells } = await boardOfFour(page)
+  const remove = page.locator('section').getByRole('button', { name: 'Delete' })
+  await remove.first().evaluate((button) => (button as HTMLElement).click())
+  await expect(cells).toHaveCount(2)
+
+  await reloadWhenSaved(page, ({ grid }) => grid.length === 2)
+  await expect(cells).toHaveCount(2)
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect(cells).toHaveCount(3)
+  await expect.poll(async () => (await savedBoard(page)).grid).toEqual(before.grid)
+  await expect(cells.first()).toHaveJSProperty('width', 2)
+
+  await page.getByRole('button', { name: 'Redo' }).click()
+  await expect(cells).toHaveCount(2)
+})
+
 test('one tab at a time changes a board', async ({ context, page }) => {
   await page.goto('/')
   await addImages(page, [image('one.png'), image('two.png')])
@@ -72,7 +89,10 @@ test('one tab at a time changes a board', async ({ context, page }) => {
 
   await second.close()
   await expect(page.getByRole('img')).toHaveCount(2)
-  await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled()
+
+  // The history moved between the tabs with the board, so the delete undone above can be redone.
+  await page.getByRole('button', { name: 'Redo' }).click()
+  await expect(page.getByRole('img')).toHaveCount(1)
 })
 
 // Builds real files in the page, because a drop or a paste can only be dispatched from inside it.

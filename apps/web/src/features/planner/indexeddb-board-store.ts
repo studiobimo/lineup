@@ -6,10 +6,18 @@ import {
   type StoreNames
 } from 'idb'
 
-import { type Board, type BoardStore, emptyBoard, type ImageRecord } from './board-store'
+import {
+  type Board,
+  type BoardStore,
+  emptyBoard,
+  emptyHistory,
+  type History,
+  type ImageRecord
+} from './board-store'
 
 interface LineupDb extends DBSchema {
   board: { key: 'current'; value: Board }
+  history: { key: 'current'; value: History }
   // Apart from the records, so that listing them never reads a blob.
   images: { key: string; value: ImageRecord }
   thumbnails: { key: string; value: Blob }
@@ -31,6 +39,9 @@ export const migrations: Migration[] = [
     db.createObjectStore('images', { keyPath: 'id' })
     db.createObjectStore('thumbnails')
     db.createObjectStore('publishCopies')
+  },
+  (db) => {
+    db.createObjectStore('history')
   }
 ]
 
@@ -58,6 +69,16 @@ export function createIndexedDbBoardStore(name = 'lineup', steps = migrations): 
     async saveBoard(board) {
       const db = await open()
       await db.put('board', board, 'current')
+    },
+
+    async loadHistory() {
+      const db = await open()
+      return (await db.get('history', 'current')) ?? emptyHistory
+    },
+
+    async saveHistory(history) {
+      const db = await open()
+      await db.put('history', history, 'current')
     },
 
     async listImages() {

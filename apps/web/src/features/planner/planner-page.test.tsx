@@ -17,6 +17,7 @@ describe('PlannerPage', () => {
   beforeEach(async () => {
     // The page does the loading, so a test cannot seed a board that a late load then overwrites.
     await boardStore.saveBoard({ tray: [], grid: [] })
+    await boardStore.saveHistory({ past: [], future: [] })
     plannerStore.setState({ images: {}, past: [], future: [], ready: false, session: 'starting' })
   })
 

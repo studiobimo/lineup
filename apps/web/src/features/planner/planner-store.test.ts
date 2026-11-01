@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Board, ImageRecord, StoredImage } from './board-store'
+import type { Board, History, ImageRecord, StoredImage } from './board-store'
 import { createPlannerStore, type PlannerState } from './planner-store'
 import type { ProcessedImage } from './process-image'
 
@@ -17,9 +17,14 @@ function fakeBoardStore(board: Board = { tray: [], grid: [] }, ids: string[] = [
   )
   const fake = {
     saved: board,
-    loadBoard: vi.fn(async () => board),
+    history: { past: [], future: [] } as History,
+    loadBoard: vi.fn(async () => fake.saved),
     saveBoard: vi.fn(async (next: Board) => {
       fake.saved = next
+    }),
+    loadHistory: vi.fn(async () => fake.history),
+    saveHistory: vi.fn(async (next: History) => {
+      fake.history = next
     }),
     listImages: vi.fn(async () => [...images.values()]),
     putImage: vi.fn(async (image: StoredImage) => {
@@ -45,6 +50,47 @@ async function loaded(board: Board = start) {
 }
 
 describe('the planner store', () => {
+  describe('after a reload', () => {
+    const reopened = async (boardStore: ReturnType<typeof fakeBoardStore>) => {
+      const store = createPlannerStore(boardStore)
+      await store.getState().load()
+      return store.getState
+    }
+
+    it('still undoes and redoes', async () => {
+      const { boardStore, state } = await loaded()
+      state().swap('c', 'd')
+      state().move('a', 'grid')
+      state().undo()
+
+      const after = await reopened(boardStore)
+      expect(after().past).toHaveLength(1)
+      after().redo()
+      expect(after().board.grid).toContain('a')
+      after().undo()
+      after().undo()
+      expect(after().board).toEqual(start)
+    })
+
+    it('keeps an image a stored step can still bring back', async () => {
+      const { boardStore, state } = await loaded()
+      state().remove(['a'])
+      const after = await reopened(boardStore)
+      expect(boardStore.deleteImages).not.toHaveBeenCalled()
+      after().undo()
+      expect(after().board.tray).toEqual(['a', 'b'])
+      expect(after().images.a).toBeDefined()
+    })
+
+    it('forgets a step for an image that is gone, and keeps the rest of it', async () => {
+      const { boardStore, state } = await loaded()
+      state().swap('c', 'd')
+      boardStore.history.past[0].grid.push('gone')
+      const after = await reopened(boardStore)
+      expect(after().past[0].grid).toEqual(start.grid)
+    })
+  })
+
   it('sorts, shuffles and clears around a locked cell, and keeps it through a reload', async () => {
     const { boardStore, state } = await loaded()
     state().toggleLock('d')
@@ -275,16 +321,18 @@ describe('the planner store', () => {
     expect(boardStore.deleteImages).not.toHaveBeenCalled()
   })
 
-  it('reads the board afresh when it comes back, with no history from before', async () => {
+  it('reads the board and its history afresh when it comes back', async () => {
     const { boardStore, state } = await loaded()
     state().move('a', 'grid')
     state().suspend()
 
+    // What the tab that held the board in the meantime left behind.
     boardStore.loadBoard.mockResolvedValueOnce({ tray: [], grid: ['e', 'd', 'c', 'b', 'a'] })
+    boardStore.loadHistory.mockResolvedValueOnce({ past: [], future: [start] })
     await state().load()
 
     expect(state().board.grid).toEqual(['e', 'd', 'c', 'b', 'a'])
-    expect(state()).toMatchObject({ past: [], future: [], session: 'active' })
+    expect(state()).toMatchObject({ past: [], future: [start], session: 'active' })
   })
 
   it('says when a save fails, and clears it when one works', async () => {

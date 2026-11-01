@@ -86,12 +86,19 @@ export function createPlannerStore(boardStore: BoardStore) {
       void report(boardStore.deleteImages(gone))
     }
 
+    const save = () => {
+      const { board, past, future } = get()
+      void report(
+        Promise.all([boardStore.saveBoard(board), boardStore.saveHistory({ past, future })])
+      )
+    }
+
     /** Every change to the board comes through here, so every change can be undone. */
     const record = (next: Board) => {
       const { board, past, session } = get()
       if (session !== 'active' || sameBoard(board, next)) return
       set({ board: next, past: [...past, board].slice(-HISTORY_LIMIT), future: [] })
-      void report(boardStore.saveBoard(next))
+      save()
       purge()
     }
 
@@ -109,29 +116,31 @@ export function createPlannerStore(boardStore: BoardStore) {
 
       async load() {
         set({ loadFailed: false })
-        const reading = await Promise.all([boardStore.loadBoard(), boardStore.listImages()]).catch(
-          () => null
-        )
+        const reading = await Promise.all([
+          boardStore.loadBoard(),
+          boardStore.listImages(),
+          boardStore.loadHistory()
+        ]).catch(() => null)
         if (!reading) {
           set({ loadFailed: true })
           return
         }
-        const [stored, records] = reading
+        const [stored, records, history] = reading
         const images = Object.fromEntries(records.map((record) => [record.id, record]))
         const known = (id: string) => id in images
+        const present = ({ tray, grid, locked }: Board): Board => ({
+          tray: tray.filter(known),
+          grid: grid.filter(known),
+          locked: locked?.filter(known)
+        })
         set({
-          board: {
-            tray: stored.tray.filter(known),
-            grid: stored.grid.filter(known),
-            locked: stored.locked?.filter(known)
-          },
+          board: present(stored),
           images,
-          past: [],
-          future: [],
+          past: history.past.map(present),
+          future: history.future.map(present),
           ready: true,
           session: 'active'
         })
-        // Undo history does not outlive a reload yet, so nothing can reach what the board does not.
         purge()
       },
 
@@ -194,7 +203,7 @@ export function createPlannerStore(boardStore: BoardStore) {
         const previous = past.at(-1)
         if (!previous || session !== 'active') return
         set({ board: previous, past: past.slice(0, -1), future: [board, ...future] })
-        void report(boardStore.saveBoard(previous))
+        save()
       },
 
       redo() {
@@ -202,7 +211,7 @@ export function createPlannerStore(boardStore: BoardStore) {
         const [next, ...rest] = future
         if (!next || session !== 'active') return
         set({ board: next, past: [...past, board], future: rest })
-        void report(boardStore.saveBoard(next))
+        save()
       }
     }
   })

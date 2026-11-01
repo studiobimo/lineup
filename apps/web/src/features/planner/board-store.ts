@@ -21,6 +21,12 @@ export interface ImageRecord {
   place?: string
 }
 
+/** Whole boards, oldest first in `past`, so that a step can never be half undone. */
+export interface History {
+  past: Board[]
+  future: Board[]
+}
+
 export interface StorageUsage {
   used: number
   quota: number
@@ -39,6 +45,8 @@ export interface StoredImage extends ImageRecord {
 export interface BoardStore {
   loadBoard(): Promise<Board>
   saveBoard(board: Board): Promise<void>
+  loadHistory(): Promise<History>
+  saveHistory(history: History): Promise<void>
   listImages(): Promise<ImageRecord[]>
   putImage(image: StoredImage): Promise<void>
   setColour(id: string, colour: ImageColour): Promise<void>
@@ -52,3 +60,5 @@ export interface BoardStore {
 }
 
 export const emptyBoard: Board = { tray: [], grid: [] }
+
+export const emptyHistory: History = { past: [], future: [] }
