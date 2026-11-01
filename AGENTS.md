@@ -113,12 +113,22 @@ files to the fleet's owners.
 make -C .devtools setup   # once: pinned tools + git hooks
 make -C .devtools check   # everything CI runs
 make -C .devtools e2e     # Playwright, against the built app
+make -C .devtools worker-budget  # fail if the Worker outgrows its gzip budget
 make -C .devtools lint    # the pre-commit hook, on every file
 make -C .devtools lock    # after changing a pinned version
 make -C .devtools drift   # where this repo differs from the template
 make -C .devtools sync    # pull the template's managed files
 make -C .devtools github  # apply the org's GitHub settings and rulesets (CHECK=1 to compare)
 make -C .devtools help    # all targets
+```
+
+Deploys run from a machine signed in with `wrangler login`, or through Workers Builds, so no
+Cloudflare credential is kept in GitHub (ADR-0001). Each builds and deploys in one step:
+
+```sh
+pnpm cf:bundle             # the Worker's size, with no login; it does not fail on a size
+pnpm cf:deploy:staging     # lineup-staging.bimo.dev
+pnpm cf:deploy:production  # lineup.bimo.dev
 ```
 
 ## Conventions

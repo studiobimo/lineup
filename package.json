@@ -5,7 +5,10 @@
   "scripts": {
     "lint": "eslint --max-warnings=0 .",
     "format": "prettier --write '**/*.{js,mjs,cjs,jsx,ts,tsx,css,html}'",
-    "gen": "node .devtools/scripts/gen.mjs"
+    "gen": "node .devtools/scripts/gen.mjs",
+    "cf:bundle": "make -C .devtools build && pnpm --dir apps/web exec wrangler deploy --dry-run",
+    "cf:deploy:staging": "make -C .devtools deploy ENV=staging",
+    "cf:deploy:production": "make -C .devtools deploy ENV=production"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.65.0",

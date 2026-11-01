@@ -16,7 +16,11 @@
   // <name>-<environment>, chosen at build time: make -C .devtools deploy ENV=staging.
   // Neither inherits bindings or vars from the top level, so each restates them.
   "env": {
-    "staging": {},
-    "production": {}
+    "staging": {
+      "routes": [{ "pattern": "lineup-staging.bimo.dev", "custom_domain": true }]
+    },
+    "production": {
+      "routes": [{ "pattern": "lineup.bimo.dev", "custom_domain": true }]
+    }
   }
 }
