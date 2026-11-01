@@ -4,9 +4,13 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogHeader, DialogPanel, DialogPopup, DialogTitle } from '@/components/ui/dialog'
 import { Group } from '@/components/ui/group'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import type { StorageUsage } from '@/features/planner/board-store'
+import { instagram } from '@/features/planner/network-profile'
 import { boardStore } from '@/features/planner/planner'
+import { saveProfile, toHandle, useProfile } from '@/features/planner/profile-store'
 import { getTheme, setTheme, subscribeToTheme, type Theme } from '@/lib/theme'
 
 const themes: Theme[] = ['light', 'dark']
@@ -22,6 +26,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation('help')
   const theme = useSyncExternalStore(subscribeToTheme, getTheme)
   const [usage, setUsage] = useState<StorageUsage>()
+  const { handle, name } = useProfile()
 
   useEffect(() => {
     void boardStore.storageUsage().then(setUsage)
@@ -48,6 +53,34 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 </Button>
               ))}
             </Group>
+          </section>
+          <section>
+            <h3 className="mb-2 text-sm font-medium">{t('profile')}</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="profile-handle">{t('handle')}</Label>
+                <Input
+                  id="profile-handle"
+                  value={handle}
+                  placeholder={t('handlePlaceholder')}
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={({ target }) => saveProfile({ handle: toHandle(target.value) })}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="profile-name">{t('name')}</Label>
+                <Input
+                  id="profile-name"
+                  value={name}
+                  maxLength={instagram.nameMaxLength}
+                  placeholder={t('namePlaceholder')}
+                  autoComplete="off"
+                  onChange={({ target }) => saveProfile({ name: target.value })}
+                />
+              </div>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">{t('profileNote')}</p>
           </section>
           <section>
             <h3 className="mb-2 text-sm font-medium">{t('storage')}</h3>

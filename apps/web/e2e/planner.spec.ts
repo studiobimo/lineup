@@ -353,6 +353,23 @@ test('the phone preview keeps its shape in a short window, and a click outside c
   await expect(phone).toHaveCount(0)
 })
 
+test('a handle and name from Settings fill the phone preview, and survive a reload', async ({
+  page
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByLabel('Handle').fill('https://www.instagram.com/some.name/')
+  await expect(page.getByLabel('Handle')).toHaveValue('some.name')
+  await page.getByLabel('Name').fill('Some Name')
+  await page.keyboard.press('Escape')
+
+  await page.reload()
+  await page.getByRole('button', { name: 'Preview on a phone' }).click()
+  const phone = page.locator('[data-phone]')
+  await expect(phone.getByText('some.name')).toBeVisible()
+  await expect(phone.getByText('Some Name')).toBeVisible()
+})
+
 test('the introduction shows once, and comes back from Help', async ({ page }) => {
   const intro = page.getByRole('region', { name: 'Plan your feed before it goes live' })
   await page.goto('/')

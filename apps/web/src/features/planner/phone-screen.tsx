@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils'
 
 import { cellShape, gridColumns, instagram } from './network-profile'
 import { usePlanner } from './planner'
+import { useProfile } from './profile-store'
 import { Thumbnail } from './thumbnail'
 import { useNearViewport } from './use-near-viewport'
 
@@ -62,11 +63,12 @@ function StatusBar() {
 
 function NavBar() {
   const { t } = useTranslation('planner')
+  const { handle } = useProfile()
   return (
-    <div className="flex h-11 shrink-0 items-center justify-between px-4">
-      <span className="flex items-center gap-1 text-xl font-bold">
-        {t('phone.username')}
-        <ChevronDown className="size-4" />
+    <div className="flex h-11 shrink-0 items-center justify-between gap-4 px-4">
+      <span className="flex min-w-0 items-center gap-1 text-xl font-bold">
+        <span className="truncate">{handle || t('phone.username')}</span>
+        <ChevronDown className="size-4 shrink-0" />
       </span>
       <span className="flex items-center gap-5 [&_svg]:size-6">
         <SquarePlus />
@@ -94,12 +96,13 @@ function Stat({ value, label }: { value?: number; label: string }) {
 
 function Profile({ posts }: { posts: number }) {
   const { t } = useTranslation('planner')
+  const { name } = useProfile()
   return (
     <div className="flex flex-col gap-3 px-4 pt-2 pb-4">
       <div className="flex items-center gap-7">
         <span className="size-[5.375rem] shrink-0 rounded-full bg-foreground/10" />
-        <span className="flex flex-1 flex-col gap-1">
-          <span className="text-sm font-semibold">{t('phone.displayName')}</span>
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="truncate text-sm font-semibold">{name || t('phone.displayName')}</span>
           <span className="flex justify-between">
             <Stat value={posts} label={t('phone.posts', { count: posts })} />
             <Stat label={t('phone.followers')} />

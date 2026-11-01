@@ -132,7 +132,7 @@ may slip to the following release.
 | REV-2 | I can zoom and pan | Pinch or buttons; drag to pan when zoomed | Must |
 | REV-3 | I can step through an album | The lightbox shows album position and moves within the album before the next cell | Must |
 | REV-4 | I can preview the profile on a phone frame | A phone-sized profile mock with the planned grid, then published cells; view only | Must |
-| REV-5 | The preview shows my account when connected | Username, avatar and counts from the connected Instagram account; neutral placeholders otherwise, and no invented numbers | Should |
+| REV-5 | The preview shows my account when connected | Username, avatar and counts from the connected Instagram account. Until then, a handle and name typed in Settings, kept in this browser. Neutral placeholders otherwise, and no invented numbers | Should |
 
 ### E4. History
 
