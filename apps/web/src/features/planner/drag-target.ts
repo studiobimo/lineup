@@ -125,12 +125,17 @@ export function dropTarget({ board, active, hover, point, inserting, boxOf }: Ai
 }
 
 interface DragState {
+  dragging: boolean
   target: DropTarget | null
   /** Cells drawn by something flying to them, so the real one waits, hidden, where it will land. */
   airborne: ReadonlySet<string>
 }
 
-export const dragStore = createStore<DragState>(() => ({ target: null, airborne: new Set() }))
+export const dragStore = createStore<DragState>(() => ({
+  dragging: false,
+  target: null,
+  airborne: new Set()
+}))
 
 export const useAirborne = (id: string) => useStore(dragStore, ({ airborne }) => airborne.has(id))
 

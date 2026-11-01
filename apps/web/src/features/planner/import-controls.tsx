@@ -5,16 +5,13 @@ import { useTranslation } from 'react-i18next'
 import { IconButton } from '@/components/icon-button'
 import { Group } from '@/components/ui/group'
 import { Progress } from '@/components/ui/progress'
+import { inTextField } from '@/lib/dom'
 
 import { fromDrop, fromFiles } from './import-source'
 import { runImport, useImportProgress } from './import-store'
 
 function hasFiles(event: DragEvent) {
   return event.dataTransfer?.types.includes('Files') ?? false
-}
-
-function inTextField(target: EventTarget | null) {
-  return target instanceof HTMLElement && target.closest('input, textarea, [contenteditable]')
 }
 
 /** The whole window takes a drop or a paste, wherever the pointer is. */

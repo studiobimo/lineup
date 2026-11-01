@@ -133,7 +133,7 @@ export function BoardDrag({ children }: { children: ReactNode }) {
     const { target } = dragStore.getState()
     const { active: id } = latest.current
     latest.current.active = null
-    dragStore.setState({ target: null })
+    dragStore.setState({ dragging: false, target: null })
     setActive(null)
     if (!id) return
     launch([id])
@@ -153,6 +153,7 @@ export function BoardDrag({ children }: { children: ReactNode }) {
         const from = cellBox(cell)
         latest.current.active = cell
         latest.current.inserting = event.shiftKey
+        dragStore.setState({ dragging: true })
         setActive(cell)
         if (from) lift(cell, startOf(event, from), from)
       }}

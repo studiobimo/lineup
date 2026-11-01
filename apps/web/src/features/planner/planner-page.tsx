@@ -34,6 +34,7 @@ import { ImportButtons, ImportProgress, ImportTargets } from './import-controls'
 import { instagram } from './network-profile'
 import { plannerStore, usePlanner } from './planner'
 import { useDropArea } from './use-board-drag'
+import { usePlannerShortcuts } from './use-planner-shortcuts'
 
 const columns = { gridTemplateColumns: `repeat(${instagram.columns}, minmax(0, 1fr))` }
 
@@ -175,6 +176,7 @@ export function PlannerPage() {
   const desktop = useMediaQuery('md')
   const session = usePlanner((state) => state.session)
   const hold = useRef<BoardHold>(null)
+  usePlannerShortcuts()
 
   useEffect(() => {
     const { load, suspend } = plannerStore.getState()

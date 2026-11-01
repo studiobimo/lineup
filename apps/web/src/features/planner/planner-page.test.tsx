@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -49,5 +49,32 @@ describe('PlannerPage', () => {
     render(<PlannerPage />)
     const history = screen.getByRole('button', { name: 'Undo' }).parentElement!
     for (const button of within(history).getAllByRole('button')) expect(button).toBeDisabled()
+  })
+
+  it('undoes and redoes from the keyboard, but not from a text field', async () => {
+    const user = userEvent.setup()
+    render(
+      <>
+        <PlannerPage />
+        <input aria-label="Caption" />
+      </>
+    )
+    await waitFor(() => expect(plannerStore.getState().session).toBe('active'))
+    await act(async () => {
+      plannerStore.getState().clear(['tray', 'grid'])
+      await plannerStore.getState().addImages([processed])
+      plannerStore.getState().moveAll('tray')
+    })
+    const [id] = plannerStore.getState().board.grid
+
+    await user.click(screen.getByLabelText('Caption'))
+    await user.keyboard('{Control>}z{/Control}')
+    expect(plannerStore.getState().board.grid).toEqual([id])
+
+    await user.click(document.body)
+    await user.keyboard('{Control>}z{/Control}')
+    expect(plannerStore.getState().board.grid).toEqual([])
+    await user.keyboard('{Control>}{Shift>}z{/Shift}{/Control}')
+    expect(plannerStore.getState().board.grid).toEqual([id])
   })
 })
