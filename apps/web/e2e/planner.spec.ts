@@ -5,12 +5,7 @@ import { join } from 'node:path'
 
 import { type ConsoleMessage, expect, type Locator, type Page, test } from '@playwright/test'
 
-// A 2 x 2 PNG, so these run through the real decoder and the real worker.
-const png = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4zwAE/xkgFAAb8gP91pbyKwAAAABJRU5ErkJggg==',
-  'base64'
-)
-const image = (name: string) => ({ name, mimeType: 'image/png', buffer: png })
+import { addImages, choose, image, png } from './fixtures'
 
 function watchErrors(page: Page) {
   const errors: string[] = []
@@ -21,9 +16,6 @@ function watchErrors(page: Page) {
   page.on('pageerror', (error) => errors.push(error.message))
   return errors
 }
-
-const addImages = (page: Page, files: Parameters<Page['setInputFiles']>[1]) =>
-  page.getByLabel('Add images').setInputFiles(files)
 
 // A board is written as soon as it changes, but a reload can still beat the write.
 const savedGridSize = (page: Page) =>
@@ -298,17 +290,56 @@ test('a save that fails is reported until one goes through', async ({ page }) =>
   await expect.poll(() => savedGridSize(page)).toBe(2)
 })
 
-test('our own dialog comes before the folder picker', async ({ page }) => {
+test('dropping a folder takes the images in it and its subfolders', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Add a folder' }).click()
-  const dialog = page.getByRole('dialog')
-  await expect(dialog.getByText('Lineup never uploads your images.')).toBeVisible()
+  await expect(page.getByText('Move images here to plan your feed.')).toBeVisible()
 
-  const data = await fileData(page, png.toString('base64'), ['dropped.png'])
-  await page.dispatchEvent('html', 'drop', { dataTransfer: data })
+  // A script cannot make a real folder drag, so these stand in for the entries the browser gives.
+  await page.evaluate((base64) => {
+    const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0))
+    const file = (name: string, type: string) => ({
+      isFile: true,
+      isDirectory: false,
+      file: (done: (file: File) => void) => done(new File([bytes], name, { type }))
+    })
+    const folder = (children: unknown[]) => ({
+      isFile: false,
+      isDirectory: true,
+      createReader() {
+        let batch = children
+        return {
+          readEntries(done: (entries: unknown[]) => void) {
+            done(batch)
+            batch = []
+          }
+        }
+      }
+    })
+    const holiday = folder([
+      file('one.png', 'image/png'),
+      file('notes.txt', 'text/plain'),
+      folder([file('two.png', 'image/png')])
+    ])
+    const drop = new Event('drop', { bubbles: true, cancelable: true })
+    Object.defineProperty(drop, 'dataTransfer', {
+      value: {
+        types: ['Files'],
+        items: [{ kind: 'file', webkitGetAsEntry: () => holiday, getAsFile: () => null }]
+      }
+    })
+    window.dispatchEvent(drop)
+  }, png.toString('base64'))
 
-  await expect(dialog).toBeHidden()
-  await expect(page.getByRole('img')).toHaveCount(1)
+  await expect(page.getByRole('img')).toHaveCount(2)
+  await expect(page.getByText('1 file was not an image.')).toBeVisible()
+})
+
+test('the import buttons say what they do on hover', async ({ page }) => {
+  await page.goto('/')
+  for (const name of ['Add images', 'Add a folder']) {
+    await page.getByRole('button', { name }).hover()
+    await expect(page.getByText(name, { exact: true })).toBeVisible()
+  }
 })
 
 test('adding a folder takes the images in it and its subfolders', async ({ page }, testInfo) => {
@@ -319,7 +350,7 @@ test('adding a folder takes the images in it and its subfolders', async ({ page 
   writeFileSync(join(folder, 'day two', 'two.png'), png)
 
   await page.goto('/')
-  await page.getByLabel('Add a folder').setInputFiles(folder)
+  await choose(page, 'Add a folder', folder)
 
   await expect(page.getByRole('img')).toHaveCount(2)
 })

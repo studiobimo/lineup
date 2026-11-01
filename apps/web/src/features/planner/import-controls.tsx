@@ -1,23 +1,13 @@
-import { FolderDown, FolderPlus, ImagePlus } from 'lucide-react'
-import { type ChangeEvent, useEffect, useRef, useState } from 'react'
+import { FolderPlus, ImagePlus } from 'lucide-react'
+import { type ChangeEvent, type ComponentProps, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogPanel,
-  DialogPopup,
-  DialogTitle,
-  DialogTrigger
-} from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
+import { Tooltip, TooltipPopup, TooltipTrigger } from '@/components/ui/tooltip'
 
 import { fromDrop, fromFiles } from './import-source'
-import { runImport, useImportProgress, whenImporting } from './import-store'
+import { runImport, useImportProgress } from './import-store'
 
 function hasFiles(event: DragEvent) {
   return event.dataTransfer?.types.includes('Files') ?? false
@@ -99,44 +89,12 @@ export function ImportProgress() {
   )
 }
 
-/** Says what the browser's own confirmation cannot: that "upload" here means nothing leaves. */
-function FolderDialog({ disabled, onChoose }: { disabled: boolean; onChoose: () => void }) {
-  const { t } = useTranslation('planner')
-  const [open, setOpen] = useState(false)
-
-  // The window takes the drop, so this is how a dialog with a folder dropped on it knows.
-  useEffect(() => whenImporting(() => setOpen(false)), [])
-
-  const choose = () => {
-    setOpen(false)
-    onChoose()
-  }
-
+function ImportButton({ label, ...props }: ComponentProps<typeof Button> & { label: string }) {
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" size="sm" disabled={disabled} />}>
-        <FolderPlus />
-        {t('addFolder')}
-      </DialogTrigger>
-      <DialogPopup>
-        <DialogHeader>
-          <DialogTitle>{t('addFolder')}</DialogTitle>
-          <DialogDescription>{t('folderDescription')}</DialogDescription>
-        </DialogHeader>
-        <DialogPanel className="flex flex-col gap-3">
-          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed p-8 text-center pointer-coarse:hidden">
-            <FolderDown className="size-6 text-muted-foreground" />
-            <p className="font-medium">{t('folderDrop')}</p>
-            <p className="text-sm text-muted-foreground">{t('folderDropHelp')}</p>
-          </div>
-          <p className="text-sm text-muted-foreground">{t('folderBrowserNote')}</p>
-        </DialogPanel>
-        <DialogFooter>
-          <DialogClose render={<Button variant="ghost" />}>{t('cancel')}</DialogClose>
-          <Button onClick={choose}>{t('folderChoose')}</Button>
-        </DialogFooter>
-      </DialogPopup>
-    </Dialog>
+    <Tooltip>
+      <TooltipTrigger render={<Button size="icon" aria-label={label} {...props} />} />
+      <TooltipPopup>{label}</TooltipPopup>
+    </Tooltip>
   )
 }
 
@@ -159,28 +117,19 @@ export function ImportButtons() {
 
   return (
     <div className="flex flex-wrap gap-2 px-4 pb-4">
-      <input
-        ref={files}
-        type="file"
-        accept="image/*"
-        multiple
-        hidden
-        aria-label={t('addImages')}
-        onChange={choose}
-      />
-      <input
-        ref={folder}
-        type="file"
-        multiple
-        hidden
-        aria-label={t('addFolder')}
-        onChange={choose}
-      />
-      <Button size="sm" disabled={busy} onClick={() => files.current?.click()}>
+      <input ref={files} type="file" accept="image/*" multiple hidden onChange={choose} />
+      <input ref={folder} type="file" multiple hidden onChange={choose} />
+      <ImportButton label={t('addImages')} disabled={busy} onClick={() => files.current?.click()}>
         <ImagePlus />
-        {t('addImages')}
-      </Button>
-      <FolderDialog disabled={busy} onChoose={() => folder.current?.click()} />
+      </ImportButton>
+      <ImportButton
+        label={t('addFolder')}
+        variant="outline"
+        disabled={busy}
+        onClick={() => folder.current?.click()}
+      >
+        <FolderPlus />
+      </ImportButton>
     </div>
   )
 }

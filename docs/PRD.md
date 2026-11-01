@@ -101,7 +101,7 @@ may slip to the following release.
 | IMP-5 | Importing does not freeze the page | Processing runs off the main thread; the page stays interactive during a 50-image import; progress is visible | Must |
 | IMP-6 | I know when I am at the limit | One limit on total images (300), counted across tray and grid, checked the same way on every import path | Must |
 | IMP-7 | One bad file does not spoil a batch | Files that fail to decode are skipped and counted in a single summary message; the rest are imported | Must |
-| IMP-8 | I can import a whole folder | Choosing a folder, or dropping one on the window, imports every image in it and its subfolders; other files are ignored. Before the browser's own confirmation, Lineup's dialog says that nothing leaves the device. Works in every supported desktop browser | Must |
+| IMP-8 | I can import a whole folder | Choosing a folder, or dropping one on the window, imports every image in it and its subfolders; other files are ignored. Works in every supported desktop browser | Must |
 | IMP-9 | I can keep my board in a folder | I can choose a dedicated folder for the board. Originals are kept there at full size, the app offers to import images added since my last visit, and a file removed outside the app shows as a missing cell. Offered only where the browser supports it (Chrome and Edge on desktop); hidden elsewhere | Should |
 
 ### E2. Arrange

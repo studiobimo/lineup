@@ -64,10 +64,4 @@ const isStorageFull = (error: unknown) =>
 
 export const runImport = (source: ImportSource) => importStore.getState().run(source)
 
-/** Calls back when images start coming in, whichever way they arrived. */
-export const whenImporting = (listener: () => void) =>
-  importStore.subscribe(({ progress }) => {
-    if (progress) listener()
-  })
-
 export const useImportProgress = () => useStore(importStore, (state) => state.progress)
