@@ -5,8 +5,8 @@
 
 Plan your Instagram feed before it goes live: arrange, sort by colour, group into albums and schedule posts.
 
-> **Status: planning.** The product is specified and the decisions are recorded; no application
-> code exists yet. See the [roadmap](docs/ROADMAP.md).
+> **Status: in development.** The app shell is scaffolded; the planner itself is not built yet.
+> See the [roadmap](docs/ROADMAP.md).
 
 ## What it will do
 

@@ -10,9 +10,8 @@ Plan your Instagram feed before it goes live: arrange, sort by colour, group int
 Lineup is a client-rendered React app with a small API, served together from one Cloudflare
 Worker at `lineup.bimo.dev`. The planner is local-first: images and board order live in the
 device and never reach the server. There are no accounts: a user's own Zernio API key, sealed in
-an HttpOnly cookie, lets the Worker read and schedule Instagram posts. **The repository holds
-documentation only so far**; the app is scaffolded in milestone M0. "Grid" with a capital in the PRD means the
-planned feed, never the product.
+an HttpOnly cookie, lets the Worker read and schedule Instagram posts. "Grid" with a capital in the
+PRD means the planned feed, never the product.
 
 - What it is and how to use it: `README.md`
 - What to build, and why: `docs/PRD.md` (stories have IDs such as `ARR-3`; cite them in PRs)
@@ -39,9 +38,10 @@ AGENTS.md  CLAUDE.md     this guide; CLAUDE.md only imports it
 docs/                    PRD.md, ROADMAP.md, RISKS.md, adr/ (decision records), research/
 ```
 
-Planned in M0, not present yet. The repository is a pnpm workspace (ADR-0005). `apps/web` follows
-the `vite-react-tanstack` and `cloudflare` template profiles (ADR-0007), which add their own
-sections to this file when they are synced:
+The repository is a pnpm workspace (ADR-0005). `apps/web` follows the `vite-react-tanstack` and
+`cloudflare` template profiles (ADR-0007), whose sections are at the end of this file. The feature
+folders and the image worker arrive with their milestones, and `packages/api` and
+`packages/contract` are empty until M4:
 
 ```text
 apps/web/                the deployable: React app, wrangler.jsonc, the Worker entry

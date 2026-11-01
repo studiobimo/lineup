@@ -16,6 +16,8 @@ Thanks for helping! This project follows a few strict conventions, and tooling e
 
 | Path | Purpose |
 | --- | --- |
+| `apps/web/` | The deployable: the React app and the Worker entry |
+| `packages/` | `api` (the Hono app) and `contract` (the schemas both sides share) |
 | `.devtools/` | Makefile, the shared hooks (`lefthook-base.yml`), guard and sync scripts |
 | `mise.toml`, `mise.lock` | Every tool the hooks and CI run, pinned with checksums |
 | `lefthook.yml` | This project's own hooks, on top of the shared ones |
