@@ -33,3 +33,9 @@ editorconfig-checker = "4.0.2"
 "pipx:pre-commit-hooks" = "6.0.0"
 "pipx:check-jsonschema" = "0.38.2"
 # <<< template:base
+
+# >>> template:vite
+# Node is in the base block. pnpm is pinned here, not by package.json's packageManager, so
+# one file holds every tool version.
+pnpm = "12.14.0"
+# <<< template:vite
