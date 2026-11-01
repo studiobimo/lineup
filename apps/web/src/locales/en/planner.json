@@ -1,0 +1,14 @@
+{
+  "title": "Your board",
+  "tray": "Tray",
+  "grid": "Grid",
+  "trayCount": "Tray ({{count}})",
+  "trayEmpty": "Images you add wait here until you place them.",
+  "gridEmpty": "Move images here to plan your feed.",
+  "cell": "Image {{position}}",
+  "moveToGrid": "Move to the grid",
+  "moveToTray": "Move to the tray",
+  "remove": "Delete",
+  "undo": "Undo",
+  "redo": "Redo"
+}

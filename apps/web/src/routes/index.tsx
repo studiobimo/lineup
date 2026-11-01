@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { TypeSpecimen } from '@/components/type-specimen'
+import { PlannerPage } from '@/features/planner/planner-page'
 
 export const Route = createFileRoute('/')({
-  component: TypeSpecimen
+  component: PlannerPage
 })

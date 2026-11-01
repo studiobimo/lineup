@@ -49,7 +49,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-/** Stands in for the home page until the planner replaces it in M1. */
+/** Every type style on one page, at /type, for reviewing the fonts in place. */
 export function TypeSpecimen() {
   const { t } = useTranslation()
   return (
