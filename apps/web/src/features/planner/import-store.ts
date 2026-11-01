@@ -5,7 +5,7 @@ import { toastManager } from '@/components/ui/toast'
 import i18n from '@/i18n/config'
 
 import { importImages } from './import-images'
-import { type ImportSource, planImport } from './import-source'
+import { IMAGE_LIMIT, type ImportSource, planImport } from './import-source'
 import { boardStore, plannerStore } from './planner'
 
 interface ImportState {
@@ -36,7 +36,8 @@ const importStore = createStore<ImportState>((set, get) => ({
     const skipped = [
       plan.ignored > 0 && i18n.t('planner:notImages', { count: plan.ignored }),
       failed > 0 && i18n.t('planner:unreadable', { count: failed }),
-      plan.overLimit > 0 && i18n.t('planner:overLimit', { count: plan.overLimit })
+      plan.overLimit > 0 &&
+        i18n.t('planner:overLimit', { count: plan.overLimit, limit: IMAGE_LIMIT })
     ].filter(Boolean)
     if (skipped.length > 0) {
       toastManager.add({ type: 'warning', title: skipped.join(' ') })

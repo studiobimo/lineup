@@ -22,6 +22,6 @@
   "notImages_other": "{{count}} files were not images.",
   "unreadable_one": "{{count}} image could not be read.",
   "unreadable_other": "{{count}} images could not be read.",
-  "overLimit_one": "{{count}} image was left out: a board holds 300.",
-  "overLimit_other": "{{count}} images were left out: a board holds 300."
+  "overLimit_one": "{{count}} image was left out: a board holds {{limit}}.",
+  "overLimit_other": "{{count}} images were left out: a board holds {{limit}}."
 }

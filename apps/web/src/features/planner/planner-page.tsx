@@ -31,7 +31,7 @@ import { plannerStore, usePlanner } from './planner'
 
 const columns = { gridTemplateColumns: `repeat(${instagram.columns}, minmax(0, 1fr))` }
 
-function Cells({ container }: { container: Container }) {
+function Cells({ container, className }: { container: Container; className?: string }) {
   const { t } = useTranslation('planner')
   const ids = usePlanner((state) => state.board[container])
   if (ids.length === 0) {
@@ -42,7 +42,7 @@ function Cells({ container }: { container: Container }) {
     )
   }
   return (
-    <div className="grid gap-0.5" style={columns}>
+    <div className={cn('grid gap-0.5', className)} style={columns}>
       {ids.map((id, index) => (
         <BoardCell key={id} id={id} container={container} position={index + 1} />
       ))}
@@ -144,11 +144,11 @@ export function PlannerPage() {
             <h2 className="p-4 text-xl">{t('tray')}</h2>
             <ImportButtons />
             <ImportProgress />
-            <Cells container="tray" />
+            <Cells container="tray" className="px-4 pb-4" />
           </aside>
         )}
         <section className="min-w-0 flex-1">
-          <div className="mx-auto max-w-2xl">
+          <div className="mx-auto max-w-3xl">
             <div className="flex items-center justify-between gap-2 p-4">
               <h2 className="text-xl">{t('grid')}</h2>
               <div className="flex items-center gap-2">
@@ -158,7 +158,8 @@ export function PlannerPage() {
             </div>
             {!desktop && <ImportButtons />}
             {!desktop && <ImportProgress />}
-            {ready && <Cells container="grid" />}
+            {/* On a phone the grid runs edge to edge, as it does in Instagram. */}
+            {ready && <Cells container="grid" className={cn(desktop && 'px-4 pb-4')} />}
           </div>
         </section>
       </div>
