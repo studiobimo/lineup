@@ -1,0 +1,29 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [".devtools/scripts/*.mjs", ".devtools/host/*.{ts,mjs}", ".devtools/vite/*.{js,ts}"],
+      "project": [".devtools/**/*.{js,mjs,ts}"],
+      "ignoreDependencies": ["jscpd", "tailwindcss"]
+    },
+    "apps/web": {
+      "entry": ["src/routes/**/*.tsx", "src/workers/*.ts"],
+      "project": ["src/**/*.{ts,tsx}", "worker/**/*.ts", "e2e/**/*.ts"],
+      "ignore": ["src/components/ui/**"],
+      "ignoreDependencies": [
+        "@fontsource-variable/bitcount-prop-double",
+        "@fontsource-variable/bitcount-single",
+        "@fontsource-variable/space-grotesk",
+        "shadcn",
+        "tailwindcss",
+        "tw-animate-css",
+        "zod"
+      ]
+    },
+    "packages/*": {}
+  },
+  "ignoreBinaries": ["make", "shadcn"],
+  "ignoreIssues": {
+    ".devtools/**": ["exports", "types"]
+  }
+}

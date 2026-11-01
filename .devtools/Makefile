@@ -1,7 +1,7 @@
 APP_DIR := apps/web
 
 # Everything the app ships, lazy chunks and CSS included, so a stray dependency cannot slip by. The
-# PRD's limit is a different number: 200 kB of JavaScript before any lazy route, 201 kB today.
+# PRD's limit is a different number: 200 kB of JavaScript before any lazy route, 202 kB today.
 # Motion's features are 19 KiB of this and load after first paint. AppProviders put Motion's core
 # and toasts in the entry chunk, which split one more chunk off. M1 ended at 319.5 KiB. M2's colour
 # code has to ship in the image worker as well as the app, and sorting, backups and offline support
@@ -18,7 +18,7 @@ include vite.mk
 # Nothing imports these yet, so tsc would not reach them through the app.
 TSC_PROJECTS += ../../packages/api ../../packages/contract
 
-.PHONY: e2e worker-budget
+.PHONY: e2e worker-budget knip duplication bundle-report
 
 # GitHub's runners set CI, and have the browser's system libraries to install.
 e2e: build ## Playwright, against the built app
@@ -29,4 +29,13 @@ worker-budget: build ## Fail if the Worker outgrows its gzip budget
 	$(APP_CD) && $(MISE) exec -- node $(ROOT)/.devtools/scripts/worker-budget.mjs \
 		--gzip-kib $(WORKER_GZIP_KIB)
 
-ci: e2e worker-budget
+knip: ## Fail on unused files, dependencies and exports
+	$(PNPM) exec knip
+
+duplication: ## Fail if copied code passes the threshold in .jscpd.json
+	$(PNPM) exec jscpd
+
+bundle-report: ## Build, and write a picture of the bundle to dist/bundle-report.html
+	$(APP_CD) && ANALYZE=1 $(MISE) exec -- pnpm exec vite build
+
+ci: e2e worker-budget knip duplication

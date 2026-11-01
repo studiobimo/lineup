@@ -1,10 +1,16 @@
+import { visualizer } from 'rollup-plugin-visualizer'
 import { defineConfig, mergeConfig } from 'vite'
 
 import { app } from '../../.devtools/vite/vite.ts'
 import { site } from './src/config/site.ts'
 
+// Only when asked for, with make bundle-report: gzipping every module slows a build.
+const report = process.env.ANALYZE
+  ? [visualizer({ filename: 'dist/bundle-report.html', gzipSize: true, template: 'treemap' })]
+  : []
+
 // The hosting profile's plugin, if there is one, comes in through app().
 export default defineConfig(
   // public/_headers allows no data: URIs, so a small font or image has to stay a file.
-  mergeConfig(await app({ site }), { build: { assetsInlineLimit: 0 } })
+  mergeConfig(await app({ site }), { build: { assetsInlineLimit: 0 }, plugins: report })
 )
