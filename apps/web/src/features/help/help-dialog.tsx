@@ -13,16 +13,18 @@ import {
 } from '@/components/ui/dialog'
 import { Kbd } from '@/components/ui/kbd'
 import { shortcutList } from '@/features/planner/shortcuts'
+import { useDialogPresence } from '@/hooks/use-dialog-presence'
 import { isApple } from '@/lib/platform'
 
 import { showIntro } from './intro-store'
 
 export function HelpDialog({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation('help')
+  const { dialog, close } = useDialogPresence(onClose)
   const label = (key: string) =>
     t(`keys.${key}`, { context: key === 'mod' && isApple() ? 'apple' : undefined })
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog {...dialog}>
       <DialogPopup>
         <DialogHeader>
           <DialogTitle>{t('title')}</DialogTitle>
@@ -57,7 +59,7 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
             variant="outline"
             onClick={() => {
               showIntro()
-              onClose()
+              close()
             }}
           >
             {t('showIntro')}

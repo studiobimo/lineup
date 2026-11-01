@@ -12,6 +12,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Group } from '@/components/ui/group'
+import { useDialogPresence } from '@/hooks/use-dialog-presence'
 
 import { containerOf } from './board'
 import { closeLightbox, openLightbox } from './lightbox-store'
@@ -56,6 +57,7 @@ function ImageDetails({ id }: { id: string }) {
 
 export function Lightbox({ id }: { id: string }) {
   const { t } = useTranslation('planner')
+  const { dialog, close } = useDialogPresence(closeLightbox)
   const cells = usePlanner(({ board }) => board[containerOf(board, id)])
   const index = cells.indexOf(id)
   const previous = cells[index - 1]
@@ -110,13 +112,13 @@ export function Lightbox({ id }: { id: string }) {
   const reach = { x: window.innerWidth * overhang, y: window.innerHeight * overhang }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && closeLightbox()}>
+    <Dialog {...dialog}>
       <DialogPortal>
         <DialogBackdrop />
         <DialogPrimitive.Popup
           ref={popup}
           aria-label={t('cell', { position: index + 1 })}
-          className="fixed inset-0 z-50 flex flex-col outline-none"
+          className="fixed inset-0 z-50 flex flex-col transition-opacity duration-200 outline-none data-ending-style:opacity-0 data-starting-style:opacity-0"
           onKeyDown={keydown}
         >
           <DialogTitle className="sr-only">{t('cell', { position: index + 1 })}</DialogTitle>
@@ -146,7 +148,7 @@ export function Lightbox({ id }: { id: string }) {
                   <ZoomIn />
                 </IconButton>
               </Group>
-              <IconButton variant="outline" label={t('close')} onClick={closeLightbox}>
+              <IconButton variant="outline" label={t('close')} onClick={close}>
                 <X />
               </IconButton>
             </div>

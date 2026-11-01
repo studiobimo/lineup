@@ -13,6 +13,7 @@ import { saveImportSettings, useImportSettings } from '@/features/planner/import
 import { instagram } from '@/features/planner/network-profile'
 import { boardStore } from '@/features/planner/planner'
 import { saveProfile, toHandle, useProfile } from '@/features/planner/profile-store'
+import { useDialogPresence } from '@/hooks/use-dialog-presence'
 import { getTheme, setTheme, subscribeToTheme, type Theme } from '@/lib/theme'
 
 const themes: Theme[] = ['light', 'dark']
@@ -26,6 +27,7 @@ const size = (bytes: number) =>
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation('help')
+  const { dialog } = useDialogPresence(onClose)
   const theme = useSyncExternalStore(subscribeToTheme, getTheme)
   const [usage, setUsage] = useState<StorageUsage>()
   const { handle, name } = useProfile()
@@ -36,7 +38,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   }, [])
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog {...dialog}>
       <DialogPopup>
         <DialogHeader>
           <DialogTitle>{t('settings')}</DialogTitle>
