@@ -359,7 +359,13 @@ test('an image opens full size, steps along, zooms, and closes', async ({ page }
   await dialog.getByRole('button', { name: 'Zoom out' }).click()
   await expect(zoom).toHaveAttribute('data-zoom', '1')
 
+  // Zoom out is disabled now, and focus was on it. The keyboard has to keep working regardless.
+  await page.keyboard.press('ArrowLeft')
+  await expect(dialog.getByText('1 of 3')).toBeVisible()
+
+  // Undo belongs to the board, which the lightbox covers. Give a save the time to land if it ran.
   await page.keyboard.press('Control+z')
+  await page.waitForTimeout(200)
   expect((await order(page)).grid).toHaveLength(3)
 
   await page.keyboard.press('Escape')

@@ -80,10 +80,11 @@ describe('extractColour', () => {
     expect(extractColour(pixels)).toEqual(extractColour(pixels))
   })
 
+  // A guard against something pathological, not a benchmark: a busy machine has taken 90 ms.
   it('is fast enough for the sample it runs on', () => {
     const pixels = Uint8ClampedArray.from({ length: 32 * 32 * 4 }, (_, index) => (index * 37) % 256)
     const start = performance.now()
     extractColour(pixels)
-    expect(performance.now() - start).toBeLessThan(50)
+    expect(performance.now() - start).toBeLessThan(500)
   })
 })

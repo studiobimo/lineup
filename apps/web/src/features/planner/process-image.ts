@@ -36,7 +36,7 @@ export function thumbnailSize(size: Size): Size {
   return scale(size, THUMBNAIL_SHORT_SIDE / Math.min(size.width, size.height))
 }
 
-export function colourSampleSize(size: Size): Size {
+function colourSampleSize(size: Size): Size {
   return scale(size, COLOUR_SAMPLE_LONG_SIDE / Math.max(size.width, size.height))
 }
 

@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { animate, m, type PanInfo, useMotionValue } from 'motion/react'
-import { type KeyboardEvent, useEffect, useState, type WheelEvent } from 'react'
+import { type KeyboardEvent, useEffect, useRef, useState, type WheelEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
@@ -40,6 +40,7 @@ export function Lightbox({ id }: { id: string }) {
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const scale = useMotionValue(MIN_ZOOM)
+  const popup = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     animate(scale, zoom, settle)
@@ -71,6 +72,14 @@ export function Lightbox({ id }: { id: string }) {
   }
 
   // The wrapper fills the screen, so this is how far past each side it reaches once it is scaled.
+  // A button disabled under focus takes the keyboard with it, and these keys are handled up here.
+  useEffect(() => {
+    const focused = document.activeElement
+    if (!focused || focused === document.body || focused.matches(':disabled')) {
+      popup.current?.focus()
+    }
+  }, [zoom, id])
+
   const overhang = (zoom - MIN_ZOOM) / 2
   const reach = { x: window.innerWidth * overhang, y: window.innerHeight * overhang }
 
@@ -79,6 +88,7 @@ export function Lightbox({ id }: { id: string }) {
       <DialogPortal>
         <DialogBackdrop />
         <DialogPrimitive.Popup
+          ref={popup}
           aria-label={t('cell', { position: index + 1 })}
           className="fixed inset-0 z-50 flex flex-col outline-none"
           onKeyDown={keydown}

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-import { inDialog, inTextField } from '@/lib/dom'
+import { dialogIsOpen, inTextField } from '@/lib/dom'
 
 import { openCellMenu } from './cell-menu-store'
 import { dragStore } from './drag-target'
@@ -50,7 +50,7 @@ export function usePlannerShortcuts() {
         }
       }
       const shortcut = shortcutFor(event)
-      if (!shortcut || inTextField(event.target) || inDialog(event.target)) return
+      if (!shortcut || inTextField(event.target) || dialogIsOpen()) return
       event.preventDefault()
       // A board that changes under a drag would drop the cell somewhere the user never aimed at.
       if (dragStore.getState().dragging) return
