@@ -1,32 +1,25 @@
 import { useStore } from 'zustand'
-import { createStore } from 'zustand/vanilla'
+
+import { createStoredStore } from '@/lib/stored-store'
 
 import { instagram } from './network-profile'
 
-const storageKey = 'profile'
-
-export interface Profile {
+interface Profile {
   handle: string
   name: string
 }
 
 const text = (value: unknown) => (typeof value === 'string' ? value : '')
 
-// Storage can be blocked, or hold something older. Either way the preview falls back to placeholders.
-function load(): Profile {
-  try {
-    const { handle, name } = JSON.parse(
-      localStorage.getItem(storageKey) ?? '{}'
-    ) as Partial<Profile>
-    return { handle: text(handle), name: text(name) }
-  } catch {
-    return { handle: '', name: '' }
-  }
-}
+// With nothing usable stored, the preview falls back to its placeholders.
+const { store, save } = createStoredStore<Profile>('profile', ({ handle, name }) => ({
+  handle: text(handle),
+  name: text(name)
+}))
 
-const profileStore = createStore<Profile>(load)
+export const useProfile = () => useStore(store)
 
-export const useProfile = () => useStore(profileStore)
+export const saveProfile = save
 
 /** What people paste is an @name or a link to their profile, so both come down to the handle. */
 export function toHandle(typed: string) {
@@ -38,13 +31,4 @@ export function toHandle(typed: string) {
     .toLowerCase()
     .replace(/[^a-z0-9._]/g, '')
     .slice(0, instagram.handleMaxLength)
-}
-
-export function saveProfile(changes: Partial<Profile>) {
-  profileStore.setState(changes)
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(profileStore.getState()))
-  } catch {
-    // It lasts until the page closes, and nothing else depends on it.
-  }
 }
