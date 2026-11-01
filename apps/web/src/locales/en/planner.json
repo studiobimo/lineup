@@ -33,6 +33,7 @@
   "moveAllToTray": "Move all to the tray",
   "shuffleTray": "Shuffle the tray",
   "shuffleGrid": "Shuffle the grid",
+  "sorted": "Sorted by colour",
   "sortTray": "Sort the tray by colour",
   "sortGrid": "Sort the grid by colour",
   "sort": {

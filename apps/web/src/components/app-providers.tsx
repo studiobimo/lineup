@@ -2,7 +2,7 @@ import { type QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { LazyMotion, MotionConfig } from 'motion/react'
 import type { ReactNode } from 'react'
 
-import { ToastProvider } from '@/components/ui/toast'
+import { AnchoredToastProvider, ToastProvider } from '@/components/ui/toast'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 // Long enough that a pointer crossing a toolbar sets nothing off, and no longer. Once one tooltip
@@ -24,7 +24,9 @@ export function AppProviders({ queryClient, children }: AppProvidersProps) {
       <LazyMotion features={loadMotion} strict>
         <MotionConfig reducedMotion="user">
           <TooltipProvider delay={TOOLTIP_DELAY_MS}>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              <AnchoredToastProvider>{children}</AnchoredToastProvider>
+            </ToastProvider>
           </TooltipProvider>
         </MotionConfig>
       </LazyMotion>

@@ -151,7 +151,7 @@ may slip to the following release.
 | SRT-1 | I can sort by colour in one action | A "Sort by colour" menu beside Shuffle, in the tray and in the grid | Must |
 | SRT-2 | I can choose how | Rainbow (by hue), Light to dark, Grouped (colour families, each light to dark) | Must |
 | SRT-3 | Greys do not land among the colours | Black, white and grey images are placed together, ordered by lightness, not scattered by an arbitrary hue | Must |
-| SRT-4 | Sorting is one undo step | Undo restores the previous order exactly | Must |
+| SRT-4 | Sorting is one undo step | Undo restores the previous order exactly, and a prompt beside the button offers it right after a sort | Must |
 | SRT-5 | I can keep arranging afterwards | Sorting is a one-off action, not a mode; manual order is free again immediately | Must |
 | SRT-6 | Sorting is instant | Colours are computed at import; sorting 300 images takes under 100 ms | Must |
 | SRT-7 | Albums and locked cells behave | An album sorts as one cell by its cover; published cells do not move | Must |
@@ -225,7 +225,7 @@ The user brings their own Zernio API key. See [ADR-0003](adr/0003-zernio-byok.md
 | Three different size limits depending on how a file arrived; oversize files rejected a whole batch | No size rejection; one image-count limit everywhere |
 | Mobile blocked by a maintenance dialog; no touch or keyboard dragging | Touch and keyboard are first-class |
 | Images stored as base64 text, all held in memory, rendered full size in every cell; compression on the main thread | Binary storage; thumbnails in cells; only visible cells decoded; processing in a worker |
-| A toast for nearly every action, including on load | Messages only for failures and for results that are not visible |
+| A toast for nearly every action, including on load | Messages only for failures, for results that are not visible, and to offer Undo after a change to a whole container |
 | Shortcuts acted on whatever was under the mouse | Shortcuts act on the focused or selected cell |
 | Moving between containers always went to the top | Lands where it is dropped |
 | Lightbox for grid images only | Lightbox for any cell |

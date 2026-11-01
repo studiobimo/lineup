@@ -92,9 +92,42 @@ test('the sort menu sorts the grid, and one undo restores it', async ({ page }) 
   await page.getByRole('menuitem', { name: 'Rainbow' }).click()
 
   await expect.poll(async () => ascending((await gridHues(page)).slice(0, 8))).toBe(true)
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect.poll(() => gridHues(page)).toEqual(before)
   expect(errors).toEqual([])
+})
+
+test('a prompt beside the button offers Undo, and goes once something else changes', async ({
+  page
+}) => {
+  await shuffledGrid(page)
+  const before = await gridHues(page)
+  const prompt = page.getByRole('button', { name: 'Undo', exact: true }).last()
+  const sort = async () => {
+    await page.getByRole('button', { name: 'Sort the grid by colour' }).click()
+    await page.getByRole('menuitem', { name: 'Rainbow' }).click()
+  }
+
+  await sort()
+  await expect(page.getByText('Sorted by colour')).toBeVisible()
+  await prompt.click()
+  await expect.poll(() => gridHues(page)).toEqual(before)
+  await expect(page.getByText('Sorted by colour')).toHaveCount(0)
+
+  await sort()
+  await expect(page.getByText('Sorted by colour')).toBeVisible()
+  await page.getByRole('button', { name: 'Shuffle the grid' }).click()
+  await expect(page.getByText('Sorted by colour')).toHaveCount(0)
+})
+
+test('sorting what is already in order offers nothing new to undo', async ({ page }) => {
+  await shuffledGrid(page)
+  for (let times = 0; times < 2; times += 1) {
+    await page.getByRole('button', { name: 'Sort the grid by colour' }).click()
+    await page.getByRole('menuitem', { name: 'Rainbow' }).click()
+  }
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  await expect(page.getByText('Sorted by colour')).toHaveCount(1)
 })
 
 test('the sort menu works from the keyboard', async ({ page }) => {
