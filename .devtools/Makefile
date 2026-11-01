@@ -3,9 +3,10 @@ APP_DIR := apps/web
 # Everything the app ships, lazy chunks and CSS included, so a stray dependency cannot slip by. The
 # PRD's limit is a different number: 200 kB of JavaScript before any lazy route, 188 KiB today.
 # Motion's features are 19 KiB of this and load after first paint. AppProviders put Motion's core
-# and toasts in the entry chunk, which split one more chunk off. 320 KiB leaves room for the rest
-# of M1. Raising it needs a reason.
-BUNDLE_TOTAL_KIB := 320
+# and toasts in the entry chunk, which split one more chunk off. M1 ended at 319.5 KiB. M2's colour
+# code has to ship in the image worker as well as the app, and sorting, backups and offline support
+# follow it, so 340 KiB covers that milestone. Raising it needs a reason.
+BUNDLE_TOTAL_KIB := 340
 
 # Set from the M0 scaffold, 16.9 KiB, with room for the API (ADR-0005). Raising it needs a reason.
 WORKER_GZIP_KIB := 32
