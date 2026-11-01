@@ -219,6 +219,15 @@ test('a date and a city are kept only when asked for, and a position never', asy
   )
   expect(copiesWithExif).toBe(0)
 
+  // Newest first, so the first image is the one with something to say.
+  const details = page.getByText('Taken in Hollywood, US')
+  await page.getByRole('button', { name: 'Open full size' }).first().click({ force: true })
+  await expect(details).toBeVisible()
+  await expect(page.getByText('Taken May 6, 2024')).toBeVisible()
+  await page.keyboard.press('ArrowRight')
+  await expect(details).toHaveCount(0)
+  await page.keyboard.press('Escape')
+
   await page.reload()
   await page.getByRole('button', { name: 'Settings' }).click()
   await expect(dates).toBeChecked()

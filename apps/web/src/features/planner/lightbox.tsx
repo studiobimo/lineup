@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, MapPin, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { animate, m, type PanInfo, useMotionValue } from 'motion/react'
 import { type KeyboardEvent, useEffect, useRef, useState, type WheelEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -27,6 +27,32 @@ const WHEEL_SPEED = 0.002
 const SWIPE_DISTANCE = 80
 
 const clampZoom = (zoom: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
+
+/** When and where the photo was taken, for an image that says. Most say nothing. */
+function ImageDetails({ id }: { id: string }) {
+  const { t, i18n } = useTranslation('planner')
+  const takenAt = usePlanner(({ images }) => images[id]?.takenAt)
+  const place = usePlanner(({ images }) => images[id]?.place)
+  if (!takenAt && !place) return null
+  const date = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(iso))
+  return (
+    <p className="flex items-center gap-3 rounded-md bg-popover px-2 py-1 text-sm text-popover-foreground">
+      {takenAt && (
+        <span className="flex items-center gap-1.5">
+          <Calendar aria-hidden className="size-3.5 text-muted-foreground" />
+          {t('takenOn', { date: date(takenAt) })}
+        </span>
+      )}
+      {place && (
+        <span className="flex items-center gap-1.5">
+          <MapPin aria-hidden className="size-3.5 text-muted-foreground" />
+          {t('takenIn', { place })}
+        </span>
+      )}
+    </p>
+  )
+}
 
 export function Lightbox({ id }: { id: string }) {
   const { t } = useTranslation('planner')
@@ -95,10 +121,13 @@ export function Lightbox({ id }: { id: string }) {
         >
           <DialogTitle className="sr-only">{t('cell', { position: index + 1 })}</DialogTitle>
           <div className="flex items-center justify-between gap-2 p-4">
-            <p className="rounded-md bg-popover px-2 py-1 text-sm text-popover-foreground">
-              {t('lightboxPosition', { position: index + 1, total: cells.length })}
-            </p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="rounded-md bg-popover px-2 py-1 text-sm text-popover-foreground">
+                {t('lightboxPosition', { position: index + 1, total: cells.length })}
+              </p>
+              <ImageDetails id={id} />
+            </div>
+            <div className="flex shrink-0 gap-2">
               <Group aria-label={t('zoom')}>
                 <IconButton
                   variant="outline"

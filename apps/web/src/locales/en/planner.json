@@ -52,6 +52,8 @@
   "phonePreview": "Preview on a phone",
   "phonePreviewName": "The phone preview",
   "lightboxName": "The image",
+  "takenOn": "Taken {{date}}",
+  "takenIn": "Taken in {{place}}",
   "phone": {
     "username": "your_username",
     "displayName": "Your name",
