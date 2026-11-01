@@ -41,6 +41,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-muted-foreground: var(--muted-foreground);
+  --color-device: var(--device);
   --color-muted: var(--muted);
   --color-input: var(--input);
   --color-foreground: var(--foreground);
@@ -160,6 +161,7 @@
   --card: var(--color-white);
   --card-foreground: var(--color-neutral-800);
   --destructive: var(--color-red-500);
+  --device: var(--color-neutral-950);
   --foreground: var(--color-neutral-800);
   --input: --alpha(var(--color-black) / 10%);
   --muted: --alpha(var(--color-black) / 4%);

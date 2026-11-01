@@ -327,12 +327,30 @@ test('the phone preview shows the planned grid, and changes nothing', async ({ p
   await page.getByRole('button', { name: 'Preview on a phone' }).click()
   const phone = page.locator('[data-phone]')
   await expect(phone.getByRole('img')).toHaveCount(3)
+  await expect(phone.getByText('posts')).toBeVisible()
+  await expect(phone.locator('[data-empty-slot]')).toHaveCount(6)
   await expect(phone.locator('[data-drop-id]')).toHaveCount(0)
 
   await page.keyboard.press('Escape')
   await expect(phone).toHaveCount(0)
   expect(await order(page)).toEqual(before)
   expect(errors).toEqual([])
+})
+
+test('the phone preview keeps its shape in a short window, and a click outside closes it', async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 1280, height: 600 })
+  await boardOfFour(page)
+  await page.getByRole('button', { name: 'Preview on a phone' }).click()
+  const phone = page.locator('[data-phone]')
+
+  await expect.poll(async () => (await phone.boundingBox())?.height).toBeLessThanOrEqual(568)
+  const box = await phone.boundingBox()
+  expect((box?.height ?? 0) / (box?.width ?? 1)).toBeCloseTo(864 / 410, 2)
+
+  await page.mouse.click(20, 300)
+  await expect(phone).toHaveCount(0)
 })
 
 test('the introduction shows once, and comes back from Help', async ({ page }) => {

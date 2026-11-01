@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
-import { useRef } from 'react'
+import { m } from 'motion/react'
+import { type MouseEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
@@ -11,72 +12,76 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 
-import { cellShape, gridColumns } from './network-profile'
-import { usePlanner } from './planner'
-import { Thumbnail } from './thumbnail'
-import { useNearViewport } from './use-near-viewport'
+import { settle } from './motion'
+import { PhoneScreen } from './phone-screen'
+import { useFitScale } from './use-fit-scale'
 
-function PreviewCell({ id, position }: { id: string; position: number }) {
-  const { t } = useTranslation('planner')
-  const cell = useRef<HTMLDivElement>(null)
-  const near = useNearViewport(cell)
-  return (
-    <div ref={cell} className="bg-muted" style={cellShape}>
-      {near && <Thumbnail id={id} label={t('cell', { position })} />}
-    </div>
-  )
-}
+// A real phone's size in points, scaled as one piece, so what sits above the fold here sits above
+// it there. Squeezing the layout to fit the window would show a phone that does not exist.
+const SCREEN = { width: 390, height: 844 }
+const BEZEL = 10
+const WINDOW_MARGIN = 32
 
-/** Blank bars, not sample numbers: nothing here is the user's until an account is connected. */
-function ProfilePlaceholder() {
-  return (
-    <div aria-hidden className="flex items-center gap-6 p-4">
-      <div className="size-20 shrink-0 rounded-full bg-muted" />
-      <div className="flex flex-1 justify-between">
-        {[0, 1, 2].map((stat) => (
-          <div key={stat} className="flex flex-col items-center gap-1">
-            <div className="h-4 w-8 rounded bg-muted" />
-            <div className="h-3 w-12 rounded bg-muted" />
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+const SIDE_BUTTONS = [
+  { side: 'left', top: 112, height: 28 },
+  { side: 'left', top: 168, height: 56 },
+  { side: 'left', top: 236, height: 56 },
+  { side: 'right', top: 190, height: 88 }
+] as const
 
 export function PhonePreview({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation('planner')
-  const grid = usePlanner(({ board }) => board.grid)
+  const [leaving, setLeaving] = useState(false)
+  const fit = useFitScale(SCREEN.width + BEZEL * 2, SCREEN.height + BEZEL * 2, WINDOW_MARGIN)
+  const leave = () => setLeaving(true)
+  const fade = { initial: { opacity: 0 }, animate: { opacity: leaving ? 0 : 1 } }
+  const closeOutside = ({ target, currentTarget }: MouseEvent) => {
+    if (target === currentTarget) leave()
+  }
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog open onOpenChange={leave}>
       <DialogPortal>
-        <DialogBackdrop />
-        <DialogPrimitive.Popup className="fixed inset-0 z-50 flex items-center justify-center p-4 outline-none">
+        <DialogBackdrop className="transition-none" render={<m.div {...fade} />} />
+        <DialogPrimitive.Popup
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden outline-none"
+          render={<m.div {...fade} />}
+          onClick={closeOutside}
+        >
           <DialogTitle className="sr-only">{t('phonePreview')}</DialogTitle>
+          <m.div
+            data-phone
+            className="relative shrink-0 rounded-[3.75rem] bg-device shadow-2xl ring-1 ring-foreground/20"
+            style={{ padding: BEZEL }}
+            initial={{ y: 48, scale: fit * 0.96 }}
+            animate={leaving ? { y: 24, scale: fit * 0.97 } : { y: 0, scale: fit }}
+            transition={settle}
+            onAnimationComplete={() => {
+              if (leaving) onClose()
+            }}
+          >
+            {SIDE_BUTTONS.map(({ side, top, height }) => (
+              <span
+                key={top}
+                className="absolute w-[3px] bg-device ring-1 ring-foreground/20"
+                style={{ top, height, [side]: -3 }}
+              />
+            ))}
+            <div
+              className="relative overflow-hidden rounded-[3.125rem]"
+              style={{ width: SCREEN.width, height: SCREEN.height }}
+            >
+              <span className="absolute top-2.5 left-1/2 z-20 h-[2.125rem] w-[7.5rem] -translate-x-1/2 rounded-full bg-device" />
+              <PhoneScreen />
+            </div>
+          </m.div>
           <IconButton
             variant="outline"
             className="absolute top-4 right-4"
             label={t('close')}
-            onClick={onClose}
+            onClick={leave}
           >
             <X />
           </IconButton>
-          <div
-            data-scroll-root
-            data-phone
-            className="h-[min(44rem,85dvh)] w-[min(24rem,90vw)] overflow-y-auto rounded-[2.5rem] border-8 border-foreground bg-background"
-          >
-            <ProfilePlaceholder />
-            {grid.length === 0 ? (
-              <p className="p-4 text-sm text-muted-foreground">{t('gridEmpty')}</p>
-            ) : (
-              <div className="grid gap-0.5" style={gridColumns}>
-                {grid.map((id, index) => (
-                  <PreviewCell key={id} id={id} position={index + 1} />
-                ))}
-              </div>
-            )}
-          </div>
         </DialogPrimitive.Popup>
       </DialogPortal>
     </Dialog>

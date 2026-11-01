@@ -38,6 +38,16 @@
   "clearDescription": "They leave the board, and Undo brings them back.",
   "cancel": "Cancel",
   "phonePreview": "Preview on a phone",
+  "phone": {
+    "username": "your_username",
+    "displayName": "Your name",
+    "posts_one": "post",
+    "posts_other": "posts",
+    "followers": "followers",
+    "following": "following",
+    "editProfile": "Edit profile",
+    "shareProfile": "Share profile"
+  },
   "openImage": "Open full size",
   "lightboxPosition": "{{position}} of {{total}}",
   "zoom": "Zoom",
