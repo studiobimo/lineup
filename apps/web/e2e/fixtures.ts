@@ -36,7 +36,7 @@ export interface SavedBoard {
 
 export interface SavedImage {
   id: string
-  colour?: { dominant: { hue: number } }
+  colour?: { dominant: { hue: number }; tone: number }
 }
 
 /** What a reload would find. On the page it is the store, not what is drawn. */

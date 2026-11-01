@@ -8,7 +8,10 @@ import type { ImageColour } from './colour'
  * notices, and each is saved as it is done, so that a reload picks up where this left off.
  */
 export async function backfillColours(createWorker = createImageWorker) {
-  const pending = Object.values(plannerStore.getState().images).filter(({ colour }) => !colour)
+  // No tone means a colour from before bands, which needs the photo read again.
+  const pending = Object.values(plannerStore.getState().images).filter(
+    ({ colour }) => colour?.tone === undefined
+  )
   if (pending.length === 0) return
   const worker = createWorker()
   try {

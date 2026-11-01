@@ -60,7 +60,7 @@ describe('the planner store', () => {
   describe('sorting by colour', () => {
     const shade = (hue: number, lightness = 0.6) => {
       const dominant = { lightness, chroma: 0.2, hue }
-      return { dominant, palette: [dominant] }
+      return { dominant, palette: [dominant], tone: lightness, vivid: 0.5 }
     }
 
     async function coloured() {

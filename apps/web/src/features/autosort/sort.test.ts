@@ -68,7 +68,9 @@ describe('sortByColour', () => {
       id: 'stray',
       colour: {
         dominant: { lightness: 0.6, chroma: 0.02, hue: 150 },
-        palette: []
+        palette: [],
+        tone: 0.5,
+        vivid: 0
       }
     }
     const order = sortByColour([stray, cell('green'), cell('blue'), cell('black')], 'rainbow')
@@ -108,7 +110,9 @@ describe('sortByColour', () => {
           chroma: ((index * 11) % 30) / 100,
           hue: (index * 13) % 360
         },
-        palette: []
+        palette: [],
+        tone: 0.5,
+        vivid: 0
       }
     }))
     const start = performance.now()

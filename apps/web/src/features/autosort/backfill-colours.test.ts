@@ -7,7 +7,9 @@ import type { ImageColour } from './colour'
 
 const colour: ImageColour = {
   dominant: { lightness: 0.6, chroma: 0.2, hue: 30 },
-  palette: [{ lightness: 0.6, chroma: 0.2, hue: 30 }]
+  palette: [{ lightness: 0.6, chroma: 0.2, hue: 30 }],
+  tone: 0.6,
+  vivid: 0.5
 }
 
 const stored = (id: string, extra = {}) => ({

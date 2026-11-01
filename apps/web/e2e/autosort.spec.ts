@@ -147,3 +147,21 @@ test('an image saved before colours existed gets one in the background', async (
   await expect(page.getByRole('img')).toHaveCount(2)
   await expect.poll(() => storedColours(page).then((all) => all.every(Boolean))).toBe(true)
 })
+
+test('bands put the dark images first and the light ones after', async ({ page }) => {
+  await page.goto('/')
+  await addImages(page, testImages)
+  await page.getByRole('button', { name: 'Move all to the grid' }).click()
+  await page.getByRole('button', { name: 'Sort the grid by colour' }).click()
+  await page.getByRole('menuitem', { name: 'Bands, 2 rows' }).click()
+
+  const darkFirst = async () => {
+    const [{ grid }, images] = await Promise.all([savedBoard(page), savedImages(page)])
+    const tones = grid.map((id) => images.find((one) => one.id === id)?.colour?.tone ?? 0)
+    return (
+      tones.length === testImages.length &&
+      Math.max(...tones.slice(0, 6)) <= Math.min(...tones.slice(6))
+    )
+  }
+  await expect.poll(darkFirst).toBe(true)
+})

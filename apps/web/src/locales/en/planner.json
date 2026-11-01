@@ -40,7 +40,9 @@
   "sort": {
     "rainbow": "Rainbow",
     "lightToDark": "Light to dark",
-    "grouped": "Grouped by colour"
+    "grouped": "Grouped by colour",
+    "bands2": "Bands, 2 rows",
+    "bands4": "Bands, 4 rows"
   },
   "clear": "Clear",
   "clearTitle": "Clear which images?",

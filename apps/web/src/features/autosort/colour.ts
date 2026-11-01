@@ -8,6 +8,10 @@ export interface Oklch {
 export interface ImageColour {
   dominant: Oklch
   palette: Oklch[]
+  /** The photo's mean lightness, which the dominant colour alone does not tell. */
+  tone: number
+  /** The share of its pixels, from 0 to 1, that are strongly coloured. */
+  vivid: number
 }
 
 type Oklab = readonly [lightness: number, a: number, b: number]
@@ -22,6 +26,14 @@ const ITERATIONS = 8
 // Added to chroma when clusters compete, so a large grey sky can still beat a small red sign.
 // Tuned by the fixtures in colour.test.ts.
 const CHROMA_FLOOR = 0.05
+const VIVID_CHROMA = 0.09
+
+// Below this a photo reads as black, white or grey, and its hue is noise.
+export const NEUTRAL_CHROMA = 0.04
+// The hue the rainbow opens on, so that the reds are not split between its two ends.
+const RAINBOW_START = 10
+
+export const fromRed = (hue: number) => (hue - RAINBOW_START + 360) % 360
 
 const toLinear = (channel: number) => {
   const value = channel / 255
@@ -107,5 +119,10 @@ export function extractColour(pixels: Uint8ClampedArray): ImageColour {
     .filter(({ size }) => size > 0)
     .sort((one, other) => score(other) - score(one))
   const palette = ranked.map(({ centre }) => toOklch(centre))
-  return { dominant: palette[0], palette }
+  return {
+    dominant: palette[0],
+    palette,
+    tone: lab.reduce((sum, [lightness]) => sum + lightness, 0) / lab.length,
+    vivid: lab.filter(([, a, b]) => Math.hypot(a, b) > VIVID_CHROMA).length / lab.length
+  }
 }

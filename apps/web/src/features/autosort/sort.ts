@@ -1,10 +1,17 @@
 import type { ImageRecord } from '@/features/planner/board-store'
 
-import type { Oklch } from './colour'
+import { instagram } from '@/features/planner/network-profile'
 
-export const sortStrategies = ['rainbow', 'lightToDark', 'grouped'] as const
+import { bands } from './bands'
+import { fromRed, NEUTRAL_CHROMA, type Oklch } from './colour'
+
+const keyedStrategies = ['rainbow', 'lightToDark', 'grouped'] as const
+
+export const sortStrategies = [...keyedStrategies, 'bands2', 'bands4'] as const
 
 export type SortStrategy = (typeof sortStrategies)[number]
+
+const bandRows = { bands2: 2, bands4: 4 } as const
 
 type Cell = Pick<ImageRecord, 'id' | 'colour'>
 
@@ -14,15 +21,9 @@ type SortKey = [rank: number, ...rest: number[]]
 const NEUTRALS = 1
 const NO_COLOUR = 2
 
-// Below this a photo reads as black, white or grey, and its hue is noise.
-const NEUTRAL_CHROMA = 0.04
-// The hue the rainbow opens on, so that the reds are not split between its two ends.
-const RAINBOW_START = 10
 const FAMILY_SPAN = 60
 
-const fromRed = (hue: number) => (hue - RAINBOW_START + 360) % 360
-
-const keys: Record<SortStrategy, (colour: Oklch) => SortKey> = {
+const keys: Record<(typeof keyedStrategies)[number], (colour: Oklch) => SortKey> = {
   rainbow({ chroma, hue, lightness }) {
     if (chroma < NEUTRAL_CHROMA) return [NEUTRALS, -lightness]
     return [0, fromRed(hue), -lightness]
@@ -44,6 +45,11 @@ function compare(one: SortKey, other: SortKey) {
 
 /** The new order of `cells`. An image with no colour yet goes last, so it is never lost in the rest. */
 export function sortByColour(cells: Cell[], strategy: SortStrategy) {
+  if (strategy === 'bands2' || strategy === 'bands4') {
+    const coloured = cells.flatMap(({ id, colour }) => (colour ? [{ id, colour }] : []))
+    const waiting = cells.filter(({ colour }) => !colour).map(({ id }) => id)
+    return [...bands(coloured, bandRows[strategy], instagram.columns), ...waiting.sort()]
+  }
   return cells
     .map(({ id, colour }) => ({
       id,

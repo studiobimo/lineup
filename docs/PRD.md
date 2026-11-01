@@ -147,16 +147,16 @@ may slip to the following release.
 
 ### E5. Autosort
 
-| ID    | Story                               | Acceptance                                                                                                                                      | Priority |
-| ----- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| SRT-1 | I can sort by colour in one action  | A "Sort by colour" menu beside Shuffle, in the tray and in the grid                                                                             | Must     |
-| SRT-2 | I can choose how                    | Rainbow (by hue), Light to dark, Grouped (colour families, each light to dark)                                                                  | Must     |
-| SRT-3 | Greys do not land among the colours | Black, white and grey images are placed together, ordered by lightness, not scattered by an arbitrary hue                                       | Must     |
-| SRT-4 | Sorting is one undo step            | Undo restores the previous order exactly, and a prompt beside the button offers it right after a sort                                           | Must     |
-| SRT-5 | I can keep arranging afterwards     | Sorting is a one-off action, not a mode; manual order is free again immediately                                                                 | Must     |
-| SRT-6 | Sorting is instant                  | Colours are computed at import; sorting 300 images takes under 100 ms                                                                           | Must     |
-| SRT-7 | Albums and locked cells behave      | An album sorts as one cell by its cover; published cells do not move, and neither does a grid cell I lock by hand from its hover button or menu | Must     |
-| SRT-8 | Sorting is stable                   | The same images and strategy always give the same order                                                                                         | Must     |
+| ID    | Story                               | Acceptance                                                                                                                                                                     | Priority |
+| ----- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| SRT-1 | I can sort by colour in one action  | A "Sort by colour" menu beside Shuffle, in the tray and in the grid                                                                                                            | Must     |
+| SRT-2 | I can choose how                    | Rainbow (by hue), Light to dark, Grouped (colour families, each light to dark), or Bands: dark and light bands in turn, two or four rows each, with one bright accent to a row | Must     |
+| SRT-3 | Greys do not land among the colours | Black, white and grey images are placed together, ordered by lightness, not scattered by an arbitrary hue                                                                      | Must     |
+| SRT-4 | Sorting is one undo step            | Undo restores the previous order exactly, and a prompt beside the button offers it right after a sort                                                                          | Must     |
+| SRT-5 | I can keep arranging afterwards     | Sorting is a one-off action, not a mode; manual order is free again immediately                                                                                                | Must     |
+| SRT-6 | Sorting is instant                  | Colours are computed at import; sorting 300 images takes under 100 ms                                                                                                          | Must     |
+| SRT-7 | Albums and locked cells behave      | An album sorts as one cell by its cover; published cells do not move, and neither does a grid cell I lock by hand from its hover button or menu                                | Must     |
+| SRT-8 | Sorting is stable                   | The same images and strategy always give the same order                                                                                                                        | Must     |
 
 ### E6. Albums
 
