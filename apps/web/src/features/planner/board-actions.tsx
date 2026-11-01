@@ -1,5 +1,5 @@
-import { ChevronsLeft, ChevronsRight, Eraser, Shuffle } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import { ChevronsLeft, ChevronsRight, Eraser, Shuffle, Smartphone } from 'lucide-react'
+import { lazy, type ReactNode, Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
@@ -17,6 +17,10 @@ import { Group } from '@/components/ui/group'
 
 import type { Container } from './board'
 import { plannerStore, usePlanner } from './planner'
+
+const PhonePreview = lazy(() =>
+  import('./phone-preview').then(({ PhonePreview }) => ({ default: PhonePreview }))
+)
 
 const moveAllLabels = { tray: 'moveAllToGrid', grid: 'moveAllToTray' } as const
 const shuffleLabels = { tray: 'shuffleTray', grid: 'shuffleGrid' } as const
@@ -51,6 +55,23 @@ export function ContainerActions({ container, children }: ContainerActionsProps)
       </IconButton>
       {children}
     </Group>
+  )
+}
+
+export function PreviewOnPhone() {
+  const { t } = useTranslation('planner')
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <IconButton variant="outline" label={t('phonePreview')} onClick={() => setOpen(true)}>
+        <Smartphone />
+      </IconButton>
+      {open && (
+        <Suspense>
+          <PhonePreview onClose={() => setOpen(false)} />
+        </Suspense>
+      )}
+    </>
   )
 }
 

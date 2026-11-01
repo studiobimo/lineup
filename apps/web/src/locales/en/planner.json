@@ -33,6 +33,7 @@
   "clearTitle": "Clear which images?",
   "clearDescription": "They leave the board, and Undo brings them back.",
   "cancel": "Cancel",
+  "phonePreview": "Preview on a phone",
   "openImage": "Open full size",
   "lightboxPosition": "{{position}} of {{total}}",
   "zoom": "Zoom",

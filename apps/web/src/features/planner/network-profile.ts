@@ -4,3 +4,5 @@ export const instagram = {
   cellRatio: { width: 3, height: 4 },
   carouselLimit: 20
 } as const
+
+export const gridColumns = { gridTemplateColumns: `repeat(${instagram.columns}, minmax(0, 1fr))` }

@@ -330,6 +330,21 @@ test('an image opens full size, steps along, zooms, and closes', async ({ page }
   expect(errors).toEqual([])
 })
 
+test('the phone preview shows the planned grid, and changes nothing', async ({ page }) => {
+  const errors = watchErrors(page)
+  const { before } = await boardOfFour(page)
+
+  await page.getByRole('button', { name: 'Preview on a phone' }).click()
+  const phone = page.locator('[data-phone]')
+  await expect(phone.getByRole('img')).toHaveCount(3)
+  await expect(phone.locator('[data-drop-id]')).toHaveCount(0)
+
+  await page.keyboard.press('Escape')
+  await expect(phone).toHaveCount(0)
+  expect(await order(page)).toEqual(before)
+  expect(errors).toEqual([])
+})
+
 test('holding Shift inserts on the side the pointer is on', async ({ page }) => {
   const { before, cells } = await boardOfFour(page)
   const [a, b, c] = before.grid

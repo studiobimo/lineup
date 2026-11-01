@@ -26,7 +26,7 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 
 import type { Container } from './board'
-import { ClearBoard, ContainerActions } from './board-actions'
+import { ClearBoard, ContainerActions, PreviewOnPhone } from './board-actions'
 import { BoardCell } from './board-cell'
 import { BoardDrag } from './board-drag'
 import { type BoardHold, holdBoard } from './board-lock'
@@ -34,14 +34,12 @@ import { cellTooltip } from './cell-tooltip'
 import { useEmptyAreaMark } from './drag-target'
 import { ImportButtons, ImportProgress, ImportTargets } from './import-controls'
 import { useLightboxId } from './lightbox-store'
-import { instagram } from './network-profile'
+import { gridColumns } from './network-profile'
 import { plannerStore, usePlanner } from './planner'
 import { useDropArea } from './use-board-drag'
 import { usePlannerShortcuts } from './use-planner-shortcuts'
 
 const Lightbox = lazy(() => import('./lightbox').then(({ Lightbox }) => ({ default: Lightbox })))
-
-const columns = { gridTemplateColumns: `repeat(${instagram.columns}, minmax(0, 1fr))` }
 
 function Cells({ container, className }: { container: Container; className?: string }) {
   const { t } = useTranslation('planner')
@@ -54,7 +52,7 @@ function Cells({ container, className }: { container: Container; className?: str
     )
   }
   return (
-    <div className={cn('grid gap-0.5', className)} style={columns}>
+    <div className={cn('grid gap-0.5', className)} style={gridColumns}>
       {ids.map((id, index) => (
         <BoardCell key={id} id={id} container={container} position={index + 1} />
       ))}
@@ -185,6 +183,7 @@ function GridPanel({ desktop }: { desktop: boolean }) {
             {!desktop && <MobileTray />}
             <ContainerActions container="grid">
               <ClearBoard />
+              <PreviewOnPhone />
             </ContainerActions>
             <History />
           </div>
