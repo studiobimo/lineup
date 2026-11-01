@@ -1,4 +1,5 @@
 import { Redo2, Undo2 } from 'lucide-react'
+import { m } from 'motion/react'
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -123,9 +124,10 @@ function TrayPanel() {
   const { ref, dropArea } = useDropArea('tray')
   const marked = useEmptyAreaMark('tray')
   return (
-    <aside
+    <m.aside
       ref={ref}
       {...dropArea}
+      layoutScroll
       data-scroll-root
       className={cn(
         'sticky top-14 h-[calc(100dvh-3.5rem)] w-80 shrink-0 overflow-y-auto border-r',
@@ -136,7 +138,7 @@ function TrayPanel() {
       <ImportButtons />
       <ImportProgress />
       <Cells container="tray" className="px-4 pb-4" />
-    </aside>
+    </m.aside>
   )
 }
 

@@ -1,38 +1,33 @@
 import {
   type CollisionDetection,
   DndContext,
-  DragOverlay,
-  type Modifier,
   PointerSensor,
   useSensor,
   useSensors
 } from '@dnd-kit/core'
+import { LazyMotion, MotionConfig } from 'motion/react'
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { Trans } from 'react-i18next'
 
 import { Kbd } from '@/components/ui/kbd'
 
-import { dragStore, dropTarget, type Hover, type Point } from './drag-target'
-import { instagram } from './network-profile'
+import { CellFlights } from './cell-flights'
+import { DragGhost } from './drag-ghost'
+import {
+  cellBox,
+  dragStore,
+  dropTarget,
+  type DropTarget,
+  ground,
+  type Hover,
+  launch,
+  type Point
+} from './drag-target'
 import { plannerStore } from './planner'
-import { Thumbnail } from './thumbnail'
-
-const { width, height } = instagram.cellRatio
+import { useDragGhost } from './use-drag-ghost'
 
 // Dragging a pixel or two is a click that wobbled, and cells hold buttons.
 const PICK_UP_DISTANCE = 6
-
-// A cell-sized overlay would sit on the very spot the drop indicator has to show.
-const OVERLAY_OFFSET = 12
-const besidePointer: Modifier = ({ activatorEvent, draggingNodeRect, transform }) => {
-  if (!activatorEvent || !draggingNodeRect) return transform
-  const { clientX, clientY } = activatorEvent as PointerEvent
-  return {
-    ...transform,
-    x: transform.x + clientX - draggingNodeRect.left + OVERLAY_OFFSET,
-    y: transform.y + clientY - draggingNodeRect.top + OVERLAY_OFFSET
-  }
-}
 
 // #14 gives these their words. Until then the library would read out each cell's id.
 const quiet = () => undefined
@@ -41,6 +36,15 @@ const announcements = {
   onDragOver: quiet,
   onDragEnd: quiet,
   onDragCancel: quiet
+}
+
+// After first paint, because this is most of Motion's weight and nothing moves until then.
+const loadMotion = () => import('./motion-features').then(({ features }) => features)
+
+function place(id: string, target: DropTarget) {
+  const { swap, move } = plannerStore.getState()
+  if (target.kind === 'swap') swap(id, target.id)
+  else move(id, target.container, target.index)
 }
 
 interface Latest {
@@ -54,6 +58,8 @@ export function BoardDrag({ children }: { children: ReactNode }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: PICK_UP_DISTANCE } })
   )
+  const ghost = useDragGhost()
+  const { lift, follow, land } = ghost
   const [active, setActive] = useState<string | null>(null)
   const latest = useRef<Latest>({ active: null, hover: null, point: null, inserting: false })
   const boxes = useRef<(id: string) => DOMRect | undefined>(() => undefined)
@@ -88,69 +94,65 @@ export function BoardDrag({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!active) return
-    const follow = ({ shiftKey }: KeyboardEvent) => {
+    const shift = ({ shiftKey }: KeyboardEvent) => {
       latest.current.inserting = shiftKey
       aim()
     }
-    window.addEventListener('keydown', follow)
-    window.addEventListener('keyup', follow)
+    // Straight from the event rather than through React, so the ghost keeps up with the pointer.
+    const pointer = ({ clientX, clientY }: PointerEvent) => follow({ x: clientX, y: clientY })
+    window.addEventListener('keydown', shift)
+    window.addEventListener('keyup', shift)
+    window.addEventListener('pointermove', pointer)
     return () => {
-      window.removeEventListener('keydown', follow)
-      window.removeEventListener('keyup', follow)
+      window.removeEventListener('keydown', shift)
+      window.removeEventListener('keyup', shift)
+      window.removeEventListener('pointermove', pointer)
     }
-  }, [active, aim])
+  }, [active, aim, follow])
 
-  const finish = () => {
-    setActive(null)
+  const release = (apply: boolean) => {
+    const { target } = dragStore.getState()
+    const { active: id } = latest.current
     latest.current.active = null
     dragStore.setState({ target: null })
-  }
-
-  const drop = () => {
-    const { target } = dragStore.getState()
-    const { active } = latest.current
-    finish()
-    if (!active || !target) return
-    const { swap, move } = plannerStore.getState()
-    if (target.kind === 'swap') swap(active, target.id)
-    else move(active, target.container, target.index)
+    setActive(null)
+    if (!id) return
+    launch([id])
+    if (apply && target) place(id, target)
+    // The board has changed but the page has not, until React has committed it.
+    requestAnimationFrame(() => land(cellBox(id), () => ground([id])))
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={collide}
-      accessibility={{ announcements }}
-      onDragStart={({ active: { id }, activatorEvent }) => {
-        latest.current.active = String(id)
-        latest.current.inserting = (activatorEvent as PointerEvent).shiftKey
-        setActive(String(id))
-      }}
-      onDragMove={aim}
-      onDragEnd={drop}
-      onDragCancel={finish}
-    >
-      {children}
-      <DragOverlay
-        dropAnimation={null}
-        modifiers={[besidePointer]}
-        style={{ pointerEvents: 'none' }}
-      >
-        {active && (
-          <div
-            aria-hidden
-            className="w-24 overflow-hidden rounded-sm bg-muted shadow-lg ring-1 ring-black/10"
-            style={{ aspectRatio: `${width} / ${height}` }}
-          >
-            <Thumbnail id={active} label="" />
-          </div>
-        )}
-      </DragOverlay>
-      {active && (
-        <p className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md pointer-coarse:hidden">
-          <Trans i18nKey="planner:dragHint" components={{ key: <Kbd /> }} />
-        </p>
-      )}
-    </DndContext>
+    <LazyMotion features={loadMotion} strict>
+      <MotionConfig reducedMotion="user">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={collide}
+          accessibility={{ announcements }}
+          onDragStart={({ active: { id }, activatorEvent }) => {
+            const cell = String(id)
+            const { clientX, clientY, shiftKey } = activatorEvent as PointerEvent
+            const from = cellBox(cell)
+            latest.current.active = cell
+            latest.current.inserting = shiftKey
+            setActive(cell)
+            if (from) lift(cell, { x: clientX, y: clientY }, from)
+          }}
+          onDragMove={aim}
+          onDragEnd={() => release(true)}
+          onDragCancel={() => release(false)}
+        >
+          {children}
+          <CellFlights />
+          <DragGhost ghost={ghost} />
+          {active && (
+            <p className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md pointer-coarse:hidden">
+              <Trans i18nKey="planner:dragHint" components={{ key: <Kbd /> }} />
+            </p>
+          )}
+        </DndContext>
+      </MotionConfig>
+    </LazyMotion>
   )
 }

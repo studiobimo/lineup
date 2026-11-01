@@ -1,10 +1,30 @@
 import { describe, expect, it } from 'vitest'
 
-import { addToTray, clear, move, moveAll, remove, sameBoard, shuffle, swap } from './board'
+import {
+  addToTray,
+  cellsThatCrossed,
+  clear,
+  move,
+  moveAll,
+  remove,
+  sameBoard,
+  shuffle,
+  swap
+} from './board'
 
 const board = { tray: ['a', 'b'], grid: ['c', 'd', 'e'] }
 
 describe('board operations', () => {
+  it('finds the cells that changed container, and no others', () => {
+    const before = { tray: ['a', 'b'], grid: ['c', 'd'] }
+    expect(cellsThatCrossed(before, { tray: ['b', 'a'], grid: ['d', 'c'] })).toEqual([])
+    expect(cellsThatCrossed(before, { tray: ['b', 'c'], grid: ['a', 'd'] }).sort()).toEqual([
+      'a',
+      'c'
+    ])
+    expect(cellsThatCrossed(before, { tray: ['b'], grid: ['c', 'd'] })).toEqual([])
+  })
+
   it('puts new images at the top of the tray, in the order given', () => {
     expect(addToTray(board, ['x', 'y']).tray).toEqual(['x', 'y', 'a', 'b'])
   })

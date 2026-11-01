@@ -37,6 +37,16 @@ export function swap(board: Board, first: string, second: string): Board {
   return next
 }
 
+/** The cells that sit in a different container in `after`, whichever way they went. */
+export function cellsThatCrossed(before: Board, after: Board) {
+  const wasInTray = new Set(before.tray)
+  const wasInGrid = new Set(before.grid)
+  return [
+    ...after.grid.filter((id) => wasInTray.has(id)),
+    ...after.tray.filter((id) => wasInGrid.has(id))
+  ]
+}
+
 export function moveAll(board: Board, from: Container): Board {
   return from === 'tray'
     ? { tray: [], grid: [...board.grid, ...board.tray] }

@@ -1,9 +1,9 @@
 APP_DIR := apps/web
 
-# The PRD's first load is 200 kB of gzipped JavaScript, which is 195 KiB here. The check adds the
-# CSS, which the PRD does not count, so it gets 20 KiB of its own. Lazy chunks count too, so this
-# trips before the first load itself does.
-BUNDLE_TOTAL_KIB := 215
+# Everything the app ships, lazy chunks and CSS included, so a stray dependency cannot slip by. The
+# PRD's limit is a different number: 200 kB of JavaScript before any lazy route, 136 KiB today.
+# Motion is 48 KiB of this and loads after first paint. Raising it needs a reason.
+BUNDLE_TOTAL_KIB := 290
 
 # Set from the M0 scaffold, 16.9 KiB, with room for the API (ADR-0005). Raising it needs a reason.
 WORKER_GZIP_KIB := 32

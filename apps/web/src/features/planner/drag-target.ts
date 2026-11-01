@@ -81,7 +81,28 @@ export function dropTarget({ board, active, hover, point, inserting, boxOf }: Ai
   } satisfies DropTarget
 }
 
-export const dragStore = createStore<{ target: DropTarget | null }>(() => ({ target: null }))
+interface DragState {
+  target: DropTarget | null
+  /** Cells drawn by something flying to them, so the real one waits, hidden, where it will land. */
+  airborne: ReadonlySet<string>
+}
+
+export const dragStore = createStore<DragState>(() => ({ target: null, airborne: new Set() }))
+
+export const useAirborne = (id: string) => useStore(dragStore, ({ airborne }) => airborne.has(id))
+
+export function launch(ids: string[]) {
+  dragStore.setState(({ airborne }) => ({ airborne: new Set([...airborne, ...ids]) }))
+}
+
+export function ground(ids: string[]) {
+  dragStore.setState(({ airborne }) => ({
+    airborne: new Set([...airborne].filter((id) => !ids.includes(id)))
+  }))
+}
+
+export const cellBox = (id: string) =>
+  document.querySelector(`[data-drop-id="${id}"]`)?.getBoundingClientRect()
 
 /** Only the cells the indicator is on change, so the other 299 do not render on every move. */
 export function useDropMark(id: string) {
