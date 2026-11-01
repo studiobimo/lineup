@@ -220,6 +220,27 @@ test('dropping near the edge of a cell inserts without Shift', async ({ page }) 
   await expect.poll(async () => (await order(page)).grid).toEqual([b, a, c])
 })
 
+test('either side of a gap draws one line, in the middle of it', async ({ page }) => {
+  const { cells } = await boardOfFour(page)
+  const line = page.locator('[data-insert-line]')
+  const left = (await cells.nth(0).boundingBox())!
+  const right = (await cells.nth(1).boundingBox())!
+
+  await drag(page, page.locator('aside').getByRole('img').first(), cells.nth(0), { x: 0.9 })
+  await expect(page.locator('[data-mark="after"]')).toHaveCount(1)
+  await expect(line).toHaveCount(1)
+  const fromLeft = (await line.boundingBox())!
+
+  await page.mouse.move(right.x + right.width * 0.1, right.y + right.height / 2)
+  await expect(page.locator('[data-mark="before"]')).toHaveCount(1)
+  await expect(line).toHaveCount(1)
+  const fromRight = (await line.boundingBox())!
+  await page.mouse.up()
+
+  expect(fromRight.x).toBe(fromLeft.x)
+  expect(fromLeft.x + fromLeft.width / 2).toBe((left.x + left.width + right.x) / 2)
+})
+
 test('holding Shift inserts on the side the pointer is on', async ({ page }) => {
   const { before, cells } = await boardOfFour(page)
   const [a, b, c] = before.grid

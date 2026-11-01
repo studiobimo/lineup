@@ -100,14 +100,6 @@ export function BoardCell({ id, container, position }: BoardCellProps) {
           (mark === 'swap' || isDragging) && 'opacity-100'
         )}
       />
-      {(mark === 'before' || mark === 'after') && (
-        <div
-          className={cn(
-            'pointer-events-none absolute inset-y-0 w-1 bg-primary',
-            mark === 'before' ? 'left-0' : 'right-0'
-          )}
-        />
-      )}
       {!mark && <CellActions id={id} container={container} />}
     </m.div>
   )

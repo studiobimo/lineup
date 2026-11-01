@@ -18,6 +18,11 @@ export interface Point {
 
 export type Side = 'before' | 'after'
 
+interface Beside {
+  id: string
+  side: Side
+}
+
 /** Where a dragged cell would land. The drop and its indicator both go by this. */
 export type DropTarget =
   | { kind: 'swap'; id: string }
@@ -26,7 +31,7 @@ export type DropTarget =
       container: Container
       index: number
       /** The cell to draw the line against. An empty container has none. */
-      beside?: { id: string; side: Side }
+      beside?: Beside
     }
 
 /** What is under the pointer: a cell, or the empty part of a container. */
@@ -114,8 +119,26 @@ export function ground(ids: string[]) {
   }))
 }
 
-export const cellBox = (id: string) =>
-  document.querySelector(`[data-drop-id="${id}"]`)?.getBoundingClientRect()
+const cellElement = (id: string) => document.querySelector(`[data-drop-id="${id}"]`)
+
+export const cellBox = (id: string) => cellElement(id)?.getBoundingClientRect()
+
+/**
+ * The right of one cell and the left of the next are the same drop, so they share one spot: the
+ * middle of the gap. At the end of a row there is no gap, and the line sits on the cell's edge.
+ */
+export function gapBeside({ id, side }: Beside) {
+  const cell = cellElement(id)
+  if (!cell) return undefined
+  const { left, right, top, height } = cell.getBoundingClientRect()
+  const before = side === 'before'
+  const neighbour = (
+    before ? cell.previousElementSibling : cell.nextElementSibling
+  )?.getBoundingClientRect()
+  const edge = before ? left : right
+  const x = neighbour?.top === top ? (edge + (before ? neighbour.right : neighbour.left)) / 2 : edge
+  return { x, top, height }
+}
 
 /** Only the cells the indicator is on change, so the other 299 do not render on every move. */
 export function useDropMark(id: string) {

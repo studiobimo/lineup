@@ -23,6 +23,7 @@ import {
   launch,
   type Point
 } from './drag-target'
+import { InsertLine } from './insert-line'
 import { plannerStore } from './planner'
 import { useDragGhost } from './use-drag-ghost'
 
@@ -40,7 +41,7 @@ const announcements = {
   onDragCancel: quiet
 }
 
-const touchPoint = ({ clientX, clientY }: Touch): Point => ({ x: clientX, y: clientY })
+const pointOf = ({ clientX, clientY }: MouseEvent | Touch): Point => ({ x: clientX, y: clientY })
 
 function place(id: string, target: DropTarget) {
   const { swap, move } = plannerStore.getState()
@@ -101,8 +102,8 @@ export function BoardDrag({ children }: { children: ReactNode }) {
       aim()
     }
     // Straight from the event rather than through React, so the ghost keeps up with the pointer.
-    const mouse = ({ clientX, clientY }: MouseEvent) => follow({ x: clientX, y: clientY })
-    const touch = ({ touches: [finger] }: TouchEvent) => follow(touchPoint(finger))
+    const mouse = (event: MouseEvent) => follow(pointOf(event))
+    const touch = ({ touches: [finger] }: TouchEvent) => follow(pointOf(finger))
     window.addEventListener('keydown', shift)
     window.addEventListener('keyup', shift)
     window.addEventListener('mousemove', mouse)
@@ -140,13 +141,7 @@ export function BoardDrag({ children }: { children: ReactNode }) {
         latest.current.active = cell
         latest.current.inserting = event.shiftKey
         setActive(cell)
-        if (from) {
-          const point =
-            'touches' in event
-              ? touchPoint(event.touches[0])
-              : { x: event.clientX, y: event.clientY }
-          lift(cell, point, from)
-        }
+        if (from) lift(cell, pointOf('touches' in event ? event.touches[0] : event), from)
       }}
       onDragMove={aim}
       onDragEnd={() => release(true)}
@@ -154,6 +149,7 @@ export function BoardDrag({ children }: { children: ReactNode }) {
     >
       {children}
       <CellFlights />
+      <InsertLine />
       <DragGhost ghost={ghost} />
       {active && (
         <p className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md pointer-coarse:hidden">
