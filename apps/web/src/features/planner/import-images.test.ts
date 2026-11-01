@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { importImages } from './import-images'
+import { importImages, type ImageTask } from './import-images'
 import type { ProcessedImage } from './process-image'
 
 const image = { width: 1, height: 1 } as ProcessedImage
@@ -12,7 +12,7 @@ function fakeWorker() {
     onmessage: null as ((event: { data: ProcessedImage | null }) => void) | null,
     onerror: null,
     onmessageerror: null,
-    postMessage: vi.fn((file: Blob) =>
+    postMessage: vi.fn(({ file }: ImageTask) =>
       queueMicrotask(() => worker.onmessage?.({ data: file === unreadable ? null : image }))
     ),
     terminate: vi.fn()
@@ -44,9 +44,9 @@ describe('importImages', () => {
     const worker = fakeWorker()
     const sentBeforeFirstReply: number[] = []
     const { postMessage } = worker
-    worker.postMessage = vi.fn((file: Blob) => {
+    worker.postMessage = vi.fn((task: ImageTask) => {
       sentBeforeFirstReply.push(postMessage.mock.calls.length)
-      postMessage(file)
+      postMessage(task)
     })
     await importImages([new Blob(), new Blob(), new Blob()], { createWorker: create(worker) })
     expect(sentBeforeFirstReply).toEqual([0, 1, 2])

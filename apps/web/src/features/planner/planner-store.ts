@@ -1,5 +1,7 @@
 import { createStore } from 'zustand/vanilla'
 
+import type { ImageColour } from '@/features/autosort/colour'
+
 import {
   addToTray,
   clear,
@@ -35,6 +37,8 @@ export interface PlannerState {
   swap(first: string, second: string): void
   moveAll(from: Container): void
   shuffle(container: Container): void
+  /** Not a change to the board, so it is no part of undo. */
+  setColour(id: string, colour: ImageColour): void
   remove(ids: string[]): void
   clear(containers: Container[]): void
   undo(): void
@@ -113,7 +117,13 @@ export function createPlannerStore(boardStore: BoardStore) {
         const createdAt = new Date().toISOString()
         const stored = added.map((image) => ({ ...image, id: crypto.randomUUID(), createdAt }))
         await Promise.all(stored.map((image) => boardStore.putImage(image)))
-        const records = stored.map(({ id, width, height }) => ({ id, width, height, createdAt }))
+        const records = stored.map(({ id, width, height, colour }) => ({
+          id,
+          width,
+          height,
+          colour,
+          createdAt
+        }))
         set(({ images }) => ({
           images: { ...images, ...Object.fromEntries(records.map((r) => [r.id, r])) }
         }))
@@ -129,6 +139,13 @@ export function createPlannerStore(boardStore: BoardStore) {
       swap: (first, second) => commit(swap(get().board, first, second)),
       moveAll: (from) => commit(moveAll(get().board, from)),
       shuffle: (container) => commit(shuffle(get().board, container)),
+
+      setColour(id, colour) {
+        const { images } = get()
+        if (!images[id]) return
+        set({ images: { ...images, [id]: { ...images[id], colour } } })
+        void report(boardStore.setColour(id, colour))
+      },
       remove: (ids) => commit(remove(get().board, ids)),
       clear: (containers) => commit(clear(get().board, containers)),
 

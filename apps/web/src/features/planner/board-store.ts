@@ -1,3 +1,5 @@
+import type { ImageColour } from '@/features/autosort/colour'
+
 /** A cell is an image's id for now. Albums arrive in M3, with a migration. */
 export interface Board {
   tray: string[]
@@ -9,6 +11,8 @@ export interface ImageRecord {
   width: number
   height: number
   createdAt: string
+  /** Absent until the backfill reaches an image stored before colours were kept (ADR-0004). */
+  colour?: ImageColour
 }
 
 export interface StorageUsage {
@@ -31,6 +35,7 @@ export interface BoardStore {
   saveBoard(board: Board): Promise<void>
   listImages(): Promise<ImageRecord[]>
   putImage(image: StoredImage): Promise<void>
+  setColour(id: string, colour: ImageColour): Promise<void>
   getThumbnail(id: string): Promise<Blob | undefined>
   getPublishCopy(id: string): Promise<Blob | undefined>
   deleteImages(ids: string[]): Promise<void>

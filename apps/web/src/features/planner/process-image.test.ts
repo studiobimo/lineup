@@ -34,7 +34,8 @@ describe('processImage', () => {
   class FakeCanvas {
     getContext = () => ({
       fillRect: () => calls.push('fill'),
-      drawImage: () => calls.push('draw')
+      drawImage: () => calls.push('draw'),
+      getImageData: () => ({ data: Uint8ClampedArray.of(200, 40, 40, 255) })
     })
     convertToBlob = async () => new Blob(['jpeg'], { type: 'image/jpeg' })
   }
@@ -54,7 +55,7 @@ describe('processImage', () => {
     expect(image).toMatchObject({ width: 1440, height: 960 })
     expect(image.publish.type).toBe('image/jpeg')
     expect(image.thumbnail.type).toBe('image/jpeg')
-    expect(calls).toEqual(['fill', 'draw', 'fill', 'draw'])
+    expect(calls).toEqual(['fill', 'draw', 'fill', 'draw', 'fill', 'draw'])
     expect(close).toHaveBeenCalledOnce()
   })
 

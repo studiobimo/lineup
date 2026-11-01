@@ -77,6 +77,15 @@ export function createIndexedDbBoardStore(name = 'lineup', steps = migrations): 
       ])
     },
 
+    async setColour(id, colour) {
+      const db = await open()
+      const transaction = db.transaction('images', 'readwrite')
+      const record = await transaction.store.get(id)
+      // It may have been deleted while its colour was worked out.
+      if (record) await transaction.store.put({ ...record, colour })
+      await transaction.done
+    },
+
     async getThumbnail(id) {
       const db = await open()
       return db.get('thumbnails', id)

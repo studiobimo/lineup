@@ -27,6 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toastManager } from '@/components/ui/toast'
 import { Intro } from '@/features/help/intro'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { backfillColours } from '@/features/autosort/backfill-colours'
 import { cn } from '@/lib/utils'
 
 import type { Container } from './board'
@@ -232,7 +233,8 @@ export function PlannerPage() {
 
   useEffect(() => {
     const { load, suspend } = plannerStore.getState()
-    const current = holdBoard({ onActive: () => void load(), onElsewhere: suspend })
+    const onActive = () => void load().then(() => backfillColours())
+    const current = holdBoard({ onActive, onElsewhere: suspend })
     hold.current = current
     return () => {
       current.release()

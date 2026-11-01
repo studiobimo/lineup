@@ -10,25 +10,30 @@ interface ImportOptions {
   createWorker?: () => Worker
 }
 
-const createImportWorker = () =>
+export interface ImageTask {
+  kind: 'process' | 'colour'
+  file: Blob
+}
+
+export const createImageWorker = () =>
   new Worker(new URL('../../workers/image-import.worker.ts', import.meta.url), { type: 'module' })
 
-function processInWorker(worker: Worker, file: Blob) {
-  return new Promise<ProcessedImage>((resolve, reject) => {
-    worker.onmessage = ({ data }: MessageEvent<ProcessedImage | null>) => {
+export function runInWorker<Result>(worker: Worker, task: ImageTask) {
+  return new Promise<Result>((resolve, reject) => {
+    worker.onmessage = ({ data }: MessageEvent<Result | null>) => {
       if (data) resolve(data)
       else reject(new Error('The worker could not process this file'))
     }
     worker.onerror = reject
     worker.onmessageerror = reject
-    worker.postMessage(file)
+    worker.postMessage(task)
   })
 }
 
 /** One image at a time, so a large batch holds one decoded image at most. */
 export async function importImages(
   files: Blob[],
-  { onProgress, createWorker = createImportWorker }: ImportOptions = {}
+  { onProgress, createWorker = createImageWorker }: ImportOptions = {}
 ): Promise<ImportResult> {
   const worker = createWorker()
   const images: ProcessedImage[] = []
@@ -36,7 +41,7 @@ export async function importImages(
   try {
     for (const [index, file] of files.entries()) {
       try {
-        images.push(await processInWorker(worker, file))
+        images.push(await runInWorker<ProcessedImage>(worker, { kind: 'process', file }))
       } catch {
         failed += 1
       }

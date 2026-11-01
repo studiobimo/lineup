@@ -28,6 +28,7 @@ function fakeBoardStore(board: Board = { tray: [], grid: [] }, ids: string[] = [
     getThumbnail: vi.fn(),
     getPublishCopy: vi.fn(),
     deleteImages: vi.fn(async (gone: string[]) => gone.forEach((id) => images.delete(id))),
+    setColour: vi.fn(async () => undefined),
     storageUsage: vi.fn(async () => ({ used: 0, quota: 0 })),
     requestPersistence: vi.fn(async () => true)
   }
