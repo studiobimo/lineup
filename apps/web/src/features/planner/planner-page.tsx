@@ -24,10 +24,13 @@ import { cn } from '@/lib/utils'
 
 import type { Container } from './board'
 import { BoardCell } from './board-cell'
+import { BoardDrag } from './board-drag'
 import { type BoardHold, holdBoard } from './board-lock'
+import { useEmptyAreaMark } from './drag-target'
 import { ImportButtons, ImportProgress, ImportTargets } from './import-controls'
 import { instagram } from './network-profile'
 import { plannerStore, usePlanner } from './planner'
+import { useDropArea } from './use-board-drag'
 
 const columns = { gridTemplateColumns: `repeat(${instagram.columns}, minmax(0, 1fr))` }
 
@@ -115,10 +118,59 @@ function MobileTray() {
   )
 }
 
+function TrayPanel() {
+  const { t } = useTranslation('planner')
+  const { ref, dropArea } = useDropArea('tray')
+  const marked = useEmptyAreaMark('tray')
+  return (
+    <aside
+      ref={ref}
+      {...dropArea}
+      data-scroll-root
+      className={cn(
+        'sticky top-14 h-[calc(100dvh-3.5rem)] w-80 shrink-0 overflow-y-auto border-r',
+        marked && 'ring-3 ring-primary ring-inset'
+      )}
+    >
+      <h2 className="p-4 text-xl">{t('tray')}</h2>
+      <ImportButtons />
+      <ImportProgress />
+      <Cells container="tray" className="px-4 pb-4" />
+    </aside>
+  )
+}
+
+function GridPanel({ desktop }: { desktop: boolean }) {
+  const { t } = useTranslation('planner')
+  const ready = usePlanner((state) => state.ready)
+  const { ref, dropArea } = useDropArea('grid')
+  const marked = useEmptyAreaMark('grid')
+  return (
+    <section
+      ref={ref}
+      {...dropArea}
+      className={cn('min-w-0 flex-1', marked && 'ring-3 ring-primary ring-inset')}
+    >
+      <div className="mx-auto max-w-3xl">
+        <div className="flex items-center justify-between gap-2 p-4">
+          <h2 className="text-xl">{t('grid')}</h2>
+          <div className="flex items-center gap-2">
+            {!desktop && <MobileTray />}
+            <History />
+          </div>
+        </div>
+        {!desktop && <ImportButtons />}
+        {!desktop && <ImportProgress />}
+        {/* On a phone the grid runs edge to edge, as it does in Instagram. */}
+        {ready && <Cells container="grid" className={cn(desktop && 'px-4 pb-4')} />}
+      </div>
+    </section>
+  )
+}
+
 export function PlannerPage() {
   const { t } = useTranslation('planner')
   const desktop = useMediaQuery('md')
-  const ready = usePlanner((state) => state.ready)
   const session = usePlanner((state) => state.session)
   const hold = useRef<BoardHold>(null)
 
@@ -150,37 +202,15 @@ export function PlannerPage() {
 
   return (
     <ToastProvider>
-      <div className={cn('flex', !desktop && 'flex-col')}>
-        <h1 className="sr-only">{t('title')}</h1>
-        <ImportTargets />
-        <SaveFailure />
-        {desktop && (
-          <aside
-            data-scroll-root
-            className="sticky top-14 h-[calc(100dvh-3.5rem)] w-80 shrink-0 overflow-y-auto border-r"
-          >
-            <h2 className="p-4 text-xl">{t('tray')}</h2>
-            <ImportButtons />
-            <ImportProgress />
-            <Cells container="tray" className="px-4 pb-4" />
-          </aside>
-        )}
-        <section className="min-w-0 flex-1">
-          <div className="mx-auto max-w-3xl">
-            <div className="flex items-center justify-between gap-2 p-4">
-              <h2 className="text-xl">{t('grid')}</h2>
-              <div className="flex items-center gap-2">
-                {!desktop && <MobileTray />}
-                <History />
-              </div>
-            </div>
-            {!desktop && <ImportButtons />}
-            {!desktop && <ImportProgress />}
-            {/* On a phone the grid runs edge to edge, as it does in Instagram. */}
-            {ready && <Cells container="grid" className={cn(desktop && 'px-4 pb-4')} />}
-          </div>
-        </section>
-      </div>
+      <BoardDrag>
+        <div className={cn('flex', !desktop && 'flex-col')}>
+          <h1 className="sr-only">{t('title')}</h1>
+          <ImportTargets />
+          <SaveFailure />
+          {desktop && <TrayPanel />}
+          <GridPanel desktop={desktop} />
+        </div>
+      </BoardDrag>
     </ToastProvider>
   )
 }

@@ -22,6 +22,7 @@ This folder is the source of truth for what Lineup is and why it is built the wa
   - [ADR-0008: No accounts, and a sealed provider key](adr/0008-sealed-provider-key.md)
   - [ADR-0009: Web first, and a desktop app only with evidence](adr/0009-web-first-desktop-later.md)
   - [ADR-0010: One tab at a time changes a board](adr/0010-one-active-tab.md)
+  - [ADR-0011: Drag with dnd kit's core package](adr/0011-drag-with-dnd-kit.md)
 
 A record is for a decision that is specific to this product, costly to reverse, and had real
 alternatives. A stack choice the org's template profiles already make does not need one.

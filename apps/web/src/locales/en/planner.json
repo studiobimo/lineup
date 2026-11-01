@@ -9,6 +9,7 @@
   "moveToGrid": "Move to the grid",
   "moveToTray": "Move to the tray",
   "remove": "Delete",
+  "dragHint": "Hold <key>Shift</key> to insert instead of swap",
   "undo": "Undo",
   "redo": "Redo",
   "elsewhereTitle": "This board is open in another tab",

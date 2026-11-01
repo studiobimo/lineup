@@ -3,7 +3,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { type ConsoleMessage, expect, type Page, test } from '@playwright/test'
+import { type ConsoleMessage, expect, type Locator, type Page, test } from '@playwright/test'
 
 // A 2 x 2 PNG, so these run through the real decoder and the real worker.
 const png = Buffer.from(
@@ -120,6 +120,7 @@ test('dropping files shows the overlay and adds the images, with one note on the
   page
 }) => {
   await page.goto('/')
+  await expect(page.getByText('Move images here to plan your feed.')).toBeVisible()
   const data = await fileData(page, png.toString('base64'), ['a.png', 'b.png', 'notes.txt'])
 
   await page.dispatchEvent('html', 'dragenter', { dataTransfer: data })
@@ -140,6 +141,119 @@ test('pasting an image adds it', async ({ page }) => {
     window.dispatchEvent(new ClipboardEvent('paste', { clipboardData }))
   })
   await expect(page.getByRole('img')).toHaveCount(1)
+})
+
+// A real mouse, in steps, because the drag only starts once the pointer has travelled.
+async function drag(
+  page: Page,
+  from: Locator,
+  to: Locator,
+  { shift = false, x = 0.5, y = 0.5 } = {}
+) {
+  const start = await from.boundingBox()
+  const end = await to.boundingBox()
+  if (!start || !end) throw new Error('both ends of a drag have to be on screen')
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(start.x + start.width / 2 + 10, start.y + start.height / 2, { steps: 3 })
+  await page.mouse.move(end.x + end.width * x, end.y + end.height * y, { steps: 5 })
+  if (shift) await page.keyboard.down('Shift')
+  // The next frame, so the indicator is up when a test looks at it.
+  await page.mouse.move(end.x + end.width * x + 1, end.y + end.height * y)
+}
+
+const order = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<{ tray: string[]; grid: string[] }>((resolve) => {
+        const opening = indexedDB.open('lineup')
+        opening.onsuccess = () => {
+          const reading = opening.result.transaction('board').objectStore('board').get('current')
+          reading.onsuccess = () => {
+            opening.result.close()
+            resolve(reading.result as { tray: string[]; grid: string[] })
+          }
+        }
+      })
+  )
+
+async function boardOfFour(page: Page) {
+  await page.goto('/')
+  await addImages(page, [image('a.png'), image('b.png'), image('c.png'), image('d.png')])
+  const move = page.getByRole('button', { name: 'Move to the grid' })
+  await expect(move).toHaveCount(4)
+  for (let cell = 0; cell < 3; cell += 1)
+    await move.first().evaluate((el) => (el as HTMLElement).click())
+  await expect(page.locator('section').getByRole('img')).toHaveCount(3)
+  await expect.poll(() => savedGridSize(page)).toBe(3)
+  return { before: await order(page), cells: page.locator('section').getByRole('img') }
+}
+
+test('dragging a cell onto another swaps them, and undo puts them back', async ({ page }) => {
+  const errors = watchErrors(page)
+  const { before, cells } = await boardOfFour(page)
+  const [a, b, c] = before.grid
+
+  await drag(page, cells.nth(0), cells.nth(2))
+  await expect(page.locator('[data-mark="swap"]')).toHaveCount(1)
+  await page.mouse.up()
+  await expect.poll(async () => (await order(page)).grid).toEqual([c, b, a])
+
+  // The library swallows clicks for 50 ms after a drag, which only a script can be fast enough for.
+  await page.waitForTimeout(100)
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect.poll(async () => (await order(page)).grid).toEqual([a, b, c])
+  expect(errors).toEqual([])
+})
+
+test('a cell swaps across containers', async ({ page }) => {
+  const { before, cells } = await boardOfFour(page)
+  const [a, b, c] = before.grid
+  const [t] = before.tray
+
+  await drag(page, page.locator('aside').getByRole('img').first(), cells.nth(1))
+  await page.mouse.up()
+  await expect.poll(async () => (await order(page)).grid).toEqual([a, t, c])
+  expect((await order(page)).tray).toEqual([b])
+})
+
+test('holding Shift inserts on the side the pointer is on', async ({ page }) => {
+  const { before, cells } = await boardOfFour(page)
+  const [a, b, c] = before.grid
+
+  await drag(page, cells.nth(0), cells.nth(2), { shift: true, x: 0.9 })
+  await expect(page.getByText('to insert instead of swap')).toBeVisible()
+  await expect(page.locator('[data-mark="after"]')).toHaveCount(1)
+  await expect(page.locator('[data-mark="swap"]')).toHaveCount(0)
+  await page.mouse.up()
+  await page.keyboard.up('Shift')
+  await expect.poll(async () => (await order(page)).grid).toEqual([b, c, a])
+})
+
+test('the empty part of a container takes a drop at the nearest position', async ({ page }) => {
+  const { before } = await boardOfFour(page)
+  const [t] = before.tray
+
+  const source = page.locator('aside').getByRole('img').first()
+  const section = page.locator('section')
+  await drag(page, source, section, { x: 0.5, y: 0.97 })
+  await page.mouse.up()
+  await expect.poll(async () => (await order(page)).grid).toContain(t)
+  expect((await order(page)).tray).toEqual([])
+})
+
+test('Escape puts a dragged cell back, and a click still works', async ({ page }) => {
+  const { before, cells } = await boardOfFour(page)
+
+  await drag(page, cells.nth(0), cells.nth(2))
+  await page.keyboard.press('Escape')
+  await page.mouse.up()
+  await expect(page.getByText('to insert instead of swap')).toBeHidden()
+  expect(await order(page)).toEqual(before)
+
+  await cells.nth(0).hover()
+  await page.getByRole('button', { name: 'Move to the tray' }).first().click()
+  await expect(cells).toHaveCount(2)
 })
 
 // What a full device does to a write, so the app's own handling of it runs for real.
