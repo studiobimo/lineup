@@ -18,10 +18,14 @@ export const GHOST_WIDTH = 192
 export const GHOST_HEIGHT = (GHOST_WIDTH * height) / width
 
 const GHOST_OPACITY = 0.65
+// On a phone the full size would cover most of the grid.
+const MAX_VIEWPORT_SHARE = 0.4
 const MAX_LEAN_DEGREES = 10
 // The pointer speed, in px/s, at which the ghost reaches its full lean.
 const FULL_LEAN_SPEED = 1600
 const LEAN_SPRING = { stiffness: 320, damping: 24, mass: 0.6 }
+
+const restingScale = () => Math.min(1, (window.innerWidth * MAX_VIEWPORT_SHARE) / GHOST_WIDTH)
 
 const centre = (box: Box): Point => ({
   x: (box.left + box.right) / 2,
@@ -80,7 +84,7 @@ export function useDragGhost() {
       setId(cell)
       animate(offsetX, 0, settle)
       animate(offsetY, 0, settle)
-      animate(scale, 1, settle)
+      animate(scale, restingScale(), settle)
       animate(opacity, GHOST_OPACITY, { duration: 0.15 })
     },
     [finishLanding, leaning, offsetX, offsetY, opacity, pointerX, pointerY, scale]

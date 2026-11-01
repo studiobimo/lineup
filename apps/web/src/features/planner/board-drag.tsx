@@ -1,7 +1,8 @@
 import {
   type CollisionDetection,
   DndContext,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors
 } from '@dnd-kit/core'
@@ -27,6 +28,8 @@ import { useDragGhost } from './use-drag-ghost'
 
 // Dragging a pixel or two is a click that wobbled, and cells hold buttons.
 const PICK_UP_DISTANCE = 6
+// On touch a finger that moves at once is scrolling the page, so a drag starts from a held press.
+const LONG_PRESS = { delay: 250, tolerance: 8 }
 
 // #14 gives these their words. Until then the library would read out each cell's id.
 const quiet = () => undefined
@@ -36,6 +39,8 @@ const announcements = {
   onDragEnd: quiet,
   onDragCancel: quiet
 }
+
+const touchPoint = ({ clientX, clientY }: Touch): Point => ({ x: clientX, y: clientY })
 
 function place(id: string, target: DropTarget) {
   const { swap, move } = plannerStore.getState()
@@ -52,7 +57,8 @@ interface Latest {
 
 export function BoardDrag({ children }: { children: ReactNode }) {
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: PICK_UP_DISTANCE } })
+    useSensor(MouseSensor, { activationConstraint: { distance: PICK_UP_DISTANCE } }),
+    useSensor(TouchSensor, { activationConstraint: LONG_PRESS })
   )
   const ghost = useDragGhost()
   const { lift, follow, land } = ghost
@@ -95,14 +101,17 @@ export function BoardDrag({ children }: { children: ReactNode }) {
       aim()
     }
     // Straight from the event rather than through React, so the ghost keeps up with the pointer.
-    const pointer = ({ clientX, clientY }: PointerEvent) => follow({ x: clientX, y: clientY })
+    const mouse = ({ clientX, clientY }: MouseEvent) => follow({ x: clientX, y: clientY })
+    const touch = ({ touches: [finger] }: TouchEvent) => follow(touchPoint(finger))
     window.addEventListener('keydown', shift)
     window.addEventListener('keyup', shift)
-    window.addEventListener('pointermove', pointer)
+    window.addEventListener('mousemove', mouse)
+    window.addEventListener('touchmove', touch)
     return () => {
       window.removeEventListener('keydown', shift)
       window.removeEventListener('keyup', shift)
-      window.removeEventListener('pointermove', pointer)
+      window.removeEventListener('mousemove', mouse)
+      window.removeEventListener('touchmove', touch)
     }
   }, [active, aim, follow])
 
@@ -126,12 +135,18 @@ export function BoardDrag({ children }: { children: ReactNode }) {
       accessibility={{ announcements }}
       onDragStart={({ active: { id }, activatorEvent }) => {
         const cell = String(id)
-        const { clientX, clientY, shiftKey } = activatorEvent as PointerEvent
+        const event = activatorEvent as MouseEvent | TouchEvent
         const from = cellBox(cell)
         latest.current.active = cell
-        latest.current.inserting = shiftKey
+        latest.current.inserting = event.shiftKey
         setActive(cell)
-        if (from) lift(cell, { x: clientX, y: clientY }, from)
+        if (from) {
+          const point =
+            'touches' in event
+              ? touchPoint(event.touches[0])
+              : { x: event.clientX, y: event.clientY }
+          lift(cell, point, from)
+        }
       }}
       onDragMove={aim}
       onDragEnd={() => release(true)}

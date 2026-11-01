@@ -10,7 +10,7 @@ export function DragGhost({ ghost }: { ghost: DragGhostState }) {
     <m.div
       aria-hidden
       data-ghost
-      className="pointer-events-none fixed z-50 overflow-hidden bg-muted shadow-xl will-change-transform"
+      className="pointer-events-none fixed z-60 overflow-hidden bg-muted shadow-xl will-change-transform"
       style={{
         left: -GHOST_WIDTH / 2,
         top: -GHOST_HEIGHT / 2,

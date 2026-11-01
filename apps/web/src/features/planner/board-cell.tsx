@@ -80,7 +80,7 @@ export function BoardCell({ id, container, position }: BoardCellProps) {
       onLayoutAnimationStart={() => zIndex.set(GLIDING_Z)}
       onLayoutAnimationComplete={() => zIndex.set(0)}
       className={cn(
-        'group relative cursor-grab overflow-hidden bg-muted select-none active:cursor-grabbing',
+        'group relative cursor-grab touch-manipulation overflow-hidden bg-muted select-none [-webkit-touch-callout:none] active:cursor-grabbing',
         isDragging && 'opacity-30',
         airborne && 'opacity-0'
       )}
