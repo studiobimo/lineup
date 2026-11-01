@@ -1,0 +1,10 @@
+{
+  "home": {
+    "title": "Welcome to {{name}}",
+    "description": "Plan your Instagram feed before it goes live: arrange, sort by colour, group into albums and schedule posts."
+  },
+  "theme": {
+    "light": "Switch to light theme",
+    "dark": "Switch to dark theme"
+  }
+}

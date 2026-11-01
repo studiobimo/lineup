@@ -1,0 +1,3 @@
+# The Worker's secrets, by name: copy this to .dev.vars, which git ignores, and fill it in
+# for vite dev and the tests. make -C .devtools types reads the names from here for the Env
+# type. A deployed environment's values: pnpm exec wrangler secret put <NAME> --env <env>.
