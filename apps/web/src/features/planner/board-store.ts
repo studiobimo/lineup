@@ -4,6 +4,8 @@ import type { ImageColour } from '@/features/autosort/colour'
 export interface Board {
   tray: string[]
   grid: string[]
+  /** Grid cells that hold their position: a post that is already live, say. */
+  locked?: string[]
 }
 
 export interface ImageRecord {

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 
 import { dialogIsOpen, inTextField } from '@/lib/dom'
 
+import { isLocked } from './board'
 import { openCellMenu } from './cell-menu-store'
 import { dragStore } from './drag-target'
 import { instagram } from './network-profile'
@@ -12,7 +13,9 @@ import { cellStep, isDelete, shortcutFor } from './shortcuts'
 function removeCell(cell: HTMLElement) {
   const next = cell.nextElementSibling ?? cell.previousElementSibling
   const { dropId } = cell.dataset
-  if (dropId) plannerStore.getState().remove([dropId])
+  const { board, remove } = plannerStore.getState()
+  if (!dropId || isLocked(board, dropId)) return
+  remove([dropId])
   if (next instanceof HTMLElement) next.focus()
 }
 

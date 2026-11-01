@@ -3,7 +3,15 @@ import { useCallback } from 'react'
 
 import type { Container } from './board'
 
-export function useCellDrag(id: string, container: Container, roleDescription: string) {
+interface CellDrag {
+  id: string
+  container: Container
+  roleDescription: string
+  /** It can still be dropped beside, so only the dragging goes. */
+  locked: boolean
+}
+
+export function useCellDrag({ id, container, roleDescription, locked }: CellDrag) {
   // A group, not the library's button, because a cell holds buttons of its own.
   const {
     attributes,
@@ -11,7 +19,7 @@ export function useCellDrag(id: string, container: Container, roleDescription: s
     setNodeRef: dragRef,
     setActivatorNodeRef: keyRef,
     isDragging
-  } = useDraggable({ id, attributes: { role: 'group', roleDescription } })
+  } = useDraggable({ id, disabled: locked, attributes: { role: 'group', roleDescription } })
   const { setNodeRef: dropRef } = useDroppable({ id, data: { container, isCell: true } })
   const ref = useCallback(
     (node: HTMLElement | null) => {

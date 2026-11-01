@@ -45,6 +45,18 @@ async function loaded(board: Board = start) {
 }
 
 describe('the planner store', () => {
+  it('sorts, shuffles and clears around a locked cell, and keeps it through a reload', async () => {
+    const { boardStore, state } = await loaded()
+    state().toggleLock('d')
+    state().shuffle('grid')
+    expect(state().board.grid[1]).toBe('d')
+    state().clear(['grid'])
+    expect(state().board.grid).toEqual(['d'])
+    state().remove(['d'])
+    expect(state().board.grid).toEqual(['d'])
+    expect(boardStore.saved.locked).toEqual(['d'])
+  })
+
   describe('sorting by colour', () => {
     const shade = (hue: number, lightness = 0.6) => {
       const dominant = { lightness, chroma: 0.2, hue }
@@ -101,6 +113,7 @@ describe('the planner store', () => {
       ['swap', (state) => state.swap('a', 'd')],
       ['move all', (state) => state.moveAll('tray')],
       ['shuffle', (state) => state.shuffle('grid')],
+      ['lock', (state) => state.toggleLock('d')],
       ['delete', (state) => state.remove(['a', 'd'])],
       ['clear', (state) => state.clear(['tray', 'grid'])]
     ]

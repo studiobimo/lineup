@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Maximize2, Trash2 } from 'lucide-react'
+import { ArrowRightLeft, Lock, LockOpen, Maximize2, Trash2 } from 'lucide-react'
 import { m, useMotionValue } from 'motion/react'
 import { memo, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,13 +6,13 @@ import { useTranslation } from 'react-i18next'
 import { IconButton } from '@/components/icon-button'
 import { cn } from '@/lib/utils'
 
-import type { Container } from './board'
+import { type Container, isLocked } from './board'
 import { cellTooltip } from './cell-tooltip'
 import { useAirborne, useDropMark } from './drag-target'
 import { openLightbox } from './lightbox-store'
 import { GLIDING_Z, settle } from './motion'
 import { cellShape } from './network-profile'
-import { plannerStore } from './planner'
+import { plannerStore, usePlanner } from './planner'
 import { setTabStop } from './tab-stop'
 import { Thumbnail } from './thumbnail'
 import { useCellDrag } from './use-board-drag'
@@ -32,10 +32,12 @@ interface BoardCellProps {
  */
 const CellActions = memo(function CellActions({
   id,
-  container
-}: Pick<BoardCellProps, 'id' | 'container'>) {
+  container,
+  locked
+}: Pick<BoardCellProps, 'id' | 'container'> & { locked: boolean }) {
   const { t } = useTranslation('planner')
   const toTray = container === 'grid'
+  const LockToggle = locked ? LockOpen : Lock
   return (
     <div className="absolute inset-x-0 top-0 flex justify-end gap-1 p-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
       <IconButton
@@ -48,26 +50,42 @@ const CellActions = memo(function CellActions({
       >
         <Maximize2 />
       </IconButton>
-      <IconButton
-        variant="outline"
-        size="icon-xs"
-        tabIndex={-1}
-        tooltip={cellTooltip}
-        label={t(toTray ? 'moveToTray' : 'moveToGrid')}
-        onClick={() => plannerStore.getState().move(id, toTray ? 'tray' : 'grid')}
-      >
-        <ArrowRightLeft />
-      </IconButton>
-      <IconButton
-        variant="outline"
-        size="icon-xs"
-        tabIndex={-1}
-        tooltip={cellTooltip}
-        label={t('remove')}
-        onClick={() => plannerStore.getState().remove([id])}
-      >
-        <Trash2 />
-      </IconButton>
+      {toTray && (
+        <IconButton
+          variant="outline"
+          size="icon-xs"
+          tabIndex={-1}
+          tooltip={cellTooltip}
+          label={t(locked ? 'unlock' : 'lock')}
+          onClick={() => plannerStore.getState().toggleLock(id)}
+        >
+          <LockToggle />
+        </IconButton>
+      )}
+      {!locked && (
+        <>
+          <IconButton
+            variant="outline"
+            size="icon-xs"
+            tabIndex={-1}
+            tooltip={cellTooltip}
+            label={t(toTray ? 'moveToTray' : 'moveToGrid')}
+            onClick={() => plannerStore.getState().move(id, toTray ? 'tray' : 'grid')}
+          >
+            <ArrowRightLeft />
+          </IconButton>
+          <IconButton
+            variant="outline"
+            size="icon-xs"
+            tabIndex={-1}
+            tooltip={cellTooltip}
+            label={t('remove')}
+            onClick={() => plannerStore.getState().remove([id])}
+          >
+            <Trash2 />
+          </IconButton>
+        </>
+      )}
     </div>
   )
 })
@@ -82,13 +100,19 @@ export const BoardCell = memo(function BoardCell({
   const { t } = useTranslation('planner')
   const cell = useRef<HTMLDivElement>(null)
   const near = useNearViewport(cell)
+  const locked = usePlanner(({ board }) => isLocked(board, id))
   const {
     ref: dragRef,
     attributes,
     listeners,
     isDragging,
     dropArea
-  } = useCellDrag(id, container, t('cellRole'))
+  } = useCellDrag({
+    id,
+    container,
+    locked,
+    roleDescription: t(locked ? 'cellRoleLocked' : 'cellRole')
+  })
   const mark = useDropMark(id)
   const airborne = useAirborne(id)
   const zIndex = useMotionValue(0)
@@ -105,6 +129,8 @@ export const BoardCell = memo(function BoardCell({
       ref={ref}
       {...attributes}
       {...listeners}
+      // Not the library's disabled: a locked cell's own buttons still work.
+      aria-disabled={undefined}
       tabIndex={tabStop ? 0 : -1}
       onFocus={() => setTabStop(container, id)}
       aria-label={t('cell', { position })}
@@ -116,7 +142,8 @@ export const BoardCell = memo(function BoardCell({
       onLayoutAnimationStart={() => zIndex.set(GLIDING_Z)}
       onLayoutAnimationComplete={() => zIndex.set(0)}
       className={cn(
-        'group relative cursor-grab touch-manipulation overflow-hidden bg-muted select-none [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary active:cursor-grabbing',
+        'group relative touch-manipulation overflow-hidden bg-muted select-none [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary',
+        !locked && 'cursor-grab active:cursor-grabbing',
         isDragging && 'opacity-30',
         airborne && 'opacity-0'
       )}
@@ -137,7 +164,12 @@ export const BoardCell = memo(function BoardCell({
           (mark === 'swap' || isDragging) && 'opacity-100'
         )}
       />
-      {!mark && <CellActions id={id} container={container} />}
+      {locked && (
+        <span className="pointer-events-none absolute bottom-1 left-1 rounded-sm bg-background p-1 text-foreground shadow-xs">
+          <Lock aria-hidden className="size-3" />
+        </span>
+      )}
+      {!mark && <CellActions id={id} container={container} locked={locked} />}
     </m.div>
   )
 })

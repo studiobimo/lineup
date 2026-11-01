@@ -144,16 +144,22 @@ async function drag(
   await page.mouse.move(end.x + end.width * x + 1, end.y + end.height * y)
 }
 
+interface Board {
+  tray: string[]
+  grid: string[]
+  locked?: string[]
+}
+
 const order = (page: Page) =>
   page.evaluate(
     () =>
-      new Promise<{ tray: string[]; grid: string[] }>((resolve) => {
+      new Promise<Board>((resolve) => {
         const opening = indexedDB.open('lineup')
         opening.onsuccess = () => {
           const reading = opening.result.transaction('board').objectStore('board').get('current')
           reading.onsuccess = () => {
             opening.result.close()
-            resolve(reading.result as { tray: string[]; grid: string[] })
+            resolve(reading.result as Board)
           }
         }
       })
@@ -193,6 +199,52 @@ test('dragging a cell onto another swaps them, and undo puts them back', async (
   await page.waitForTimeout(100)
   await page.getByRole('button', { name: 'Undo' }).click()
   await expect.poll(async () => (await order(page)).grid).toEqual([a, b, c])
+  expect(errors).toEqual([])
+})
+
+test('a locked cell holds its place until it is unlocked', async ({ page }) => {
+  const errors = watchErrors(page)
+  const { before, cells } = await boardOfFour(page)
+  const [a, b, c] = before.grid
+  const middle = page.locator('section').getByRole('group', { name: 'Image 2' })
+
+  await middle.hover()
+  await middle.getByRole('button', { name: 'Lock in place' }).click()
+  await expect(middle).toHaveAttribute('aria-roledescription', 'locked image')
+
+  await expect.poll(async () => (await order(page)).locked).toEqual([b])
+  await page.reload()
+  await expect(cells).toHaveCount(3)
+  await expect(middle).toHaveAttribute('aria-roledescription', 'locked image')
+
+  // Dragging the cell does nothing, and dropping on it inserts rather than swapping.
+  await drag(page, cells.nth(1), cells.nth(2))
+  await expect(page.locator('[data-ghost]')).toHaveCount(0)
+  await page.mouse.up()
+  await drag(page, cells.nth(0), cells.nth(1))
+  await expect(page.locator('[data-mark="swap"]')).toHaveCount(0)
+  await page.mouse.up()
+  await expect.poll(async () => (await order(page)).grid[1]).toBe(b)
+
+  await middle.focus()
+  await page.keyboard.press('Delete')
+  await expect(cells).toHaveCount(3)
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('menuitem', { name: 'Unlock' })).toBeVisible()
+  await expect(page.getByRole('menuitem', { name: 'Delete' })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+
+  await page.getByRole('button', { name: 'Move all to the tray' }).click()
+  await expect.poll(async () => (await order(page)).grid).toEqual([b])
+
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect.poll(async () => (await order(page)).grid.sort()).toEqual([a, b, c].sort())
+  await middle.hover()
+  await middle.getByRole('button', { name: 'Unlock' }).click()
+  await expect(middle).toHaveAttribute('aria-roledescription', 'movable image')
+  await drag(page, cells.nth(0), cells.nth(1))
+  await expect(page.locator('[data-mark="swap"]')).toHaveCount(1)
+  await page.mouse.up()
   expect(errors).toEqual([])
 })
 

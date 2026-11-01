@@ -4,15 +4,67 @@ import {
   addToTray,
   cellsThatCrossed,
   clear,
+  freeCells,
+  isLocked,
+  keepLocked,
   move,
   moveAll,
   remove,
   sameBoard,
   shuffle,
-  swap
+  swap,
+  toggleLock
 } from './board'
 
 const board = { tray: ['a', 'b'], grid: ['c', 'd', 'e'] }
+
+describe('locked cells', () => {
+  const locked = { tray: ['a'], grid: ['b', 'c', 'd', 'e'], locked: ['c'] }
+
+  it('stay at their index when the cells around them change order', () => {
+    const reversed = { ...locked, grid: ['e', 'd', 'c', 'b'] }
+    expect(keepLocked(locked, reversed).grid).toEqual(['e', 'c', 'd', 'b'])
+  })
+
+  it('stay in the grid when moved, cleared or deleted', () => {
+    expect(keepLocked(locked, moveAll(locked, 'grid'))).toEqual({
+      ...locked,
+      tray: ['a', 'b', 'd', 'e'],
+      grid: ['c']
+    })
+    expect(keepLocked(locked, move(locked, 'c', 'tray')).grid).toEqual(locked.grid)
+    expect(keepLocked(locked, clear(locked, ['grid'])).grid).toEqual(['c'])
+    expect(keepLocked(locked, remove(locked, ['c']))).toEqual(locked)
+  })
+
+  it('leave no hole when the grid gets shorter', () => {
+    const board = { tray: [], grid: ['a', 'b', 'c', 'd'], locked: ['d', 'b'] }
+    expect(keepLocked(board, remove(board, ['a', 'c'])).grid).toEqual(['b', 'd'])
+  })
+
+  it('lets new cells flow past them', () => {
+    const arrived = move(locked, 'a', 'grid')
+    expect(keepLocked(locked, arrived).grid).toEqual(['b', 'c', 'd', 'e', 'a'])
+  })
+
+  it('changes nothing on a board with none', () => {
+    const shuffled = { ...board, grid: ['e', 'd', 'c'] }
+    expect(keepLocked(board, shuffled)).toBe(shuffled)
+  })
+
+  it('only locks cells in the grid, and a second toggle unlocks', () => {
+    expect(toggleLock(board, 'a')).toBe(board)
+    const once = toggleLock(board, 'c')
+    expect(isLocked(once, 'c')).toBe(true)
+    expect(freeCells(once, 'grid')).toEqual(['d', 'e'])
+    expect(isLocked(toggleLock(once, 'c'), 'c')).toBe(false)
+  })
+
+  it('count as a change to the board', () => {
+    expect(sameBoard(board, toggleLock(board, 'c'))).toBe(false)
+    expect(sameBoard(board, { ...board, locked: [] })).toBe(true)
+  })
+})
 
 describe('board operations', () => {
   it('finds the cells that changed container, and no others', () => {

@@ -23,6 +23,13 @@ const aim = (overrides: Partial<Parameters<typeof dropTarget>[0]>) =>
     ...overrides
   })
 
+describe('dropTarget on a locked cell', () => {
+  it('inserts beside it, because it cannot swap', () => {
+    const locked = { ...board, locked: ['b'] }
+    expect(aim({ board: locked })).toMatchObject({ kind: 'insert', container: 'grid' })
+  })
+})
+
 describe('nearestInDirection', () => {
   const all = Object.values(boxes)
 

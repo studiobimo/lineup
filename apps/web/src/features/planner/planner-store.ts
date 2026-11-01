@@ -7,12 +7,14 @@ import {
   addToTray,
   clear,
   type Container,
+  keepLocked,
   move,
   moveAll,
   remove,
   sameBoard,
   shuffle,
-  swap
+  swap,
+  toggleLock
 } from './board'
 import { type Board, type BoardStore, emptyBoard, type ImageRecord } from './board-store'
 import type { ProcessedImage } from './process-image'
@@ -41,6 +43,7 @@ export interface PlannerState {
   sortByColour(container: Container, strategy: SortStrategy): void
   /** Not a change to the board, so it is no part of undo. */
   setColour(id: string, colour: ImageColour): void
+  toggleLock(id: string): void
   remove(ids: string[]): void
   clear(containers: Container[]): void
   undo(): void
@@ -70,8 +73,9 @@ export function createPlannerStore(boardStore: BoardStore) {
     }
 
     /** Every change to the board comes through here, so every change can be undone. */
-    const commit = (next: Board) => {
+    const commit = (proposed: Board) => {
       const { board, past, session } = get()
+      const next = keepLocked(board, proposed)
       if (session !== 'active' || sameBoard(board, next)) return
       set({ board: next, past: [...past, board].slice(-HISTORY_LIMIT), future: [] })
       void report(boardStore.saveBoard(next))
@@ -101,7 +105,11 @@ export function createPlannerStore(boardStore: BoardStore) {
         const images = Object.fromEntries(records.map((record) => [record.id, record]))
         const known = (id: string) => id in images
         set({
-          board: { tray: stored.tray.filter(known), grid: stored.grid.filter(known) },
+          board: {
+            tray: stored.tray.filter(known),
+            grid: stored.grid.filter(known),
+            locked: stored.locked?.filter(known)
+          },
           images,
           past: [],
           future: [],
@@ -141,6 +149,7 @@ export function createPlannerStore(boardStore: BoardStore) {
       swap: (first, second) => commit(swap(get().board, first, second)),
       moveAll: (from) => commit(moveAll(get().board, from)),
       shuffle: (container) => commit(shuffle(get().board, container)),
+      toggleLock: (id) => commit(toggleLock(get().board, id)),
 
       sortByColour(container, strategy) {
         const { board, images } = get()

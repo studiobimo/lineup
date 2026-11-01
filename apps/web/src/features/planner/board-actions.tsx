@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Group } from '@/components/ui/group'
 import { SortMenu } from '@/features/autosort/sort-menu'
 
-import type { Container } from './board'
+import { type Container, freeCells } from './board'
 import { plannerStore, usePlanner } from './planner'
 
 const PhonePreview = lazy(() =>
@@ -35,7 +35,7 @@ interface ContainerActionsProps {
 
 export function ContainerActions({ container, children }: ContainerActionsProps) {
   const { t } = useTranslation('planner')
-  const count = usePlanner((state) => state.board[container].length)
+  const count = usePlanner(({ board }) => freeCells(board, container).length)
   const MoveAll = container === 'tray' ? ChevronsRight : ChevronsLeft
   return (
     <Group aria-label={t(actionsLabels[container])}>
@@ -82,7 +82,8 @@ export function ClearBoard() {
   const { t } = useTranslation('planner')
   const [open, setOpen] = useState(false)
   const tray = usePlanner((state) => state.board.tray.length)
-  const grid = usePlanner((state) => state.board.grid.length)
+  const grid = usePlanner(({ board }) => freeCells(board, 'grid').length)
+  const locked = usePlanner(({ board }) => board.locked?.length ?? 0)
   const clear = (containers: Container[]) => {
     plannerStore.getState().clear(containers)
     setOpen(false)
@@ -101,7 +102,9 @@ export function ClearBoard() {
         <AlertDialogPopup>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('clearTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('clearDescription')}</AlertDialogDescription>
+            <AlertDialogDescription>
+              {t(locked > 0 ? 'clearDescriptionLocked' : 'clearDescription')}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogClose render={<Button variant="ghost" />}>{t('cancel')}</AlertDialogClose>

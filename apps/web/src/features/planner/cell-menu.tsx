@@ -1,10 +1,10 @@
-import { ArrowRightLeft, Maximize2, Trash2 } from 'lucide-react'
+import { ArrowRightLeft, Lock, LockOpen, Maximize2, Trash2 } from 'lucide-react'
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Menu, MenuItem, MenuPopup } from '@/components/ui/menu'
 
-import { containerOf } from './board'
+import { containerOf, isLocked } from './board'
 import { closeCellMenu, useCellMenu } from './cell-menu-store'
 import { openLightbox } from './lightbox-store'
 import { plannerStore } from './planner'
@@ -19,7 +19,10 @@ const neighbourOf = (cell: HTMLElement) =>
 function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
   const { t } = useTranslation('planner')
   const returnTo = useRef<HTMLElement | null>(cell)
-  const toTray = containerOf(plannerStore.getState().board, id) === 'grid'
+  const { board } = plannerStore.getState()
+  const toTray = containerOf(board, id) === 'grid'
+  const locked = isLocked(board, id)
+  const LockToggle = locked ? LockOpen : Lock
   const leave = (action: () => void) => {
     returnTo.current = neighbourOf(cell)
     action()
@@ -31,16 +34,28 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
           <Maximize2 />
           {t('openImage')}
         </MenuItem>
-        <MenuItem
-          onClick={() => leave(() => plannerStore.getState().move(id, toTray ? 'tray' : 'grid'))}
-        >
-          <ArrowRightLeft />
-          {t(toTray ? 'moveToTray' : 'moveToGrid')}
-        </MenuItem>
-        <MenuItem onClick={() => leave(() => plannerStore.getState().remove([id]))}>
-          <Trash2 />
-          {t('remove')}
-        </MenuItem>
+        {toTray && (
+          <MenuItem onClick={() => plannerStore.getState().toggleLock(id)}>
+            <LockToggle />
+            {t(locked ? 'unlock' : 'lock')}
+          </MenuItem>
+        )}
+        {!locked && (
+          <>
+            <MenuItem
+              onClick={() =>
+                leave(() => plannerStore.getState().move(id, toTray ? 'tray' : 'grid'))
+              }
+            >
+              <ArrowRightLeft />
+              {t(toTray ? 'moveToTray' : 'moveToGrid')}
+            </MenuItem>
+            <MenuItem onClick={() => leave(() => plannerStore.getState().remove([id]))}>
+              <Trash2 />
+              {t('remove')}
+            </MenuItem>
+          </>
+        )}
       </MenuPopup>
     </Menu>
   )

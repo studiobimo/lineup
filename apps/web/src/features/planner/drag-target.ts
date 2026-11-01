@@ -1,7 +1,7 @@
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 
-import type { Container } from './board'
+import { type Container, isLocked } from './board'
 import type { Board } from './board-store'
 
 export interface Box {
@@ -96,7 +96,7 @@ function nearSideEdge({ left, right }: Box, { x }: Point) {
 
 export function dropTarget({ board, active, hover, point, inserting, boxOf }: Aim) {
   if (!hover || !point) return null
-  if (hover.isCell && !inserting) {
+  if (hover.isCell && !inserting && !isLocked(board, hover.id)) {
     if (hover.id === active) return null
     const box = boxOf(hover.id)
     if (!box || !nearSideEdge(box, point)) {
