@@ -11,6 +11,8 @@ export interface BandCell {
   hue: number | null
   /** When the photo was taken, in milliseconds, if that is known. */
   takenAt?: number
+  /** Where it was taken, if that is known. Only compared, so any label for a place would do. */
+  place?: string
 }
 
 export interface BandsRequest {
@@ -32,11 +34,27 @@ const colourKey = ({ hue, tone }: BandCell) => hue ?? AFTER_HUES + tone
 const sortedBy = (cells: BandCell[], key: (cell: BandCell) => number) =>
   [...cells].sort((one, other) => key(one) - key(other) || (one.id < other.id ? -1 : 1))
 
-/** Dated photos first, newest at the top, so that a shoot stays in one band. */
+/** Newest first, then anything undated by colour. Dated keys are negative, so they come first. */
+const inShootOrder = (cells: BandCell[]) =>
+  sortedBy(cells, (cell) => (cell.takenAt === undefined ? colourKey(cell) : -cell.takenAt))
+
+/**
+ * Photos of one place stay together, and each place goes by its newest photo, so that a shoot
+ * lands in one band. A dated photo with no place stands alone. Photos with neither follow by colour.
+ */
 function inBandOrder(pool: BandCell[]) {
-  const dated = pool.filter(({ takenAt }) => takenAt !== undefined)
-  const undated = pool.filter(({ takenAt }) => takenAt === undefined)
-  return [...sortedBy(dated, ({ takenAt = 0 }) => -takenAt), ...sortedBy(undated, colourKey)]
+  const shoots = new Map<string, BandCell[]>()
+  const unknown: BandCell[] = []
+  for (const cell of pool) {
+    const shoot = cell.place ?? cell.id
+    if (cell.takenAt === undefined && cell.place === undefined) unknown.push(cell)
+    else shoots.set(shoot, [...(shoots.get(shoot) ?? []), cell])
+  }
+  const newest = ([{ takenAt = 0 }]: BandCell[]) => takenAt
+  const ordered = [...shoots.values()]
+    .map(inShootOrder)
+    .sort((one, other) => newest(other) - newest(one) || (one[0].id < other[0].id ? -1 : 1))
+  return [...ordered.flat(), ...sortedBy(unknown, colourKey)]
 }
 
 function chunks(cells: BandCell[], size: number) {

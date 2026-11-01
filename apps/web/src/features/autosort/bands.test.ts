@@ -80,6 +80,30 @@ describe('bands', () => {
     expect(order.slice(0, 3).sort()).toEqual(['b', 'd', 'i'])
   })
 
+  it('keeps a place together, and orders places by their newest photo', () => {
+    const shot = (id: string, place: string, takenAt?: number) => ({
+      id,
+      tone: 0.3,
+      vivid: 0.1,
+      hue: 200,
+      takenAt,
+      place
+    })
+    const pool = [
+      shot('a', 'Boston, US', 1),
+      shot('b', 'Miami, US', 5),
+      shot('c', 'Boston, US', 3),
+      shot('d', 'Miami, US', 2),
+      shot('e', 'Boston, US'),
+      shot('f', 'Miami, US')
+    ]
+    const order = arrange(
+      [...pool, ...pool.map((cell) => ({ ...cell, id: `${cell.id}2`, tone: 0.9 }))],
+      1
+    )
+    expect(order.slice(0, 3).sort()).toEqual(['b', 'd', 'f'])
+  })
+
   it('takes fewer images than a band, and none', () => {
     expect(arrange(feed(2), 4)).toHaveLength(2)
     expect(arrange([], 2)).toEqual([])

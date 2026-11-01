@@ -14,7 +14,7 @@ export type SortStrategy = (typeof sortStrategies)[number]
 
 const bandRows = { bands2: 2, bands4: 4 } as const
 
-type Cell = Pick<ImageRecord, 'id' | 'colour' | 'takenAt'>
+type Cell = Pick<ImageRecord, 'id' | 'colour' | 'takenAt' | 'place'>
 
 /** Compared in order, the first difference deciding. */
 type SortKey = [rank: number, ...rest: number[]]
@@ -38,14 +38,18 @@ const keys: Record<(typeof keyedStrategies)[number], (colour: Oklch) => SortKey>
   }
 }
 
-function toBandCell({ id, takenAt }: Cell, { dominant, tone, vivid }: ImageColour): BandCell {
+function toBandCell(
+  { id, takenAt, place }: Cell,
+  { dominant, tone, vivid }: ImageColour
+): BandCell {
   const neutral = dominant.chroma < NEUTRAL_CHROMA || vivid < MUTED
   return {
     id,
     tone,
     vivid,
     hue: neutral ? null : fromRed(dominant.hue),
-    takenAt: takenAt === undefined ? undefined : Date.parse(takenAt)
+    takenAt: takenAt === undefined ? undefined : Date.parse(takenAt),
+    place
   }
 }
 
