@@ -17,7 +17,7 @@ export function LegalPage({ name }: { name: LegalName }) {
   const { t } = useTranslation('legal')
   const sections = t(`${name}.sections`, { returnObjects: true }) as Section[]
   return (
-    <article className="mx-auto max-w-prose px-4 py-10 sm:px-6">
+    <article className="mx-auto max-w-prose px-gutter py-10">
       <h1 className="font-heading text-3xl">{t(`${name}.title`)}</h1>
       <p className="mt-2 text-sm text-muted-foreground">{t('updated')}</p>
       <p className="mt-6">{t(`${name}.summary`)}</p>

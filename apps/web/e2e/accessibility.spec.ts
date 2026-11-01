@@ -74,6 +74,33 @@ for (const colorScheme of ['light', 'dark'] as const) {
   })
 }
 
+test('an icon button stays opaque on hover, so it reads over any image', async ({ page }) => {
+  await fillBoard(page)
+  const cell = page
+    .locator('section')
+    .getByRole('group', { name: /^Image/ })
+    .first()
+  await cell.hover()
+  const remove = cell.getByRole('button', { name: 'Delete' })
+  await remove.hover()
+  // A translucent colour computes with an alpha after a slash.
+  await expect
+    .poll(() => remove.evaluate((button) => getComputedStyle(button).backgroundColor))
+    .not.toContain('/')
+})
+
+test('the header lines up with the tray and the grid', async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 800 })
+  await fillBoard(page)
+  const left = async (selector: string) => (await page.locator(selector).first().boundingBox())?.x
+  const right = async (selector: string) => {
+    const box = await page.locator(selector).last().boundingBox()
+    return (box?.x ?? 0) + (box?.width ?? 0)
+  }
+  expect(await left('header a')).toBe(await left('aside [data-drop-id]'))
+  expect(await right('header button')).toBe(await right('section [data-drop-id]'))
+})
+
 test.describe('on a phone', () => {
   test.use({ viewport: { width: 360, height: 740 }, hasTouch: true })
 

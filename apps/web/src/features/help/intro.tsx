@@ -15,7 +15,7 @@ export function Intro() {
     <div
       role="region"
       aria-label={t('introTitle')}
-      className="relative mx-4 mt-4 rounded-lg border bg-card p-4 pe-12 text-card-foreground"
+      className="relative mx-gutter mt-gutter rounded-lg border bg-card p-4 pe-12 text-card-foreground"
     >
       <h2 className="text-lg">{t('introTitle')}</h2>
       <ol className="mt-2 list-inside list-decimal text-sm text-muted-foreground">

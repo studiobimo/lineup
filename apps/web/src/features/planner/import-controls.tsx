@@ -76,7 +76,7 @@ export function ImportProgress() {
   if (!progress) return null
   return (
     <Progress
-      className="px-4 pb-4"
+      className="px-gutter pb-gutter"
       value={progress.done}
       max={progress.total}
       aria-label={t('importing', progress)}

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 function AreaError({ resetErrorBoundary }: FallbackProps) {
   const { t } = useTranslation()
   return (
-    <div role="alert" className="flex flex-col items-start gap-2 p-4 text-sm">
+    <div role="alert" className="flex flex-col items-start gap-2 p-gutter text-sm">
       <p className="text-muted-foreground">{t('errors.area')}</p>
       <Button variant="outline" size="sm" onClick={resetErrorBoundary}>
         {t('errors.retry')}

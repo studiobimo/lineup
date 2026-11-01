@@ -71,7 +71,7 @@ function Cells({ container, className }: { container: Container; className?: str
   }
   if (ids.length === 0) {
     return (
-      <p className="p-4 text-sm text-muted-foreground">
+      <p className="p-gutter text-sm text-muted-foreground">
         {t(container === 'tray' ? 'trayEmpty' : 'gridEmpty')}
       </p>
     )
@@ -167,7 +167,7 @@ function OpenImage() {
 
 function TrayToolbar() {
   return (
-    <div className="flex flex-wrap gap-2 px-4 pb-4">
+    <div className="flex flex-wrap gap-2 px-gutter pb-gutter">
       <ImportButtons />
       <ContainerActions container="tray" />
     </div>
@@ -189,11 +189,11 @@ function TrayPanel() {
         marked && 'ring-3 ring-primary ring-inset'
       )}
     >
-      <h2 className="p-4 text-xl">{t('tray')}</h2>
+      <h2 className="p-gutter text-xl">{t('tray')}</h2>
       <TrayToolbar />
       <ImportProgress />
       <AreaBoundary>
-        <Cells container="tray" className="px-4 pb-4" />
+        <Cells container="tray" className="px-gutter pb-gutter" />
       </AreaBoundary>
     </m.aside>
   )
@@ -211,7 +211,7 @@ function GridPanel({ desktop }: { desktop: boolean }) {
     >
       <div className="mx-auto max-w-3xl">
         <Intro />
-        <div className="flex items-center justify-between gap-2 p-4">
+        <div className="flex items-center justify-between gap-2 p-gutter">
           <h2 className="text-xl">{t('grid')}</h2>
           <div className="flex flex-wrap items-center justify-end gap-2">
             {!desktop && <MobileTray />}
@@ -226,7 +226,7 @@ function GridPanel({ desktop }: { desktop: boolean }) {
         {!desktop && <ImportProgress />}
         {/* On a phone the grid runs edge to edge, as it does in Instagram. */}
         <AreaBoundary>
-          <Cells container="grid" className={cn(desktop && 'px-4 pb-4')} />
+          <Cells container="grid" className={cn(desktop && 'px-gutter pb-gutter')} />
         </AreaBoundary>
       </div>
     </section>

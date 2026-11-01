@@ -164,6 +164,8 @@ pnpm cf:deploy:production  # lineup.bimo.dev
 - **Storage changes ship with a migration** and a test that opens a board saved by the previous release.
 - **Icon-only buttons use `IconButton`,** which requires a label and shows it as a tooltip.
 - **Every app-wide provider goes in `AppProviders`,** in `src/components/app-providers.tsx`.
+- **Page edges use `gutter`** (`px-gutter`, `p-gutter`), the spacing token in `src/index.css`, so
+  every region lines up. Padding inside a component keeps its own size.
 - **Spelling is British** in prose and identifiers (`colour`), matching the rest of the org.
 - **Work starts from an issue.** Its title is the Conventional Commit the PR will use, and its
   milestone is the one the story belongs to. See Planning in `CONTRIBUTING.md`.
