@@ -5,23 +5,16 @@ import { join } from 'node:path'
 
 import { expect, type Locator, type Page, test } from '@playwright/test'
 
-import { addImages, choose, image, png, watchErrors } from './fixtures'
-
-// A board is written as soon as it changes, but a reload can still beat the write.
-const savedGridSize = (page: Page) =>
-  page.evaluate(
-    () =>
-      new Promise<number>((resolve) => {
-        const opening = indexedDB.open('lineup')
-        opening.onsuccess = () => {
-          const reading = opening.result.transaction('board').objectStore('board').get('current')
-          reading.onsuccess = () => {
-            opening.result.close()
-            resolve((reading.result as { grid: string[] }).grid.length)
-          }
-        }
-      })
-  )
+import {
+  addImages,
+  choose,
+  image,
+  png,
+  reloadWhenSaved,
+  savedBoard,
+  savedGridSize,
+  watchErrors
+} from './fixtures'
 
 test('imports, arranges, undoes and comes back after a reload', async ({ page }) => {
   const errors = watchErrors(page)
@@ -49,8 +42,7 @@ test('imports, arranges, undoes and comes back after a reload', async ({ page })
   await page.getByRole('button', { name: 'Redo' }).click()
   await expect(grid.getByRole('img')).toHaveCount(1)
 
-  await expect.poll(() => savedGridSize(page)).toBe(1)
-  await page.reload()
+  await reloadWhenSaved(page, ({ grid }) => grid.length === 1)
   await expect(images).toHaveCount(3)
   await expect(grid.getByRole('img')).toHaveJSProperty('width', 2)
 
@@ -144,27 +136,6 @@ async function drag(
   await page.mouse.move(end.x + end.width * x + 1, end.y + end.height * y)
 }
 
-interface Board {
-  tray: string[]
-  grid: string[]
-  locked?: string[]
-}
-
-const order = (page: Page) =>
-  page.evaluate(
-    () =>
-      new Promise<Board>((resolve) => {
-        const opening = indexedDB.open('lineup')
-        opening.onsuccess = () => {
-          const reading = opening.result.transaction('board').objectStore('board').get('current')
-          reading.onsuccess = () => {
-            opening.result.close()
-            resolve(reading.result as Board)
-          }
-        }
-      })
-  )
-
 /** The sensor starts listening for arrow keys on the tick after a cell is picked up. */
 async function pickUpWithKeyboard(page: Page) {
   await page.getByRole('group', { name: 'Image 1' }).last().focus()
@@ -182,7 +153,7 @@ async function boardOfFour(page: Page) {
     await move.first().evaluate((el) => (el as HTMLElement).click())
   await expect(page.locator('section').getByRole('img')).toHaveCount(3)
   await expect.poll(() => savedGridSize(page)).toBe(3)
-  return { before: await order(page), cells: page.locator('section').getByRole('img') }
+  return { before: await savedBoard(page), cells: page.locator('section').getByRole('img') }
 }
 
 test('dragging a cell onto another swaps them, and undo puts them back', async ({ page }) => {
@@ -193,12 +164,12 @@ test('dragging a cell onto another swaps them, and undo puts them back', async (
   await drag(page, cells.nth(0), cells.nth(2))
   await expect(page.locator('[data-mark="swap"]')).toHaveCount(1)
   await page.mouse.up()
-  await expect.poll(async () => (await order(page)).grid).toEqual([c, b, a])
+  await expect.poll(async () => (await savedBoard(page)).grid).toEqual([c, b, a])
 
   // The library swallows clicks for 50 ms after a drag, which only a script can be fast enough for.
   await page.waitForTimeout(100)
   await page.getByRole('button', { name: 'Undo' }).click()
-  await expect.poll(async () => (await order(page)).grid).toEqual([a, b, c])
+  await expect.poll(async () => (await savedBoard(page)).grid).toEqual([a, b, c])
   expect(errors).toEqual([])
 })
 
@@ -212,8 +183,7 @@ test('a locked cell holds its place until it is unlocked', async ({ page }) => {
   await middle.getByRole('button', { name: 'Lock in place' }).click()
   await expect(middle).toHaveAttribute('aria-roledescription', 'locked image')
 
-  await expect.poll(async () => (await order(page)).locked).toEqual([b])
-  await page.reload()
+  await reloadWhenSaved(page, ({ locked }) => locked?.includes(b) === true)
   await expect(cells).toHaveCount(3)
   await expect(middle).toHaveAttribute('aria-roledescription', 'locked image')
 
@@ -224,7 +194,7 @@ test('a locked cell holds its place until it is unlocked', async ({ page }) => {
   await drag(page, cells.nth(0), cells.nth(1))
   await expect(page.locator('[data-mark="swap"]')).toHaveCount(0)
   await page.mouse.up()
-  await expect.poll(async () => (await order(page)).grid[1]).toBe(b)
+  await expect.poll(async () => (await savedBoard(page)).grid[1]).toBe(b)
 
   await middle.focus()
   await page.keyboard.press('Delete')
@@ -235,10 +205,10 @@ test('a locked cell holds its place until it is unlocked', async ({ page }) => {
   await page.keyboard.press('Escape')
 
   await page.getByRole('button', { name: 'Move all to the tray' }).click()
-  await expect.poll(async () => (await order(page)).grid).toEqual([b])
+  await expect.poll(async () => (await savedBoard(page)).grid).toEqual([b])
 
   await page.getByRole('button', { name: 'Undo' }).click()
-  await expect.poll(async () => (await order(page)).grid.sort()).toEqual([a, b, c].sort())
+  await expect.poll(async () => (await savedBoard(page)).grid.sort()).toEqual([a, b, c].sort())
   await middle.hover()
   await middle.getByRole('button', { name: 'Unlock' }).click()
   await expect(middle).toHaveAttribute('aria-roledescription', 'movable image')
@@ -255,8 +225,8 @@ test('a cell swaps across containers', async ({ page }) => {
 
   await drag(page, page.locator('aside').getByRole('img').first(), cells.nth(1))
   await page.mouse.up()
-  await expect.poll(async () => (await order(page)).grid).toEqual([a, t, c])
-  expect((await order(page)).tray).toEqual([b])
+  await expect.poll(async () => (await savedBoard(page)).grid).toEqual([a, t, c])
+  expect((await savedBoard(page)).tray).toEqual([b])
 })
 
 test('dropping near the edge of a cell inserts without Shift', async ({ page }) => {
@@ -267,7 +237,7 @@ test('dropping near the edge of a cell inserts without Shift', async ({ page }) 
   await expect(page.locator('[data-mark="before"]')).toHaveCount(1)
   await expect(page.locator('[data-mark="swap"]')).toHaveCount(0)
   await page.mouse.up()
-  await expect.poll(async () => (await order(page)).grid).toEqual([b, a, c])
+  await expect.poll(async () => (await savedBoard(page)).grid).toEqual([b, a, c])
 })
 
 test('either side of a gap draws one line, in the middle of it', async ({ page }) => {
@@ -302,7 +272,7 @@ test('a cell can be picked up, moved and dropped with the keyboard', async ({ pa
   await expect(page.locator('[data-mark="swap"]')).toHaveCount(1)
   await page.keyboard.press('Space')
 
-  await expect.poll(async () => (await order(page)).grid).toEqual([c, b, a])
+  await expect.poll(async () => (await savedBoard(page)).grid).toEqual([c, b, a])
   await expect(cells).toHaveCount(3)
 })
 
@@ -315,7 +285,7 @@ test('Escape puts a cell carried by keyboard back', async ({ page }) => {
   await page.keyboard.press('Escape')
 
   await expect(page.locator('[data-ghost]')).toHaveCount(0)
-  expect(await order(page)).toEqual(before)
+  expect(await savedBoard(page)).toEqual(before)
 })
 
 test('Space on a button inside a cell does not pick the cell up', async ({ page }) => {
@@ -370,7 +340,7 @@ test("Enter opens a cell's actions, and focus carries on from them", async ({ pa
   await page.getByRole('menuitem', { name: 'Delete' }).click()
   await expect(grid).toHaveCount(2)
   await expect(grid.nth(0)).toBeFocused()
-  expect((await order(page)).grid).toEqual(before.grid.slice(1))
+  expect((await savedBoard(page)).grid).toEqual(before.grid.slice(1))
 })
 
 test('clearing asks first, says how many, and can be undone', async ({ page }) => {
@@ -382,10 +352,10 @@ test('clearing asks first, says how many, and can be undone', async ({ page }) =
   await expect(page.getByRole('button', { name: 'Grid (3)' })).toBeVisible()
   await page.getByRole('button', { name: 'Both (4)' }).click()
   await expect(page.getByRole('alertdialog')).toHaveCount(0)
-  await expect.poll(() => order(page)).toEqual({ tray: [], grid: [] })
+  await expect.poll(() => savedBoard(page)).toEqual({ tray: [], grid: [] })
 
   await page.getByRole('button', { name: 'Undo' }).click()
-  await expect.poll(() => order(page)).toEqual(before)
+  await expect.poll(() => savedBoard(page)).toEqual(before)
   expect(errors).toEqual([])
 })
 
@@ -418,7 +388,7 @@ test('an image opens full size, steps along, zooms, and closes', async ({ page }
   // Undo belongs to the board, which the lightbox covers. Give a save the time to land if it ran.
   await page.keyboard.press('Control+z')
   await page.waitForTimeout(200)
-  expect((await order(page)).grid).toHaveLength(3)
+  expect((await savedBoard(page)).grid).toHaveLength(3)
 
   await page.keyboard.press('Escape')
   await expect(dialog).toHaveCount(0)
@@ -438,7 +408,7 @@ test('the phone preview shows the planned grid, and changes nothing', async ({ p
 
   await page.keyboard.press('Escape')
   await expect(phone).toHaveCount(0)
-  expect(await order(page)).toEqual(before)
+  expect(await savedBoard(page)).toEqual(before)
   expect(errors).toEqual([])
 })
 
@@ -515,7 +485,7 @@ test('holding Shift inserts on the side the pointer is on', async ({ page }) => 
   await expect(page.locator('[data-mark="swap"]')).toHaveCount(0)
   await page.mouse.up()
   await page.keyboard.up('Shift')
-  await expect.poll(async () => (await order(page)).grid).toEqual([b, c, a])
+  await expect.poll(async () => (await savedBoard(page)).grid).toEqual([b, c, a])
 })
 
 test('the empty part of a container takes a drop at the nearest position', async ({ page }) => {
@@ -526,8 +496,8 @@ test('the empty part of a container takes a drop at the nearest position', async
   const section = page.locator('section')
   await drag(page, source, section, { x: 0.5, y: 0.97 })
   await page.mouse.up()
-  await expect.poll(async () => (await order(page)).grid).toContain(t)
-  expect((await order(page)).tray).toEqual([])
+  await expect.poll(async () => (await savedBoard(page)).grid).toContain(t)
+  expect((await savedBoard(page)).tray).toEqual([])
 })
 
 test('Escape puts a dragged cell back, and a click still works', async ({ page }) => {
@@ -537,7 +507,7 @@ test('Escape puts a dragged cell back, and a click still works', async ({ page }
   await page.keyboard.press('Escape')
   await page.mouse.up()
   await expect(page.getByText(/^Hold .+ to insert instead of swap$/)).toBeHidden()
-  expect(await order(page)).toEqual(before)
+  expect(await savedBoard(page)).toEqual(before)
 
   await cells.nth(0).hover()
   await page.getByRole('button', { name: 'Move to the tray' }).first().click()

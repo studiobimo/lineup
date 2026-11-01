@@ -12,9 +12,8 @@ test.beforeEach(async ({ page }) => {
   await addImages(page, [image('a.png'), image('b.png'), image('c.png')])
   const move = page.getByRole('button', { name: 'Move to the grid' })
   await expect(move).toHaveCount(3)
-  for (let cell = 0; cell < 3; cell += 1) {
-    await move.first().evaluate((button) => (button as HTMLElement).click())
-  }
+  // In one tick, or on a busy machine the first lands before the last takes off.
+  await move.evaluateAll((buttons) => buttons.forEach((button) => (button as HTMLElement).click()))
   await expect(page.locator('[data-flight]')).toHaveCount(3)
   await expect(page.locator('[data-flight]')).toHaveCount(0)
 })

@@ -5,25 +5,12 @@ import { fileURLToPath } from 'node:url'
 
 import { expect, type Page, test } from '@playwright/test'
 
-import { addImages, image, watchErrors } from './fixtures'
+import { addImages, image, savedBoard, savedImages, watchErrors } from './fixtures'
 
 const photos = new URL('../../../test-images/', import.meta.url)
 
-/** The image records, read from the browser as a reload would find them. */
 const storedColours = (page: Page) =>
-  page.evaluate(
-    () =>
-      new Promise<unknown[]>((resolve) => {
-        const opening = indexedDB.open('lineup')
-        opening.onsuccess = () => {
-          const reading = opening.result.transaction('images').objectStore('images').getAll()
-          reading.onsuccess = () => {
-            opening.result.close()
-            resolve(reading.result.map(({ colour }) => colour ?? null))
-          }
-        }
-      })
-  )
+  savedImages(page).then((images) => images.map(({ colour }) => colour ?? null))
 
 const forgetColours = (page: Page) =>
   page.evaluate(
@@ -51,23 +38,11 @@ const forgetColours = (page: Page) =>
 const testImages = readdirSync(photos).map((name) => fileURLToPath(new URL(name, photos)))
 
 /** The grid's hues in order, from the first image in the grid to the last. */
-const gridHues = (page: Page) =>
-  page.evaluate(
-    () =>
-      new Promise<number[]>((resolve) => {
-        const opening = indexedDB.open('lineup')
-        opening.onsuccess = () => {
-          const transaction = opening.result.transaction(['board', 'images'])
-          const board = transaction.objectStore('board').get('current')
-          const images = transaction.objectStore('images').getAll()
-          transaction.oncomplete = () => {
-            opening.result.close()
-            const hue = new Map(images.result.map(({ id, colour }) => [id, colour.dominant.hue]))
-            resolve(board.result.grid.map((id: string) => hue.get(id)))
-          }
-        }
-      })
-  )
+async function gridHues(page: Page) {
+  const [{ grid }, images] = await Promise.all([savedBoard(page), savedImages(page)])
+  const hue = new Map(images.map(({ id, colour }) => [id, colour?.dominant.hue ?? -1]))
+  return grid.map((id) => hue.get(id) ?? -1)
+}
 
 async function shuffledGrid(page: Page) {
   await page.goto('/')
