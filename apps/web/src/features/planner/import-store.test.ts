@@ -4,7 +4,7 @@ import { toastManager } from '@/components/ui/toast'
 
 import { importImages } from './import-images'
 import { fromFiles } from './import-source'
-import { runImport } from './import-store'
+import { runImport, whenImporting } from './import-store'
 import { plannerStore } from './planner'
 import type { ProcessedImage } from './process-image'
 
@@ -49,5 +49,13 @@ describe('runImport', () => {
     await runImport(fromFiles([photo()]))
     await runImport(fromFiles([photo()]))
     expect(plannerStore.getState().addImages).toHaveBeenCalledOnce()
+  })
+
+  it('tells a listener when images start coming in', async () => {
+    const listener = vi.fn()
+    const stop = whenImporting(listener)
+    await runImport(fromFiles([photo()]))
+    stop()
+    expect(listener).toHaveBeenCalled()
   })
 })

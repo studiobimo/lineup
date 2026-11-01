@@ -184,6 +184,19 @@ test('a save that fails is reported until one goes through', async ({ page }) =>
   await expect.poll(() => savedGridSize(page)).toBe(2)
 })
 
+test('our own dialog comes before the folder picker', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Add a folder' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByText('Lineup never uploads your images.')).toBeVisible()
+
+  const data = await fileData(page, png.toString('base64'), ['dropped.png'])
+  await page.dispatchEvent('html', 'drop', { dataTransfer: data })
+
+  await expect(dialog).toBeHidden()
+  await expect(page.getByRole('img')).toHaveCount(1)
+})
+
 test('adding a folder takes the images in it and its subfolders', async ({ page }, testInfo) => {
   const folder = testInfo.outputPath('holiday')
   mkdirSync(join(folder, 'day two'), { recursive: true })

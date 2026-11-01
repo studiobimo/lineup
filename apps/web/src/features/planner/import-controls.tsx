@@ -1,12 +1,23 @@
-import { FolderPlus, ImagePlus } from 'lucide-react'
+import { FolderDown, FolderPlus, ImagePlus } from 'lucide-react'
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogPanel,
+  DialogPopup,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
 
 import { fromDrop, fromFiles } from './import-source'
-import { runImport, useImportProgress } from './import-store'
+import { runImport, useImportProgress, whenImporting } from './import-store'
 
 function hasFiles(event: DragEvent) {
   return event.dataTransfer?.types.includes('Files') ?? false
@@ -88,6 +99,47 @@ export function ImportProgress() {
   )
 }
 
+/** Says what the browser's own confirmation cannot: that "upload" here means nothing leaves. */
+function FolderDialog({ disabled, onChoose }: { disabled: boolean; onChoose: () => void }) {
+  const { t } = useTranslation('planner')
+  const [open, setOpen] = useState(false)
+
+  // The window takes the drop, so this is how a dialog with a folder dropped on it knows.
+  useEffect(() => whenImporting(() => setOpen(false)), [])
+
+  const choose = () => {
+    setOpen(false)
+    onChoose()
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={<Button variant="outline" size="sm" disabled={disabled} />}>
+        <FolderPlus />
+        {t('addFolder')}
+      </DialogTrigger>
+      <DialogPopup>
+        <DialogHeader>
+          <DialogTitle>{t('addFolder')}</DialogTitle>
+          <DialogDescription>{t('folderDescription')}</DialogDescription>
+        </DialogHeader>
+        <DialogPanel className="flex flex-col gap-3">
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed p-8 text-center pointer-coarse:hidden">
+            <FolderDown className="size-6 text-muted-foreground" />
+            <p className="font-medium">{t('folderDrop')}</p>
+            <p className="text-sm text-muted-foreground">{t('folderDropHelp')}</p>
+          </div>
+          <p className="text-sm text-muted-foreground">{t('folderBrowserNote')}</p>
+        </DialogPanel>
+        <DialogFooter>
+          <DialogClose render={<Button variant="ghost" />}>{t('cancel')}</DialogClose>
+          <Button onClick={choose}>{t('folderChoose')}</Button>
+        </DialogFooter>
+      </DialogPopup>
+    </Dialog>
+  )
+}
+
 export function ImportButtons() {
   const { t } = useTranslation('planner')
   const busy = useImportProgress() !== null
@@ -128,10 +180,7 @@ export function ImportButtons() {
         <ImagePlus />
         {t('addImages')}
       </Button>
-      <Button variant="outline" size="sm" disabled={busy} onClick={() => folder.current?.click()}>
-        <FolderPlus />
-        {t('addFolder')}
-      </Button>
+      <FolderDialog disabled={busy} onChoose={() => folder.current?.click()} />
     </div>
   )
 }
