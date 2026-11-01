@@ -1,0 +1,4 @@
+# Static assets only: a response from the Worker never gets these, so /api/* sets its own.
+# Nothing runs or loads from another origin. A later feature adds what it needs, and no more.
+/*
+    Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
