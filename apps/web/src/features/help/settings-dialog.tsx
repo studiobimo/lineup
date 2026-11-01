@@ -14,6 +14,7 @@ import { instagram } from '@/features/planner/network-profile'
 import { boardStore } from '@/features/planner/planner'
 import { saveProfile, toHandle, useProfile } from '@/features/planner/profile-store'
 import { useDialogPresence } from '@/hooks/use-dialog-presence'
+import { isInstalled, isSafari } from '@/lib/platform'
 import { getTheme, setTheme, subscribeToTheme, type Theme } from '@/lib/theme'
 
 import { BackupActions } from './backup-actions'
@@ -28,7 +29,7 @@ const size = (bytes: number) =>
   }).format(bytes / (bytes < 1e9 ? 1e6 : 1e9))
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation('help')
+  const { t } = useTranslation('settings')
   const { dialog, close } = useDialogPresence(onClose)
   const theme = useSyncExternalStore(subscribeToTheme, getTheme)
   const [usage, setUsage] = useState<StorageUsage>()
@@ -43,7 +44,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     <Dialog {...dialog}>
       <DialogPopup>
         <DialogHeader>
-          <DialogTitle>{t('settings')}</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
         </DialogHeader>
         <DialogPanel className="flex flex-col gap-6">
           <section>
@@ -117,6 +118,9 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               </Progress>
             )}
             <p className="mt-2 text-sm text-muted-foreground">{t('storageNote')}</p>
+            {isSafari() && !isInstalled() && (
+              <p className="mt-2 text-sm text-muted-foreground">{t('safariNote')}</p>
+            )}
             <BackupActions onRestored={close} />
             <p className="mt-2 text-sm text-muted-foreground">{t('backupNote')}</p>
           </section>

@@ -5,12 +5,18 @@ import { useTranslation } from 'react-i18next'
 import { IconButton } from '@/components/icon-button'
 import { LazyOverlay } from '@/components/lazy-overlay'
 
+import { loadSettingsStrings } from './settings-strings'
+
 const HelpDialog = lazy(() =>
   import('./help-dialog').then(({ HelpDialog }) => ({ default: HelpDialog }))
 )
-const SettingsDialog = lazy(() =>
-  import('./settings-dialog').then(({ SettingsDialog }) => ({ default: SettingsDialog }))
-)
+const SettingsDialog = lazy(async () => {
+  const [{ SettingsDialog }] = await Promise.all([
+    import('./settings-dialog'),
+    loadSettingsStrings()
+  ])
+  return { default: SettingsDialog }
+})
 
 export function ShellActions() {
   const { t } = useTranslation('help')

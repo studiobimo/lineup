@@ -34,29 +34,5 @@
     "arrows": "Arrow keys",
     "escape": "Esc"
   },
-  "settings": "Settings",
-  "profile": "Profile",
-  "handle": "Handle",
-  "handlePlaceholder": "your_username",
-  "name": "Name",
-  "namePlaceholder": "Your name",
-  "profileNote": "Shown in the phone preview. It stays in this browser.",
-  "theme": "Theme",
-  "themes": {
-    "light": "Light",
-    "dark": "Dark"
-  },
-  "photos": "Photos",
-  "captureDates": "Read capture dates",
-  "locations": "Read locations",
-  "photosNote": "As you add a photo, Bands can use when it was taken and the city it was taken in to keep a shoot together. Lineup keeps the city, never the exact position, and neither leaves this browser. Photos already on the board have none, because Lineup does not keep originals. Turning a switch off does not remove what was already read.",
-  "storage": "Storage on this device",
-  "backUp": "Back up",
-  "restore": "Restore",
-  "backupNote": "A backup is one file with your images and their order. Restoring replaces the board, and Undo brings the old one back.",
-  "backupFailed": "The backup could not be made. Try again.",
-  "restored": "Board restored. Undo brings back the one before.",
-  "restoreFailed": "That file could not be restored. It may not be a Lineup backup, or it may be incomplete.",
-  "storageUsed": "{{used}} of {{quota}} used",
-  "storageNote": "Your images are kept in this browser and never leave it until you schedule a post."
+  "settings": "Settings"
 }

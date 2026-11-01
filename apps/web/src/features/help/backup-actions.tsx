@@ -11,7 +11,7 @@ import { download } from '@/lib/download'
 const EXTENSION = '.lineup'
 
 export function BackupActions({ onRestored }: { onRestored: () => void }) {
-  const { t } = useTranslation('help')
+  const { t } = useTranslation('settings')
   const input = useRef<HTMLInputElement>(null)
 
   const backUp = async () => {
