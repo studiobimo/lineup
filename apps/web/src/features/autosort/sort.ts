@@ -14,7 +14,7 @@ export type SortStrategy = (typeof sortStrategies)[number]
 
 const bandRows = { bands2: 2, bands4: 4 } as const
 
-type Cell = Pick<ImageRecord, 'id' | 'colour'>
+type Cell = Pick<ImageRecord, 'id' | 'colour' | 'takenAt'>
 
 /** Compared in order, the first difference deciding. */
 type SortKey = [rank: number, ...rest: number[]]
@@ -38,9 +38,15 @@ const keys: Record<(typeof keyedStrategies)[number], (colour: Oklch) => SortKey>
   }
 }
 
-function toBandCell(id: string, { dominant, tone, vivid }: ImageColour): BandCell {
+function toBandCell({ id, takenAt }: Cell, { dominant, tone, vivid }: ImageColour): BandCell {
   const neutral = dominant.chroma < NEUTRAL_CHROMA || vivid < MUTED
-  return { id, tone, vivid, hue: neutral ? null : fromRed(dominant.hue) }
+  return {
+    id,
+    tone,
+    vivid,
+    hue: neutral ? null : fromRed(dominant.hue),
+    takenAt: takenAt === undefined ? undefined : Date.parse(takenAt)
+  }
 }
 
 function compare(one: SortKey, other: SortKey) {
@@ -55,7 +61,7 @@ function compare(one: SortKey, other: SortKey) {
 export async function sortByColour(cells: Cell[], strategy: SortStrategy) {
   if (strategy === 'bands2' || strategy === 'bands4') {
     const order = await arrangeBands({
-      cells: cells.flatMap(({ id, colour }) => (colour ? [toBandCell(id, colour)] : [])),
+      cells: cells.flatMap((cell) => (cell.colour ? [toBandCell(cell, cell.colour)] : [])),
       rowsPerBand: bandRows[strategy],
       columns: instagram.columns
     })

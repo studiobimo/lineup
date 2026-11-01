@@ -9,6 +9,8 @@ export interface BandCell {
   vivid: number
   /** Degrees from the start of the rainbow. Null for a neutral, whose hue is noise. */
   hue: number | null
+  /** When the photo was taken, in milliseconds, if that is known. */
+  takenAt?: number
 }
 
 export interface BandsRequest {
@@ -29,6 +31,13 @@ const colourKey = ({ hue, tone }: BandCell) => hue ?? AFTER_HUES + tone
 /** Ties go by id, so the same images always give the same order, whatever order they came in. */
 const sortedBy = (cells: BandCell[], key: (cell: BandCell) => number) =>
   [...cells].sort((one, other) => key(one) - key(other) || (one.id < other.id ? -1 : 1))
+
+/** Dated photos first, newest at the top, so that a shoot stays in one band. */
+function inBandOrder(pool: BandCell[]) {
+  const dated = pool.filter(({ takenAt }) => takenAt !== undefined)
+  const undated = pool.filter(({ takenAt }) => takenAt === undefined)
+  return [...sortedBy(dated, ({ takenAt = 0 }) => -takenAt), ...sortedBy(undated, colourKey)]
+}
 
 function chunks(cells: BandCell[], size: number) {
   return Array.from({ length: Math.ceil(cells.length / size) }, (_, index) =>
@@ -68,7 +77,7 @@ export function bands({ cells, rowsPerBand, columns }: BandsRequest) {
   const dark = Math.ceil(Math.ceil(cells.length / size) / 2) * size
   const byTone = sortedBy(cells, ({ tone }) => tone)
   const [night, day] = [byTone.slice(0, dark), byTone.slice(dark)].map((pool) =>
-    chunks(sortedBy(pool, colourKey), size)
+    chunks(inBandOrder(pool), size)
   )
   return night
     .flatMap((band, index) => [

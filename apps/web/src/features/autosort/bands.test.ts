@@ -63,6 +63,23 @@ describe('bands', () => {
     expect(arrange(cells, 1).slice(0, 3)).toContain('grey')
   })
 
+  it('keeps a dated shoot in one band, and puts undated photos after it', () => {
+    const shot = (id: string, tone: number, day?: number) => ({
+      id,
+      tone,
+      vivid: 0.1,
+      hue: (id.charCodeAt(0) * 40) % 360,
+      takenAt: day
+    })
+    const dark = [shot('a', 0.1), shot('b', 0.1, 1), shot('c', 0.1), shot('d', 0.1, 3)]
+    const light = ['e', 'f', 'g', 'h'].map((id) => shot(id, 0.9))
+    const order = arrange(
+      [...dark, ...light, shot('i', 0.1, 2), shot('j', 0.1), shot('k', 0.9), shot('l', 0.9)],
+      1
+    )
+    expect(order.slice(0, 3).sort()).toEqual(['b', 'd', 'i'])
+  })
+
   it('takes fewer images than a band, and none', () => {
     expect(arrange(feed(2), 4)).toHaveLength(2)
     expect(arrange([], 2)).toEqual([])
