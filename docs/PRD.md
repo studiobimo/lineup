@@ -1,0 +1,242 @@
+# Product requirements: Lineup
+
+- **Status:** Draft for v1
+- **Date:** 2026-10-09, revised 2026-10-31
+- **Home:** `lineup.bimo.dev`
+
+## 1. Summary
+
+Lineup is a browser app for planning an Instagram profile grid. You drop in images, arrange them in
+the three-column layout Instagram uses, and see how the profile will look before anything is
+posted. It can sort images by colour, group them into carousel posts, and, with your own Zernio
+API key, show what is already published and schedule what comes next.
+
+It replaces InstaPlanner, a Next.js prototype. Lineup is a clean rewrite from this document, not a
+port: the prototype is a reference for behaviour only.
+
+## 2. Problem
+
+A profile grid is judged as a whole, but Instagram only lets you see it after each post is live.
+People who care about how the grid reads, mostly designers and social media managers, end up
+arranging screenshots in a design tool or a paid scheduler whose planner is an afterthought.
+The prototype proved the core idea but stopped at desktop, lost work in several undo cases, and
+could not connect to a real account.
+
+## 3. Users
+
+| Persona | Who | What they need |
+| --- | --- | --- |
+| **Designer** | Builds a visual identity for a brand or for themselves | Fast arranging, colour flow across the grid, an accurate preview. Usually on a laptop. May never schedule |
+| **Social manager** | Runs one or a few accounts week to week | See the plan against what is already live, schedule from the plan, fix the order on a phone |
+
+## 4. Goals and non-goals
+
+### Goals for v1
+
+1. Everything the prototype did, done correctly, on desktop and on touch devices.
+2. Colour autosort that produces a pleasing order in one action.
+3. Albums: several images planned as one carousel post.
+4. Undo and redo for every change.
+5. Optional Instagram features through the user's own Zernio key, with no account.
+6. The planner needs no key and no server, and images never leave the device unless the user
+   schedules them.
+
+### Non-goals for v1
+
+- Accounts and sign-in ([ADR-0008](adr/0008-sealed-provider-key.md)).
+- Cloud sync of boards or images across devices.
+- Importing from Google Photos or other cloud libraries (planned after 1.0; see the
+  [import sources research](research/import-sources.md)).
+- Multiple boards per user.
+- Video, Reels and Stories.
+- Cropping, filters or any image editing beyond the fixed preview crop.
+- Analytics, comments, direct messages.
+- Networks other than Instagram. See [Beyond Instagram](#beyond-instagram).
+- Publishing through Meta's API directly (see [ADR-0003](adr/0003-zernio-byok.md) and the
+  [API research](research/instagram-apis.md)).
+- Team features: sharing, comments, approval.
+- Languages other than English. Strings are kept out of components so this can follow.
+
+### Beyond Instagram
+
+Instagram comes first, but the model should not assume it is the only network. Other networks are
+not built in v1. Two rules keep them cheap to add:
+
+- Everything Instagram-specific sits in one network profile: columns, cell ratio, carousel limit.
+  Code reads the profile and never repeats its numbers.
+- Provider code and data use neutral names (`provider`, not `zernio`), except in the Zernio
+  implementation itself.
+
+## 5. Principles
+
+- **Local-first.** No account, no network and no server are needed to plan a grid.
+- **Nothing is lost.** Every change can be undone; data survives a reload and a crash.
+- **One way to do it on every device.** Pointer, touch and keyboard reach the same actions.
+- **Quiet.** The interface confirms an action by showing its result, not by announcing it.
+
+## 6. Concepts
+
+| Term | Meaning |
+| --- | --- |
+| **Tray** | Images imported but not yet placed. A side panel on desktop, a drawer on mobile |
+| **Grid** | The planned feed: three columns of 3:4 cells, newest first, top-left to bottom-right |
+| **Cell** | One position in the tray or grid. Holds a single image or an album |
+| **Album** | Two to twenty images planned as one carousel post. Shows its first image as the cover |
+| **Published cell** | A post already live on Instagram, shown after the planned cells and locked |
+| **Scheduled cell** | A planned cell with a caption and a publish time, handed to Zernio |
+
+## 7. Requirements
+
+Stories are numbered by epic. "Must" is required for the milestone that owns the epic; "Should"
+may slip to the following release.
+
+### E1. Import
+
+| ID | Story | Acceptance | Priority |
+| --- | --- | --- | --- |
+| IMP-1 | I can add images with a file picker | Multi-select; only image types offered; images appear at the top of the tray | Must |
+| IMP-2 | I can drop image files anywhere on the window | An overlay shows while dragging files; non-image files are ignored with one message | Must |
+| IMP-3 | I can paste an image from the clipboard | Pasting outside a text field adds the image to the tray | Should |
+| IMP-4 | Large photos just work | Any image the browser can decode is accepted and resized; no file is rejected for its size | Must |
+| IMP-5 | Importing does not freeze the page | Processing runs off the main thread; the page stays interactive during a 50-image import; progress is visible | Must |
+| IMP-6 | I know when I am at the limit | One limit on total images (300), counted across tray and grid, checked the same way on every import path | Must |
+| IMP-7 | One bad file does not spoil a batch | Files that fail to decode are skipped and counted in a single summary message; the rest are imported | Must |
+| IMP-8 | I can import a whole folder | Choosing a folder, or dropping one on the window, imports every image in it and its subfolders; other files are ignored. Works in every supported desktop browser | Must |
+| IMP-9 | I can keep my board in a folder | I can choose a dedicated folder for the board. Originals are kept there at full size, the app offers to import images added since my last visit, and a file removed outside the app shows as a missing cell. Offered only where the browser supports it (Chrome and Edge on desktop); hidden elsewhere | Should |
+
+### E2. Arrange
+
+| ID | Story | Acceptance | Priority |
+| --- | --- | --- | --- |
+| ARR-1 | I see my plan as Instagram shows it | Three columns, 3:4 cells, images cropped to cover and never stretched | Must |
+| ARR-2 | I can drag a cell onto another to swap them | Works within the tray, within the grid and between them | Must |
+| ARR-3 | I can insert instead of swap | Holding Shift (or the on-screen toggle on touch) inserts at the drop position and shifts the rest; the drop indicator shows which mode applies | Must |
+| ARR-4 | I can move a cell to the other container | One action from the cell's menu or a shortcut; dropping on a container's empty area inserts at the nearest position | Must |
+| ARR-5 | I can drag on a touch screen | Long-press picks up a cell; the page does not scroll while dragging; dragging near an edge scrolls the container | Must |
+| ARR-6 | I can arrange with the keyboard alone | Cells are focusable; a cell can be picked up, moved with arrow keys and dropped; screen readers announce each step | Must |
+| ARR-7 | I can move everything at once | "Move all to grid" and "Move all to tray" | Must |
+| ARR-8 | I can shuffle | Random order in the tray or the grid; needs at least two cells | Must |
+| ARR-9 | I can delete a cell | From its menu, its hover button or the Delete key on the focused cell; no confirmation, because it can be undone | Must |
+| ARR-10 | I can clear the tray, the grid or both | A confirmation shows how many images each choice removes | Must |
+| ARR-11 | I can select several cells and act on them together | Move, delete and group apply to the selection | Should |
+| ARR-12 | My plan is still there when I come back | Order and images persist across reloads and browser restarts | Must |
+| ARR-13 | I can back up my board and restore it | One action saves the board to a single file: images, order, albums and captions. Opening that file restores it exactly, on any device | Must |
+
+### E3. Review
+
+| ID | Story | Acceptance | Priority |
+| --- | --- | --- | --- |
+| REV-1 | I can open an image full size | From any cell in the grid or tray; previous and next with arrow keys or swipe; Escape closes | Must |
+| REV-2 | I can zoom and pan | Pinch or buttons; drag to pan when zoomed | Must |
+| REV-3 | I can step through an album | The lightbox shows album position and moves within the album before the next cell | Must |
+| REV-4 | I can preview the profile on a phone frame | A phone-sized profile mock with the planned grid, then published cells; view only | Must |
+| REV-5 | The preview shows my account when connected | Username, avatar and counts from the connected Instagram account; neutral placeholders otherwise, and no invented numbers | Should |
+
+### E4. History
+
+| ID | Story | Acceptance | Priority |
+| --- | --- | --- | --- |
+| HIS-1 | I can undo any change | Every action on the board is undoable from the release that adds it. Today that means import, move, swap, insert, shuffle, delete and clear; autosort and the album actions join them in their own milestones | Must |
+| HIS-2 | I can redo | Redo is cleared by a new change | Must |
+| HIS-3 | Undo puts things back exactly | A restored cell returns to its original container and position | Must |
+| HIS-4 | I can undo without a keyboard | Undo and redo buttons are always reachable, disabled when there is nothing to do | Must |
+| HIS-5 | Undo still works after a reload | The last 50 steps persist; deleted images are kept until their step leaves the history | Should |
+
+### E5. Autosort
+
+| ID | Story | Acceptance | Priority |
+| --- | --- | --- | --- |
+| SRT-1 | I can sort by colour in one action | A "Sort by colour" menu beside Shuffle, in the tray and in the grid | Must |
+| SRT-2 | I can choose how | Rainbow (by hue), Light to dark, Grouped (colour families, each light to dark) | Must |
+| SRT-3 | Greys do not land among the colours | Black, white and grey images are placed together, ordered by lightness, not scattered by an arbitrary hue | Must |
+| SRT-4 | Sorting is one undo step | Undo restores the previous order exactly | Must |
+| SRT-5 | I can keep arranging afterwards | Sorting is a one-off action, not a mode; manual order is free again immediately | Must |
+| SRT-6 | Sorting is instant | Colours are computed at import; sorting 300 images takes under 100 ms | Must |
+| SRT-7 | Albums and locked cells behave | An album sorts as one cell by its cover; published cells do not move | Must |
+| SRT-8 | Sorting is stable | The same images and strategy always give the same order | Must |
+
+### E6. Albums
+
+| ID | Story | Acceptance | Priority |
+| --- | --- | --- | --- |
+| ALB-1 | I can group images into an album | From a multi-selection, or by holding a dragged cell over another until the group indicator appears | Must |
+| ALB-2 | An album looks like a carousel | Cover image, a stack marker and the image count | Must |
+| ALB-3 | I can open an album and reorder it | The first image is the cover | Must |
+| ALB-4 | I can add to and remove from an album | Removing the second-to-last image dissolves the album into a single cell | Must |
+| ALB-5 | I can ungroup | The images return as separate cells at the album's position, in order | Must |
+| ALB-6 | An album moves as one | Drag, swap, insert, delete, shuffle and sort treat it as one cell | Must |
+| ALB-7 | I cannot build an invalid carousel | An album holds at most Instagram's limit of 20 images; the group action is refused past that with a reason. If the provider allows fewer, scheduling says so | Must |
+
+### E7. Instagram through Zernio
+
+The user brings their own Zernio API key. See [ADR-0003](adr/0003-zernio-byok.md).
+
+| ID | Story | Acceptance | Priority |
+| --- | --- | --- | --- |
+| ZRN-1 | I can add my Zernio key | Pasted in Settings, with no account; verified before it is kept; a failed key is rejected with the reason | Must |
+| ZRN-2 | My key is not exposed | Narrowed to one profile where Zernio allows it, sealed, and kept where no script can read it; stored on no server; never returned or logged; shown only as its last four characters | Must |
+| ZRN-3 | I can replace or remove my key | Removing it clears it from this browser and clears scheduling state in the app; a link explains how to revoke it at Zernio | Must |
+| ZRN-4 | I am guided to get a key | Short instructions and a link to Zernio, including which kind of key to create and that an Instagram professional account is required | Must |
+| ZRN-5 | I can choose which Instagram account to plan for | Lists the Instagram accounts on the key; if none, links to connect one | Must |
+| ZRN-6 | I see what is already published | Recent posts appear as locked cells after the planned ones. **Depends on the M4 spike**: if Zernio returns only posts made through it, this story covers those and the limitation is stated in the UI | Must |
+| ZRN-7 | I can schedule a cell | Caption, date and time in my time zone; the image is uploaded at that moment; the cell shows its scheduled time | Must |
+| ZRN-8 | I can schedule an album as a carousel | Images are sent in album order | Must |
+| ZRN-9 | Scheduling warns me about order | If the times would publish cells in a different order from the grid, the app says so before confirming | Should |
+| ZRN-10 | I can see what happened | Each scheduled cell shows scheduled, publishing, published or failed, with the failure reason | Must |
+| ZRN-11 | I can reschedule or cancel | Until it is published; cancelling returns the cell to plain planned | Must |
+| ZRN-12 | A retry never double-posts | Repeating a schedule request after a network failure does not create a second post | Must |
+| ZRN-13 | I understand what leaves my device | Before the first schedule, a notice says the image and caption are sent to Zernio and Instagram | Must |
+| ZRN-14 | My key expires | A key lasts 30 days at most. Settings shows the date, and the app then asks for a key again; nothing planned or already scheduled is affected | Must |
+
+### E8. Shell
+
+| ID | Story | Acceptance | Priority |
+| --- | --- | --- | --- |
+| SHL-1 | I am shown how it works once | A short introduction on first visit; reopenable from Help | Must |
+| SHL-2 | I can see the shortcuts | A shortcuts list showing the right modifier for my platform | Must |
+| SHL-3 | I can choose light or dark | Follows the system by default; the choice is reachable from the main screen and applies to every page | Must |
+| SHL-4 | Empty and loading states are clear | Empty tray and grid say what to do; a skeleton shows while stored images load | Must |
+| SHL-5 | Errors are recoverable | A failure in one area does not blank the app; storage-full is explained with what to do | Must |
+| SHL-6 | I can read the terms and the privacy policy | Both state exactly what is stored where: images on the device, the sealed key in this browser, nothing on our servers, scheduled media at Zernio | Must |
+| SHL-7 | It works on a phone | Every story in epics 1 to 6 is achievable at 360 px wide with touch only | Must |
+| SHL-8 | It is accessible | WCAG 2.2 AA for contrast, focus, names and keyboard operation | Must |
+| SHL-9 | I can install it and use it offline | The app installs to the Dock or home screen, opens in its own window, and works with no network after the first visit | Must |
+| SHL-10 | I can see what changed | `/releases` lists each version with its date and its features, fixes and performance changes, built from the changelog that release-please generates from Conventional Commits. It is part of the build, so it needs no network, and it has no links into the private repository | Should |
+
+## 8. Quality requirements
+
+| Area | Requirement |
+| --- | --- |
+| Performance | First load under 200 kB of JavaScript (gzip) before any lazy route. 300 images scroll and drag at 60 fps on a mid-range phone |
+| Memory | Cells show thumbnails, never full images, and off-screen cells hold no decoded image. A 300-image board adds under 150 MB to the page. Image bytes are never kept in application state |
+| Storage | Images are stored as binary, each with a thumbnail and a publish copy: a JPEG up to 1440 px wide, never upscaled, which is what gets scheduled. All access goes through a `BoardStore` interface ([ADR-0002](adr/0002-local-first-storage.md)). Schema changes migrate existing data; no release may strand a user's board |
+| Privacy | No analytics or third-party scripts in production. Server logs carry no cookies, keys or request bodies |
+| Security | The provider key is sealed in an HttpOnly, Secure, host-bound cookie and stored on no server ([ADR-0008](adr/0008-sealed-provider-key.md)). A strict Content-Security-Policy applies everywhere. All state-changing requests are origin-checked. Key setup is rate limited |
+| Browsers | Current and previous major versions of Chrome, Safari, Firefox and Edge; iOS Safari and Android Chrome |
+
+## 9. Behaviour deliberately changed from the prototype
+
+| Prototype | Lineup |
+| --- | --- |
+| Images of other ratios stretched in cells | Always cropped to cover |
+| Undo covered delete and clear only; undo of "Clear all" restored nothing; restored images went to the end | Every change is undoable and restores exact positions |
+| Three different size limits depending on how a file arrived; oversize files rejected a whole batch | No size rejection; one image-count limit everywhere |
+| Mobile blocked by a maintenance dialog; no touch or keyboard dragging | Touch and keyboard are first-class |
+| Images stored as base64 text, all held in memory, rendered full size in every cell; compression on the main thread | Binary storage; thumbnails in cells; only visible cells decoded; processing in a worker |
+| A toast for nearly every action, including on load | Messages only for failures and for results that are not visible |
+| Shortcuts acted on whatever was under the mouse | Shortcuts act on the focused or selected cell |
+| Moving between containers always went to the top | Lands where it is dropped |
+| Lightbox for grid images only | Lightbox for any cell |
+| Preview showed random follower counts | Real account data when connected, neutral placeholders otherwise |
+| Theme toggle hidden inside the preview dialog; legal pages always dark | One theme setting, applied everywhere |
+| Server-side document cache and remote maintenance flag | Removed; legal pages are static |
+| Release notes written by hand | Generated from the commits, so they cannot fall behind |
+
+## 10. Success measures
+
+There is no analytics in v1, so these are checked by hand before each release.
+
+- A new user places nine images and opens the preview in under one minute without instructions.
+- The arrange flow can be completed on a phone with one hand.
+- No sequence of actions followed by undo leaves the board different from where it started.
+- A scheduled test post arrives on Instagram at the chosen time with the chosen caption.

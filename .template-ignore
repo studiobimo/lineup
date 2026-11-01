@@ -1,0 +1,10 @@
+# Paths the template manages that this repo keeps its own version of.
+# One path per line, each with a comment saying why.
+
+# The template's LICENSE is MIT. Lineup is a private studiobimo product, so it is all
+# rights reserved until a decision to open it (the licence issue in milestone M5).
+LICENSE
+
+# Lineup deploys with cf:deploy or Workers Builds, so no Cloudflare credential is kept in
+# GitHub (docs/adr/0001-single-worker.md).
+.github/workflows/deploy.yml
