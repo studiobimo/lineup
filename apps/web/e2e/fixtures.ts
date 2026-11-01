@@ -1,4 +1,4 @@
-import type { FileChooser, Page } from '@playwright/test'
+import type { ConsoleMessage, FileChooser, Page } from '@playwright/test'
 
 // A 2 x 2 PNG, so these run through the real decoder and the real worker.
 export const png = Buffer.from(
@@ -17,3 +17,13 @@ export async function choose(page: Page, button: string, files: Chosen) {
 }
 
 export const addImages = (page: Page, files: Chosen) => choose(page, 'Add images', files)
+
+export function watchErrors(page: Page) {
+  const errors: string[] = []
+  const record = (message: ConsoleMessage) => {
+    if (message.type() === 'error') errors.push(message.text())
+  }
+  page.on('console', record)
+  page.on('pageerror', (error) => errors.push(error.message))
+  return errors
+}

@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -42,7 +43,16 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
             ))}
           </dl>
         </DialogPanel>
-        <DialogFooter>
+        <DialogFooter className="sm:justify-between">
+          {/* A tab of their own: leaving the planner would drop its undo history and any import. */}
+          <div className="flex justify-center gap-1">
+            <Button variant="link" size="sm" render={<Link to="/privacy" target="_blank" />}>
+              {t('privacy')}
+            </Button>
+            <Button variant="link" size="sm" render={<Link to="/terms" target="_blank" />}>
+              {t('terms')}
+            </Button>
+          </div>
           <Button
             variant="outline"
             onClick={() => {

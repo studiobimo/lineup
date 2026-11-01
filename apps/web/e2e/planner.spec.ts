@@ -3,19 +3,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { type ConsoleMessage, expect, type Locator, type Page, test } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
 
-import { addImages, choose, image, png } from './fixtures'
-
-function watchErrors(page: Page) {
-  const errors: string[] = []
-  const record = (message: ConsoleMessage) => {
-    if (message.type() === 'error') errors.push(message.text())
-  }
-  page.on('console', record)
-  page.on('pageerror', (error) => errors.push(error.message))
-  return errors
-}
+import { addImages, choose, image, png, watchErrors } from './fixtures'
 
 // A board is written as soon as it changes, but a reload can still beat the write.
 const savedGridSize = (page: Page) =>
