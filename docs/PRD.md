@@ -110,7 +110,7 @@ may slip to the following release.
 | --- | --- | --- | --- |
 | ARR-1 | I see my plan as Instagram shows it | Three columns, 3:4 cells, images cropped to cover and never stretched | Must |
 | ARR-2 | I can drag a cell onto another to swap them | Works within the tray, within the grid and between them | Must |
-| ARR-3 | I can insert instead of swap | Holding Shift (or the on-screen toggle on touch) inserts at the drop position and shifts the rest; the drop indicator shows which mode applies | Must |
+| ARR-3 | I can insert instead of swap | Dropping near a cell's left or right edge, or holding Shift (or the on-screen toggle on touch), inserts at the drop position and shifts the rest; the drop indicator shows which mode applies | Must |
 | ARR-4 | I can move a cell to the other container | One action from the cell's menu or a shortcut; dropping on a container's empty area inserts at the nearest position | Must |
 | ARR-5 | I can drag on a touch screen | Long-press picks up a cell; the page does not scroll while dragging; dragging near an edge scrolls the container | Must |
 | ARR-6 | I can arrange with the keyboard alone | Cells are focusable; a cell can be picked up, moved with arrow keys and dropped; screen readers announce each step | Must |

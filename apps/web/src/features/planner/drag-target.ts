@@ -45,6 +45,10 @@ interface Aim {
   boxOf: (id: string) => Box | undefined
 }
 
+// The share of a cell's width, at each side, that inserts beside it instead of swapping with it.
+// The gap between two cells is 2 px, too thin to aim at.
+const INSERT_EDGE = 0.2
+
 const distance = (box: Box, { x, y }: Point) =>
   Math.hypot(x - (box.left + box.right) / 2, y - (box.top + box.bottom) / 2)
 
@@ -55,10 +59,19 @@ function sideOf(box: Box, { x, y }: Point): Side {
   return x > (box.left + box.right) / 2 ? 'after' : 'before'
 }
 
+function nearSideEdge({ left, right }: Box, { x }: Point) {
+  const edge = (right - left) * INSERT_EDGE
+  return x < left + edge || x > right - edge
+}
+
 export function dropTarget({ board, active, hover, point, inserting, boxOf }: Aim) {
   if (!hover || !point) return null
   if (hover.isCell && !inserting) {
-    return hover.id === active ? null : ({ kind: 'swap', id: hover.id } satisfies DropTarget)
+    if (hover.id === active) return null
+    const box = boxOf(hover.id)
+    if (!box || !nearSideEdge(box, point)) {
+      return { kind: 'swap', id: hover.id } satisfies DropTarget
+    }
   }
 
   const { container } = hover

@@ -32,6 +32,28 @@ describe('dropTarget', () => {
     expect(aim({ active: 'b' })).toBeNull()
   })
 
+  it("inserts near a cell's side edges without Shift", () => {
+    expect(aim({ point: { x: 119, y: 50 } })).toMatchObject({
+      kind: 'insert',
+      index: 1,
+      beside: { id: 'b', side: 'before' }
+    })
+    expect(aim({ point: { x: 181, y: 50 } })).toMatchObject({
+      kind: 'insert',
+      index: 2,
+      beside: { id: 'b', side: 'after' }
+    })
+  })
+
+  it('swaps from just inside the edges', () => {
+    expect(aim({ point: { x: 121, y: 50 } })).toEqual({ kind: 'swap', id: 'b' })
+    expect(aim({ point: { x: 179, y: 50 } })).toEqual({ kind: 'swap', id: 'b' })
+  })
+
+  it('does nothing near the edges of the cell being dragged', () => {
+    expect(aim({ active: 'b', point: { x: 110, y: 50 } })).toBeNull()
+  })
+
   it('does nothing over nothing', () => {
     expect(aim({ hover: null })).toBeNull()
   })

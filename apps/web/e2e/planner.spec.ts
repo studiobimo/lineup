@@ -209,6 +209,17 @@ test('a cell swaps across containers', async ({ page }) => {
   expect((await order(page)).tray).toEqual([b])
 })
 
+test('dropping near the edge of a cell inserts without Shift', async ({ page }) => {
+  const { before, cells } = await boardOfFour(page)
+  const [a, b, c] = before.grid
+
+  await drag(page, cells.nth(0), cells.nth(2), { x: 0.1 })
+  await expect(page.locator('[data-mark="before"]')).toHaveCount(1)
+  await expect(page.locator('[data-mark="swap"]')).toHaveCount(0)
+  await page.mouse.up()
+  await expect.poll(async () => (await order(page)).grid).toEqual([b, a, c])
+})
+
 test('holding Shift inserts on the side the pointer is on', async ({ page }) => {
   const { before, cells } = await boardOfFour(page)
   const [a, b, c] = before.grid
