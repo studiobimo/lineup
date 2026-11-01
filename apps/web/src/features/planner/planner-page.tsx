@@ -1,6 +1,6 @@
 import { Redo2, Undo2 } from 'lucide-react'
 import { m } from 'motion/react'
-import { lazy, useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { AreaBoundary } from '@/components/area-boundary'
@@ -15,25 +15,19 @@ import {
   DrawerTitle,
   DrawerTrigger
 } from '@/components/ui/drawer'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle
-} from '@/components/ui/empty'
 import { Group } from '@/components/ui/group'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toastManager } from '@/components/ui/toast'
 import { Intro } from '@/features/help/intro'
+import { loadSettingsStrings } from '@/features/help/settings-strings'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { backfillColours } from '@/features/autosort/backfill-colours'
 import { cn } from '@/lib/utils'
 
 import type { Container } from './board'
 import { ClearBoard, ContainerActions, PreviewOnPhone } from './board-actions'
 import { BoardCell } from './board-cell'
 import { BoardDrag } from './board-drag'
+import { BoardGate } from './board-gate'
 import { type BoardHold, holdBoard } from './board-lock'
 import { cellTooltip } from './cell-tooltip'
 import { useEmptyAreaMark } from './drag-target'
@@ -41,6 +35,7 @@ import { ImportButtons, ImportProgress, ImportTargets } from './import-controls'
 import { CellMenu } from './cell-menu'
 import { closeLightbox, useLightboxId } from './lightbox-store'
 import { cellShape, gridColumns } from './network-profile'
+import { openBoard } from './open-board'
 import { plannerStore, usePlanner } from './planner'
 import { useDropArea } from './use-board-drag'
 import { useTabStop } from './tab-stop'
@@ -49,6 +44,10 @@ import { usePlannerShortcuts } from './use-planner-shortcuts'
 const SKELETON_CELLS = 6
 
 const Lightbox = lazy(() => import('./lightbox').then(({ Lightbox }) => ({ default: Lightbox })))
+const FolderGate = lazy(async () => {
+  const [{ FolderGate }] = await Promise.all([import('./folder-gate'), loadSettingsStrings()])
+  return { default: FolderGate }
+})
 
 function Cells({ container, className }: { container: Container; className?: string }) {
   const { t } = useTranslation('planner')
@@ -243,9 +242,8 @@ export function PlannerPage() {
   usePlannerShortcuts()
 
   useEffect(() => {
-    const { load, suspend } = plannerStore.getState()
-    const onActive = () => void load().then(() => backfillColours())
-    const current = holdBoard({ onActive, onElsewhere: suspend })
+    const { suspend } = plannerStore.getState()
+    const current = holdBoard({ onActive: () => void openBoard(), onElsewhere: suspend })
     hold.current = current
     return () => {
       current.release()
@@ -255,33 +253,25 @@ export function PlannerPage() {
 
   if (loadFailed) {
     return (
-      <Empty className="min-h-[calc(100dvh-3.5rem)]">
-        <EmptyHeader>
-          <EmptyTitle>
-            <h1>{t('loadFailedTitle')}</h1>
-          </EmptyTitle>
-          <EmptyDescription>{t('loadFailedDescription')}</EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <Button onClick={() => void plannerStore.getState().load()}>{t('tryAgain')}</Button>
-        </EmptyContent>
-      </Empty>
+      <BoardGate title={t('loadFailedTitle')} description={t('loadFailedDescription')}>
+        <Button onClick={() => void openBoard()}>{t('tryAgain')}</Button>
+      </BoardGate>
     )
   }
 
   if (session === 'elsewhere') {
     return (
-      <Empty className="min-h-[calc(100dvh-3.5rem)]">
-        <EmptyHeader>
-          <EmptyTitle>
-            <h1>{t('elsewhereTitle')}</h1>
-          </EmptyTitle>
-          <EmptyDescription>{t('elsewhereDescription')}</EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <Button onClick={() => hold.current?.takeOver()}>{t('useHere')}</Button>
-        </EmptyContent>
-      </Empty>
+      <BoardGate title={t('elsewhereTitle')} description={t('elsewhereDescription')}>
+        <Button onClick={() => hold.current?.takeOver()}>{t('useHere')}</Button>
+      </BoardGate>
+    )
+  }
+
+  if (session === 'folder') {
+    return (
+      <Suspense>
+        <FolderGate />
+      </Suspense>
     )
   }
 

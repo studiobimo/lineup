@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Switch } from '@/components/ui/switch'
 import type { StorageUsage } from '@/features/planner/board-store'
+import { useFolder } from '@/features/planner/folder-board'
 import { saveImportSettings, useImportSettings } from '@/features/planner/import-settings'
 import { instagram } from '@/features/planner/network-profile'
 import { boardStore } from '@/features/planner/planner'
@@ -18,6 +19,7 @@ import { isInstalled, isSafari } from '@/lib/platform'
 import { getTheme, setTheme, subscribeToTheme, type Theme } from '@/lib/theme'
 
 import { BackupActions } from './backup-actions'
+import { FolderSettings } from './folder-settings'
 
 const themes: Theme[] = ['light', 'dark']
 
@@ -35,10 +37,11 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [usage, setUsage] = useState<StorageUsage>()
   const { handle, name } = useProfile()
   const { readCaptureDates, readLocations } = useImportSettings()
+  const inFolder = useFolder().status === 'open'
 
   useEffect(() => {
     void boardStore.storageUsage().then(setUsage)
-  }, [])
+  }, [inFolder])
 
   return (
     <Dialog {...dialog}>
@@ -110,17 +113,22 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           </section>
           <section>
             <h3 className="mb-2 text-sm font-medium">{t('storage')}</h3>
-            {usage && (
-              <Progress value={usage.used} max={usage.quota} aria-label={t('storage')}>
-                <p className="text-sm text-muted-foreground">
-                  {t('storageUsed', { used: size(usage.used), quota: size(usage.quota) })}
-                </p>
-              </Progress>
+            {!inFolder && (
+              <>
+                {usage && (
+                  <Progress value={usage.used} max={usage.quota} aria-label={t('storage')}>
+                    <p className="text-sm text-muted-foreground">
+                      {t('storageUsed', { used: size(usage.used), quota: size(usage.quota) })}
+                    </p>
+                  </Progress>
+                )}
+                <p className="mt-2 text-sm text-muted-foreground">{t('storageNote')}</p>
+                {isSafari() && !isInstalled() && (
+                  <p className="mt-2 text-sm text-muted-foreground">{t('safariNote')}</p>
+                )}
+              </>
             )}
-            <p className="mt-2 text-sm text-muted-foreground">{t('storageNote')}</p>
-            {isSafari() && !isInstalled() && (
-              <p className="mt-2 text-sm text-muted-foreground">{t('safariNote')}</p>
-            )}
+            <FolderSettings />
             <BackupActions onRestored={close} />
             <p className="mt-2 text-sm text-muted-foreground">{t('backupNote')}</p>
           </section>

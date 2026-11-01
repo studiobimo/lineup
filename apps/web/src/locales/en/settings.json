@@ -24,5 +24,19 @@
   "restored": "Board restored. Undo brings back the one before.",
   "restoreFailed": "That file could not be restored. It may not be a Lineup backup, or it may be incomplete.",
   "storageUsed": "{{used}} of {{quota}} used",
-  "storageNote": "Your images are kept in this browser and never leave it until you schedule a post."
+  "storageNote": "Your images are kept in this browser and never leave it until you schedule a post.",
+  "folderChoose": "Keep in a folder",
+  "folderChoosing": "Copying your board",
+  "folderNote": "Keeps your board and your full-size originals in a folder you choose, so a cleared browser cannot touch them. An empty folder takes a copy of this board. A folder that has a board opens it.",
+  "folderInUse": "Your board is in {{name}}.",
+  "folderInUseNote": "Your originals are there at full size. Lineup adds to that folder but never changes or deletes your photos.",
+  "folderLeave": "Stop using this folder",
+  "folderFailed": "That folder could not be used. Try again, or choose another one.",
+  "folderLockedTitle": "Open {{name}}",
+  "folderLockedDescription": "Your board is in this folder, and your browser needs your permission to open it again.",
+  "folderAllow": "Open the folder",
+  "folderGoneTitle": "{{name}} could not be found",
+  "folderGoneDescription": "It may have been moved or renamed, or it may be on a drive that is not plugged in. Your board is safe in the folder.",
+  "folderRetry": "Try again",
+  "folderLeaveForBrowser": "Use the board in this browser"
 }

@@ -11,7 +11,7 @@
       {
         "heading": "On your device",
         "paragraphs": [
-          "Your images and your plan are stored in this browser and never reach our servers. For each image, Lineup keeps a thumbnail, a JPEG copy up to 1440 px wide, its size, its main colours, the date you added it, the date it was taken if you turn on capture dates in Settings, the city it was taken in if you turn on locations in Settings (never its exact position) and its place on your board. It does not keep the file name.",
+          "Your images and your plan are stored in this browser and never reach our servers. For each image, Lineup keeps a thumbnail, a JPEG copy up to 1440 px wide, its size, its main colours, the date you added it, the date it was taken if you turn on capture dates in Settings, the city it was taken in if you turn on locations in Settings (never its exact position) and its place on your board. It does not keep the file name, unless you keep your board in a folder: the originals and their names are then in that folder on your device, with everything above, and a backup still leaves the names out.",
           "Lineup also remembers your theme, whether you have dismissed the introduction, and any handle and name you enter for the phone preview, and whether capture dates and locations are on. A backup you make is a file holding all of this, and it stays wherever you save it. City names come from GeoNames (geonames.org), under the CC BY 4.0 licence.",
           "Nothing here is copied or backed up. You can delete images in the app, or clear this site's data in your browser to remove everything."
         ]

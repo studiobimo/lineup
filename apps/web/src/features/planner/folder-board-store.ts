@@ -196,7 +196,9 @@ export async function createFolderBoardStore(
       const files: File[] = []
       for await (const [path, handle] of walk(folder)) {
         if (known.has(path) || forgotten.has(path)) continue
-        const file = await handle.getFile()
+        // The browser's own side file can be gone by the time this gets to it.
+        const file = await orUndefined(handle.getFile())
+        if (!file) continue
         alreadyHere.set(file, path)
         files.push(file)
       }

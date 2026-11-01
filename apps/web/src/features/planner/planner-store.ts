@@ -30,8 +30,8 @@ export interface PlannerState {
   ready: boolean
   /** The board could not be read, so nothing can be shown or safely saved over it. */
   loadFailed: boolean
-  /** Only the active tab writes or purges (ADR-0010). */
-  session: 'starting' | 'active' | 'elsewhere'
+  /** Only the active tab writes or purges (ADR-0010). `folder`: its folder cannot open yet. */
+  session: 'starting' | 'active' | 'elsewhere' | 'folder'
   /** The last write to the store failed: what is on screen may not survive a reload. */
   saveFailed: boolean
   load(): Promise<void>
