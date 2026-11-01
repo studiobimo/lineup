@@ -11,11 +11,13 @@ import {
   DrawerTitle,
   DrawerTrigger
 } from '@/components/ui/drawer'
+import { ToastProvider } from '@/components/ui/toast'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 
 import type { Container } from './board'
 import { BoardCell } from './board-cell'
+import { ImportButtons, ImportProgress, ImportTargets } from './import-controls'
 import { instagram } from './network-profile'
 import { plannerStore, usePlanner } from './planner'
 
@@ -98,29 +100,36 @@ export function PlannerPage() {
   }, [])
 
   return (
-    <div className={cn('flex', !desktop && 'flex-col')}>
-      <h1 className="sr-only">{t('title')}</h1>
-      {desktop && (
-        <aside
-          data-scroll-root
-          className="sticky top-14 h-[calc(100dvh-3.5rem)] w-80 shrink-0 overflow-y-auto border-r"
-        >
-          <h2 className="p-4 text-xl">{t('tray')}</h2>
-          <Cells container="tray" />
-        </aside>
-      )}
-      <section className="min-w-0 flex-1">
-        <div className="mx-auto max-w-2xl">
-          <div className="flex items-center justify-between gap-2 p-4">
-            <h2 className="text-xl">{t('grid')}</h2>
-            <div className="flex items-center gap-2">
-              {!desktop && <MobileTray />}
-              <History />
+    <ToastProvider>
+      <div className={cn('flex', !desktop && 'flex-col')}>
+        <h1 className="sr-only">{t('title')}</h1>
+        <ImportTargets />
+        {desktop && (
+          <aside
+            data-scroll-root
+            className="sticky top-14 h-[calc(100dvh-3.5rem)] w-80 shrink-0 overflow-y-auto border-r"
+          >
+            <h2 className="p-4 text-xl">{t('tray')}</h2>
+            <ImportButtons />
+            <ImportProgress />
+            <Cells container="tray" />
+          </aside>
+        )}
+        <section className="min-w-0 flex-1">
+          <div className="mx-auto max-w-2xl">
+            <div className="flex items-center justify-between gap-2 p-4">
+              <h2 className="text-xl">{t('grid')}</h2>
+              <div className="flex items-center gap-2">
+                {!desktop && <MobileTray />}
+                <History />
+              </div>
             </div>
+            {!desktop && <ImportButtons />}
+            {!desktop && <ImportProgress />}
+            {ready && <Cells container="grid" />}
           </div>
-          {ready && <Cells container="grid" />}
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </ToastProvider>
   )
 }
