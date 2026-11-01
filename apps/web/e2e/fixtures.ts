@@ -18,6 +18,29 @@ export async function choose(page: Page, button: string, files: Chosen) {
 
 export const addImages = (page: Page, files: Chosen) => choose(page, 'Add images', files)
 
+/** Adds the least Exif that says when a photo was taken, `taken` as `YYYY:MM:DD HH:MM:SS`. */
+export function withCaptureDate(jpeg: Buffer, taken: string) {
+  const tiff = Buffer.alloc(64)
+  tiff.write('II', 0, 'latin1')
+  tiff.writeUInt16LE(42, 2)
+  tiff.writeUInt32LE(8, 4)
+  const entry = (at: number, tag: number, type: number, count: number, value: number) => {
+    tiff.writeUInt16LE(1, at)
+    tiff.writeUInt16LE(tag, at + 2)
+    tiff.writeUInt16LE(type, at + 4)
+    tiff.writeUInt32LE(count, at + 6)
+    tiff.writeUInt32LE(value, at + 10)
+  }
+  entry(8, 0x8769, 4, 1, 26)
+  entry(26, 0x9003, 2, 20, 44)
+  tiff.write(taken, 44, 'latin1')
+  const body = Buffer.concat([Buffer.from('Exif\0\0', 'latin1'), tiff])
+  const segment = Buffer.alloc(4)
+  segment.writeUInt16BE(0xffe1, 0)
+  segment.writeUInt16BE(body.length + 2, 2)
+  return Buffer.concat([jpeg.subarray(0, 2), segment, body, jpeg.subarray(2)])
+}
+
 export function watchErrors(page: Page) {
   const errors: string[] = []
   const record = (message: ConsoleMessage) => {
@@ -37,6 +60,7 @@ export interface SavedBoard {
 export interface SavedImage {
   id: string
   colour?: { dominant: { hue: number }; tone: number }
+  takenAt?: string
 }
 
 /** What a reload would find. On the page it is the store, not what is drawn. */

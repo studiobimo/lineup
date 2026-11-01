@@ -15,6 +15,8 @@ export interface ImageRecord {
   createdAt: string
   /** Absent until the backfill reaches an image stored before colours were kept (ADR-0004). */
   colour?: ImageColour
+  /** Only there if the photo said, and the capture dates setting was on when it was added. */
+  takenAt?: string
 }
 
 export interface StorageUsage {

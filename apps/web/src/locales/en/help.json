@@ -46,6 +46,9 @@
     "light": "Light",
     "dark": "Dark"
   },
+  "photos": "Photos",
+  "captureDates": "Read capture dates",
+  "captureDatesNote": "Reads when each photo was taken as you add it, so Bands can keep a shoot together. The date stays in this browser. Photos already on the board keep none, because Lineup does not keep originals, and photos added while this is on keep theirs after you turn it off.",
   "storage": "Storage on this device",
   "storageUsed": "{{used}} of {{quota}} used",
   "storageNote": "Your images are kept in this browser and never leave it until you schedule a post."

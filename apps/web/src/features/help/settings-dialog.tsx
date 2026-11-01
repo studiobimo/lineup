@@ -7,7 +7,9 @@ import { Group } from '@/components/ui/group'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
+import { Switch } from '@/components/ui/switch'
 import type { StorageUsage } from '@/features/planner/board-store'
+import { saveImportSettings, useImportSettings } from '@/features/planner/import-settings'
 import { instagram } from '@/features/planner/network-profile'
 import { boardStore } from '@/features/planner/planner'
 import { saveProfile, toHandle, useProfile } from '@/features/planner/profile-store'
@@ -27,6 +29,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const theme = useSyncExternalStore(subscribeToTheme, getTheme)
   const [usage, setUsage] = useState<StorageUsage>()
   const { handle, name } = useProfile()
+  const { readCaptureDates } = useImportSettings()
 
   useEffect(() => {
     void boardStore.storageUsage().then(setUsage)
@@ -81,6 +84,17 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">{t('profileNote')}</p>
+          </section>
+          <section>
+            <h3 className="mb-2 text-sm font-medium">{t('photos')}</h3>
+            <Label className="flex items-center justify-between gap-4 font-normal">
+              {t('captureDates')}
+              <Switch
+                checked={readCaptureDates}
+                onCheckedChange={(checked) => saveImportSettings({ readCaptureDates: checked })}
+              />
+            </Label>
+            <p className="mt-2 text-sm text-muted-foreground">{t('captureDatesNote')}</p>
           </section>
           <section>
             <h3 className="mb-2 text-sm font-medium">{t('storage')}</h3>

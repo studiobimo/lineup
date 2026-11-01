@@ -1,11 +1,11 @@
 /// <reference lib="dom" />
 
-import { readdirSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import { expect, type Page, test } from '@playwright/test'
 
-import { addImages, image, savedBoard, savedImages, watchErrors } from './fixtures'
+import { addImages, image, savedBoard, savedImages, watchErrors, withCaptureDate } from './fixtures'
 
 const photos = new URL('../../../test-images/', import.meta.url)
 
@@ -164,4 +164,31 @@ test('bands put the dark images first and the light ones after', async ({ page }
     )
   }
   await expect.poll(darkFirst).toBe(true)
+})
+
+test('a capture date is kept only when the setting is on', async ({ page }) => {
+  const photo = (name: string) => ({
+    name,
+    mimeType: 'image/jpeg',
+    buffer: withCaptureDate(readFileSync(testImages[0]), '2024:05:06 12:00:00')
+  })
+  await page.goto('/')
+  await addImages(page, [photo('off.jpg')])
+  await expect(page.getByRole('img')).toHaveCount(1)
+
+  await page.getByRole('button', { name: 'Settings' }).click()
+  const setting = page.getByRole('switch', { name: 'Read capture dates' })
+  await expect(setting).not.toBeChecked()
+  await setting.click()
+  await page.keyboard.press('Escape')
+  await addImages(page, [photo('on.jpg')])
+  await expect(page.getByRole('img')).toHaveCount(2)
+
+  await expect
+    .poll(async () => (await savedImages(page)).map(({ takenAt }) => takenAt?.slice(0, 10)).sort())
+    .toEqual(['2024-05-06', undefined])
+
+  await page.reload()
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await expect(setting).toBeChecked()
 })

@@ -157,6 +157,7 @@ may slip to the following release.
 | SRT-6 | Sorting is instant                  | Colours are computed at import; sorting 300 images takes under 100 ms                                                                                                          | Must     |
 | SRT-7 | Albums and locked cells behave      | An album sorts as one cell by its cover; published cells do not move, and neither does a grid cell I lock by hand from its hover button or menu                                | Must     |
 | SRT-8 | Sorting is stable                   | The same images and strategy always give the same order                                                                                                                        | Must     |
+| SRT-9 | I can keep a shoot together         | A setting, off by default, reads each photo's capture date as it is added, and Bands keeps dated photos together, newest first                                                 | Should   |
 
 ### E6. Albums
 
