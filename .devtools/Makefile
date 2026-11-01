@@ -9,3 +9,12 @@ include vite.mk
 
 # Nothing imports these yet, so tsc would not reach them through the app.
 TSC_PROJECTS += ../../packages/api ../../packages/contract
+
+.PHONY: e2e
+
+# GitHub's runners set CI, and have the browser's system libraries to install.
+e2e: build ## Playwright, against the built app
+	$(APP_PNPM) exec playwright install $(if $(CI),--with-deps) chromium
+	$(APP_PNPM) exec playwright test
+
+ci: e2e

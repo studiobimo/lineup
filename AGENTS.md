@@ -112,6 +112,7 @@ files to the fleet's owners.
 ```sh
 make -C .devtools setup   # once: pinned tools + git hooks
 make -C .devtools check   # everything CI runs
+make -C .devtools e2e     # Playwright, against the built app
 make -C .devtools lint    # the pre-commit hook, on every file
 make -C .devtools lock    # after changing a pinned version
 make -C .devtools drift   # where this repo differs from the template
@@ -138,6 +139,9 @@ make -C .devtools help    # all targets
   routes, and never edit `routeTree.gen.ts`.
 - **The Worker is on a budget.** `packages/api` takes no dependency that needs Node polyfills, a
   PR adding one there states its gzip size, and nothing CPU-heavy runs on the server (ADR-0005).
+- **The content security policy is in `apps/web/public/_headers`.** It covers the app and static
+  assets, not Worker responses. A feature adds what it needs and no more, and assets are never
+  inlined, because the policy allows no `data:` URIs. The Playwright smoke test fails on a violation.
 - **Images stay out of memory.** Cells show thumbnails, off-screen cells hold no decoded image,
   and image bytes never enter application state. All persistence goes through `BoardStore`
   (ADR-0002).
