@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { processImage, publishSize, thumbnailSize } from './process-image'
 
+const readNothing = { readCaptureDates: false, readLocations: false }
+
 describe('publishSize', () => {
   it('brings a wide image down to 1440 and keeps its shape', () => {
     expect(publishSize({ width: 6000, height: 4000 })).toEqual({ width: 1440, height: 960 })
@@ -50,7 +52,7 @@ describe('processImage', () => {
   it('makes both copies, on white, and lets go of the decoded image', async () => {
     vi.stubGlobal('createImageBitmap', async () => ({ width: 6000, height: 4000, close }))
 
-    const image = await processImage(new Blob())
+    const image = await processImage(new Blob(), readNothing)
 
     expect(image).toMatchObject({ width: 1440, height: 960 })
     expect(image.publish.type).toBe('image/jpeg')
@@ -63,7 +65,7 @@ describe('processImage', () => {
     const decode = vi.fn(async () => ({ width: 100, height: 100, close }))
     vi.stubGlobal('createImageBitmap', decode)
 
-    await processImage(new Blob())
+    await processImage(new Blob(), readNothing)
 
     expect(decode).toHaveBeenCalledWith(expect.anything(), { imageOrientation: 'from-image' })
   })
@@ -77,7 +79,7 @@ describe('processImage', () => {
       }
     )
 
-    await expect(processImage(new Blob())).rejects.toThrow()
+    await expect(processImage(new Blob(), readNothing)).rejects.toThrow()
     expect(close).toHaveBeenCalledOnce()
   })
 })

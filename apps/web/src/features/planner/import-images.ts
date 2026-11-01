@@ -1,4 +1,4 @@
-import { importSettings } from './import-settings'
+import { importSettings, type ImportSettings } from './import-settings'
 import type { ProcessedImage } from './process-image'
 
 export interface ImportResult {
@@ -12,7 +12,7 @@ interface ImportOptions {
 }
 
 export type ImageTask =
-  { kind: 'process'; file: Blob; readDate: boolean } | { kind: 'colour'; file: Blob }
+  { kind: 'process'; file: Blob; read: ImportSettings } | { kind: 'colour'; file: Blob }
 
 export const createImageWorker = () =>
   new Worker(new URL('../../workers/image-import.worker.ts', import.meta.url), { type: 'module' })
@@ -35,13 +35,13 @@ export async function importImages(
   { onProgress, createWorker = createImageWorker }: ImportOptions = {}
 ): Promise<ImportResult> {
   const worker = createWorker()
-  const readDate = importSettings().readCaptureDates
+  const read = importSettings()
   const images: ProcessedImage[] = []
   let failed = 0
   try {
     for (const [index, file] of files.entries()) {
       try {
-        images.push(await runInWorker<ProcessedImage>(worker, { kind: 'process', file, readDate }))
+        images.push(await runInWorker<ProcessedImage>(worker, { kind: 'process', file, read }))
       } catch {
         failed += 1
       }

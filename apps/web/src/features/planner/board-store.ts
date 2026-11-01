@@ -17,6 +17,8 @@ export interface ImageRecord {
   colour?: ImageColour
   /** Only there if the photo said, and the capture dates setting was on when it was added. */
   takenAt?: string
+  /** A city and a country, if the locations setting was on. Coordinates are never kept. */
+  place?: string
 }
 
 export interface StorageUsage {

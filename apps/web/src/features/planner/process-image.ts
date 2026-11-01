@@ -1,6 +1,7 @@
 import { extractColour, type ImageColour } from '@/features/autosort/colour'
 
-import { captureDate } from './capture-date'
+import type { ImportSettings } from './import-settings'
+import { type PhotoMetadata, readMetadata } from './photo-metadata'
 
 const PUBLISH_MAX_WIDTH = 1440
 const PUBLISH_QUALITY = 0.9
@@ -15,11 +16,10 @@ interface Size {
   height: number
 }
 
-export interface ProcessedImage extends Size {
+export interface ProcessedImage extends Size, PhotoMetadata {
   thumbnail: Blob
   publish: Blob
   colour: ImageColour
-  takenAt?: string
 }
 
 /** Scales down by `factor`, and never up. */
@@ -73,7 +73,7 @@ export async function colourOf(file: Blob) {
 }
 
 /** The originals are not kept (ADR-0002), so these two copies are all a board ever holds. */
-export async function processImage(file: Blob, readDate = false): Promise<ProcessedImage> {
+export async function processImage(file: Blob, read: ImportSettings): Promise<ProcessedImage> {
   // A phone stores a portrait photo sideways, with a tag saying so.
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
   try {
@@ -83,7 +83,7 @@ export async function processImage(file: Blob, readDate = false): Promise<Proces
     return {
       ...size,
       colour: sampleColour(thumbnail, thumbnail),
-      takenAt: readDate ? await captureDate(file) : undefined,
+      ...(await readMetadata(file, read)),
       publish: await publish.convertToBlob({ type: 'image/jpeg', quality: PUBLISH_QUALITY }),
       thumbnail: await thumbnail.convertToBlob({ type: 'image/jpeg', quality: THUMBNAIL_QUALITY })
     }

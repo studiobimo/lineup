@@ -6,8 +6,9 @@ APP_DIR := apps/web
 # and toasts in the entry chunk, which split one more chunk off. M1 ended at 319.5 KiB. M2's colour
 # code has to ship in the image worker as well as the app, and sorting, backups and offline support
 # follow it. Keep raising this rather than cut features: heavy trimming starts at half of
-# Cloudflare's bundle limit. Raising it still needs a reason.
-BUNDLE_TOTAL_KIB := 420
+# Cloudflare's bundle limit. Raising it still needs a reason. The city list and the metadata reader
+# are 82 KiB of this, and load only for someone who turns on capture dates or locations.
+BUNDLE_TOTAL_KIB := 480
 
 # Set from the M0 scaffold, 16.9 KiB, with room for the API (ADR-0005). Raising it needs a reason.
 WORKER_GZIP_KIB := 32

@@ -127,12 +127,13 @@ export function createPlannerStore(boardStore: BoardStore) {
         const createdAt = new Date().toISOString()
         const stored = added.map((image) => ({ ...image, id: crypto.randomUUID(), createdAt }))
         await Promise.all(stored.map((image) => boardStore.putImage(image)))
-        const records = stored.map(({ id, width, height, colour, takenAt }) => ({
+        const records = stored.map(({ id, width, height, colour, takenAt, place }) => ({
           id,
           width,
           height,
           colour,
           takenAt,
+          place,
           createdAt
         }))
         set(({ images }) => ({

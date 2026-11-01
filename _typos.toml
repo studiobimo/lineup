@@ -3,4 +3,6 @@ extend-exclude = [
   "*.lock",
   ".mise/",
   "*.png",
+  # City names, which are not English.
+  "cities.json",
 ]

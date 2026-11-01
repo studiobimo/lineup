@@ -2,13 +2,15 @@ import { useStore } from 'zustand'
 
 import { createStoredStore } from '@/lib/stored-store'
 
-interface ImportSettings {
-  /** Off unless asked for: a capture date is personal data the planner otherwise never keeps. */
+/** Both off unless asked for: these are personal data the planner otherwise never keeps. */
+export interface ImportSettings {
   readCaptureDates: boolean
+  readLocations: boolean
 }
 
 const { store, save } = createStoredStore<ImportSettings>('import-settings', (saved) => ({
-  readCaptureDates: saved.readCaptureDates === true
+  readCaptureDates: saved.readCaptureDates === true,
+  readLocations: saved.readLocations === true
 }))
 
 export const useImportSettings = () => useStore(store)
