@@ -121,6 +121,7 @@ may slip to the following release.
 | ARR-11 | I can select several cells and act on them together | Move, delete and group apply to the selection | Should |
 | ARR-12 | My plan is still there when I come back | Order and images persist across reloads and browser restarts | Must |
 | ARR-13 | I can back up my board and restore it | One action saves the board to a single file: images, order, albums and captions. Opening that file restores it exactly, on any device | Must |
+| ARR-14 | My board is safe in a second tab | Only one tab changes a board at a time. Another tab says so and offers to use the board there; it takes over by itself when the first tab closes. Nothing is overwritten or lost ([ADR-0010](adr/0010-one-active-tab.md)) | Must |
 
 ### E3. Review
 

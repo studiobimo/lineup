@@ -21,6 +21,7 @@ This folder is the source of truth for what Lineup is and why it is built the wa
   - [ADR-0007: The org's profiles, inside a workspace](adr/0007-web-and-cloudflare-profiles.md)
   - [ADR-0008: No accounts, and a sealed provider key](adr/0008-sealed-provider-key.md)
   - [ADR-0009: Web first, and a desktop app only with evidence](adr/0009-web-first-desktop-later.md)
+  - [ADR-0010: One tab at a time changes a board](adr/0010-one-active-tab.md)
 
 A record is for a decision that is specific to this product, costly to reverse, and had real
 alternatives. A stack choice the org's template profiles already make does not need one.

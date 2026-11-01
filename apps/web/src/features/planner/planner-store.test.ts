@@ -166,6 +166,38 @@ describe('the planner store', () => {
     expect(store.getState().board.tray).toEqual(['a'])
   })
 
+  it('writes nothing once another tab has the board', async () => {
+    const { boardStore, state } = await loaded()
+    state().move('a', 'grid')
+    state().undo()
+    boardStore.saveBoard.mockClear()
+    boardStore.deleteImages.mockClear()
+
+    state().suspend()
+    state().move('a', 'grid')
+    state().redo()
+    state().undo()
+    state().remove(['a'])
+    await state().addImages([processed])
+
+    expect(state().board).toEqual(start)
+    expect(boardStore.saveBoard).not.toHaveBeenCalled()
+    expect(boardStore.putImage).not.toHaveBeenCalled()
+    expect(boardStore.deleteImages).not.toHaveBeenCalled()
+  })
+
+  it('reads the board afresh when it comes back, with no history from before', async () => {
+    const { boardStore, state } = await loaded()
+    state().move('a', 'grid')
+    state().suspend()
+
+    boardStore.loadBoard.mockResolvedValueOnce({ tray: [], grid: ['e', 'd', 'c', 'b', 'a'] })
+    await state().load()
+
+    expect(state().board.grid).toEqual(['e', 'd', 'c', 'b', 'a'])
+    expect(state()).toMatchObject({ past: [], future: [], session: 'active' })
+  })
+
   it('says when a save fails, and clears it when one works', async () => {
     const { boardStore, state } = await loaded()
     boardStore.saveBoard.mockRejectedValueOnce(new Error('quota'))

@@ -22,9 +22,12 @@ export interface PlannerState {
   past: Board[]
   future: Board[]
   ready: boolean
+  /** Only the active tab writes or purges (ADR-0010). */
+  session: 'starting' | 'active' | 'elsewhere'
   /** The last write to the store failed: what is on screen may not survive a reload. */
   saveFailed: boolean
   load(): Promise<void>
+  suspend(): void
   addImages(images: ProcessedImage[]): Promise<void>
   move(id: string, to: Container, index?: number): void
   swap(first: string, second: string): void
@@ -60,8 +63,8 @@ export function createPlannerStore(boardStore: BoardStore) {
 
     /** Every change to the board comes through here, so every change can be undone. */
     const commit = (next: Board) => {
-      const { board, past } = get()
-      if (sameBoard(board, next)) return
+      const { board, past, session } = get()
+      if (session !== 'active' || sameBoard(board, next)) return
       set({ board: next, past: [...past, board].slice(-HISTORY_LIMIT), future: [] })
       void report(boardStore.saveBoard(next))
       purge()
@@ -73,6 +76,7 @@ export function createPlannerStore(boardStore: BoardStore) {
       past: [],
       future: [],
       ready: false,
+      session: 'starting',
       saveFailed: false,
 
       async load() {
@@ -85,13 +89,19 @@ export function createPlannerStore(boardStore: BoardStore) {
         set({
           board: { tray: stored.tray.filter(known), grid: stored.grid.filter(known) },
           images,
-          ready: true
+          past: [],
+          future: [],
+          ready: true,
+          session: 'active'
         })
         // Undo history does not outlive a reload yet, so nothing can reach what the board does not.
         purge()
       },
 
+      suspend: () => set({ session: 'elsewhere' }),
+
       async addImages(added) {
+        if (get().session !== 'active') return
         const createdAt = new Date().toISOString()
         const stored = added.map((image) => ({ ...image, id: crypto.randomUUID(), createdAt }))
         await Promise.all(stored.map((image) => boardStore.putImage(image)))
@@ -115,17 +125,17 @@ export function createPlannerStore(boardStore: BoardStore) {
       clear: (containers) => commit(clear(get().board, containers)),
 
       undo() {
-        const { board, past, future } = get()
+        const { board, past, future, session } = get()
         const previous = past.at(-1)
-        if (!previous) return
+        if (!previous || session !== 'active') return
         set({ board: previous, past: past.slice(0, -1), future: [board, ...future] })
         void report(boardStore.saveBoard(previous))
       },
 
       redo() {
-        const { board, past, future } = get()
+        const { board, past, future, session } = get()
         const [next, ...rest] = future
-        if (!next) return
+        if (!next || session !== 'active') return
         set({ board: next, past: [...past, board], future: rest })
         void report(boardStore.saveBoard(next))
       }

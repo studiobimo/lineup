@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -30,23 +30,27 @@ describe('PlannerPage', () => {
 
   it('moves a cell to the grid, and undoes it', async () => {
     const user = userEvent.setup()
-    plannerStore.getState().clear(['tray', 'grid'])
-    await plannerStore.getState().addImages([processed])
-    const [id] = plannerStore.getState().board.tray
-    plannerStore.getState().move(id, 'grid')
     render(<PlannerPage />)
+    await screen.findByText('Move images here to plan your feed.')
+
+    await act(async () => {
+      plannerStore.getState().clear(['tray', 'grid'])
+      await plannerStore.getState().addImages([processed])
+      plannerStore.getState().moveAll('tray')
+    })
+    const [id] = plannerStore.getState().board.grid
 
     const cell = await screen.findByRole('img', { name: 'Image 1' })
     expect(cell).toHaveAttribute('src', 'blob:x')
 
     await user.click(screen.getByRole('button', { name: 'Undo' }))
     expect(plannerStore.getState().board.grid).toEqual([])
+    expect(plannerStore.getState().board.tray).toEqual([id])
     await user.click(screen.getByRole('button', { name: 'Redo' }))
     expect(plannerStore.getState().board.grid).toEqual([id])
   })
 
   it('leaves undo and redo disabled when there is nothing to do', () => {
-    plannerStore.setState({ past: [], future: [] })
     render(<PlannerPage />)
     const history = screen.getByRole('button', { name: 'Undo' }).parentElement!
     for (const button of within(history).getAllByRole('button')) expect(button).toBeDisabled()

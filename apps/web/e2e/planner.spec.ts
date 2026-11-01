@@ -74,6 +74,32 @@ test('imports, arranges, undoes and comes back after a reload', async ({ page })
   expect(errors).toEqual([])
 })
 
+test('one tab at a time changes a board', async ({ context, page }) => {
+  await page.goto('/')
+  await addImages(page, [image('one.png'), image('two.png')])
+  await expect(page.getByRole('img')).toHaveCount(2)
+
+  const notice = 'This board is open in another tab'
+  const second = await context.newPage()
+  await second.goto('/')
+  await expect(second.getByRole('heading', { name: notice })).toBeVisible()
+  await expect(second.getByRole('img')).toHaveCount(0)
+
+  // Opening a second tab must not have touched the first one's board or its images.
+  await page.getByRole('button', { name: 'Delete' }).first().click()
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect(page.getByRole('img')).toHaveCount(2)
+
+  await second.getByRole('button', { name: 'Use it here' }).click()
+  await expect(second.getByRole('img')).toHaveCount(2)
+  await expect(page.getByRole('heading', { name: notice })).toBeVisible()
+
+  await second.close()
+  await expect(page.getByRole('img')).toHaveCount(2)
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled()
+})
+
 // Builds real files in the page, because a drop or a paste can only be dispatched from inside it.
 const fileData = (page: Page, base64: string, names: string[]) =>
   page.evaluateHandle(

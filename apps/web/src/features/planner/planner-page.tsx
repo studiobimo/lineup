@@ -1,5 +1,5 @@
 import { Redo2, Undo2 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -11,12 +11,20 @@ import {
   DrawerTitle,
   DrawerTrigger
 } from '@/components/ui/drawer'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle
+} from '@/components/ui/empty'
 import { ToastProvider } from '@/components/ui/toast'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 
 import type { Container } from './board'
 import { BoardCell } from './board-cell'
+import { type BoardHold, holdBoard } from './board-lock'
 import { ImportButtons, ImportProgress, ImportTargets } from './import-controls'
 import { instagram } from './network-profile'
 import { plannerStore, usePlanner } from './planner'
@@ -94,10 +102,34 @@ export function PlannerPage() {
   const { t } = useTranslation('planner')
   const desktop = useMediaQuery('md')
   const ready = usePlanner((state) => state.ready)
+  const session = usePlanner((state) => state.session)
+  const hold = useRef<BoardHold>(null)
 
   useEffect(() => {
-    void plannerStore.getState().load()
+    const { load, suspend } = plannerStore.getState()
+    const current = holdBoard({ onActive: () => void load(), onElsewhere: suspend })
+    hold.current = current
+    return () => {
+      current.release()
+      plannerStore.setState({ session: 'starting' })
+    }
   }, [])
+
+  if (session === 'elsewhere') {
+    return (
+      <Empty className="min-h-[calc(100dvh-3.5rem)]">
+        <EmptyHeader>
+          <EmptyTitle>
+            <h1>{t('elsewhereTitle')}</h1>
+          </EmptyTitle>
+          <EmptyDescription>{t('elsewhereDescription')}</EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button onClick={() => hold.current?.takeOver()}>{t('useHere')}</Button>
+        </EmptyContent>
+      </Empty>
+    )
+  }
 
   return (
     <ToastProvider>

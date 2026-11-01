@@ -26,7 +26,7 @@ routes until M4 ([ADR-0001](adr/0001-single-worker.md)).
 The first public release: import, arrange, preview and undo, on `lineup.bimo.dev`. Everything after
 this ships to real users, and they decide what the next priorities are.
 
-**Stories:** IMP-1 to IMP-8; ARR-1 to ARR-10, ARR-12; REV-1, REV-2, REV-4; HIS-1 to HIS-4; SHL-1 to
+**Stories:** IMP-1 to IMP-8; ARR-1 to ARR-10, ARR-12, ARR-14; REV-1, REV-2, REV-4; HIS-1 to HIS-4; SHL-1 to
 SHL-7.
 
 ### Exit criteria
