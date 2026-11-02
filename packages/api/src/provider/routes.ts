@@ -6,6 +6,7 @@ import {
   keyInputSchema,
   newPostSchema,
   postChangesSchema,
+  type Problem,
   uploadRequestSchema
 } from 'lineup-contract'
 import type { z } from 'zod'
@@ -38,19 +39,16 @@ interface ProviderEnv extends ApiEnv {
   Variables: ApiEnv['Variables'] & { sealed: SealedKey; provider: Provider }
 }
 
+const invalid = (errors: Problem['errors']) =>
+  new ProblemError({ status: 400, code: 'validation', title: 'The request is not valid', errors })
+
 const json = <Schema extends z.ZodType>(schema: Schema) =>
   validator('json', (value): z.output<Schema> => {
     const parsed = schema.safeParse(value)
     if (parsed.success) return parsed.data
-    throw new ProblemError({
-      status: 400,
-      code: 'validation',
-      title: 'The request is not valid',
-      errors: parsed.error.issues.map(({ path, message }) => ({
-        path: path.join('.'),
-        message
-      }))
-    })
+    throw invalid(
+      parsed.error.issues.map(({ path, message }) => ({ path: path.join('.'), message }))
+    )
   })
 
 function notInThePast(scheduledFor: string) {
@@ -153,14 +151,7 @@ export function providerRoutes(providerFor: ProviderFor) {
     )
     .get('/scheduled-posts', withKey, async (c) => {
       const accountId = c.req.query('accountId')
-      if (!accountId) {
-        throw new ProblemError({
-          status: 400,
-          code: 'validation',
-          title: 'The request is not valid',
-          errors: [{ path: 'accountId', message: 'Required' }]
-        })
-      }
+      if (!accountId) throw invalid([{ path: 'accountId', message: 'Required' }])
       return c.json({ items: await c.var.provider.scheduledPosts(accountId) })
     })
     .post('/scheduled-posts', withKey, json(newPostSchema), async (c) => {
