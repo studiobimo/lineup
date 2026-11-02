@@ -1,5 +1,10 @@
 {
   "title": "Settings",
+  "language": "Language",
+  "languages": {
+    "en": "English",
+    "es": "Español"
+  },
   "profile": "Profile",
   "handle": "Handle",
   "handlePlaceholder": "your_username",

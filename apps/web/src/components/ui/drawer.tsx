@@ -9,6 +9,7 @@ import { useRender } from "@base-ui/react/use-render";
 import { ChevronRightIcon, XIcon } from "lucide-react";
 import type React from "react";
 import { createContext, useContext } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -153,6 +154,7 @@ export function DrawerPopup({
   showBar?: boolean;
   portalProps?: DrawerPrimitive.Portal.Props;
 }): React.ReactElement {
+  const { t } = useTranslation();
   const { position: contextPosition } = useContext(DrawerContext);
   const position = positionProp ?? contextPosition;
 
@@ -214,7 +216,7 @@ export function DrawerPopup({
           {children}
           {showCloseButton && (
             <DrawerPrimitive.Close
-              aria-label="Close"
+              aria-label={t("close")}
               className="absolute end-2 top-2 z-1"
               render={<Button size="icon" variant="ghost" />}
             >

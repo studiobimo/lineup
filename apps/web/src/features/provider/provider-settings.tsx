@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { provider } from '@/config/provider'
 import { SettingsNote, SettingsSection } from '@/features/help/settings-section'
+import { dateTimeFormat } from '@/i18n/format'
 
 import { AccountChoice } from './account-choice'
 import { answer, providerApi, ProviderRequestError } from './api'
@@ -28,7 +29,7 @@ function useForgetKey() {
 }
 
 function ConnectedKey() {
-  const { t, i18n } = useTranslation('provider')
+  const { t } = useTranslation('provider')
   const problemText = useProblemText()
   const { last4, expiresAt, canPost } = useConnection()
   const [replacing, setReplacing] = useState(false)
@@ -44,9 +45,7 @@ function ConnectedKey() {
     if (status) saveConnection(status)
   }, [status])
 
-  const expires = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(
-    new Date(expiresAt ?? 0)
-  )
+  const expires = dateTimeFormat({ dateStyle: 'medium' }).format(new Date(expiresAt ?? 0))
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm">{t('key.connected', { last4, date: expires })}</p>

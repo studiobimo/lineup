@@ -16,6 +16,7 @@ import { boardStore } from '@/features/planner/planner'
 import { saveProfile, toHandle, useProfile } from '@/features/planner/profile-store'
 import { ProviderSettings } from '@/features/provider/provider-settings'
 import { useDialogPresence } from '@/hooks/use-dialog-presence'
+import i18n, { languages, setLanguage } from '@/i18n/config'
 import { isInstalled, isSafari } from '@/lib/platform'
 import { getTheme, setTheme, subscribeToTheme, type Theme } from '@/lib/theme'
 
@@ -26,11 +27,33 @@ import { SettingsNote, SettingsSection } from './settings-section'
 const themes: Theme[] = ['light', 'dark']
 
 const size = (bytes: number) =>
-  new Intl.NumberFormat(undefined, {
+  new Intl.NumberFormat(i18n.resolvedLanguage, {
     style: 'unit',
     unit: bytes < 1e9 ? 'megabyte' : 'gigabyte',
     maximumFractionDigits: 1
   }).format(bytes / (bytes < 1e9 ? 1e6 : 1e9))
+
+function LanguageSettings() {
+  const { t } = useTranslation('settings')
+  const current = i18n.resolvedLanguage
+  return (
+    <SettingsSection title={t('language')}>
+      <Group aria-label={t('language')}>
+        {languages.map((language) => (
+          <Button
+            key={language}
+            variant={language === current ? 'default' : 'outline'}
+            aria-pressed={language === current}
+            lang={language}
+            onClick={() => setLanguage(language)}
+          >
+            {t(`languages.${language}`)}
+          </Button>
+        ))}
+      </Group>
+    </SettingsSection>
+  )
+}
 
 function ThemeSettings() {
   const { t } = useTranslation('settings')
@@ -153,6 +176,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           <DialogTitle>{t('title')}</DialogTitle>
         </DialogHeader>
         <DialogPanel className="flex flex-col gap-6">
+          <LanguageSettings />
           <ThemeSettings />
           <ProfileSettings />
           <PhotoSettings />

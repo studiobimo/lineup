@@ -3,17 +3,11 @@ import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { openPost } from '@/features/provider/post-store'
+import { dateTimeFormat } from '@/i18n/format'
 import { cn } from '@/lib/utils'
 
 import type { CellPost } from './board-schema'
 import { CellButton } from './cell-controls'
-
-const timeFormat = new Intl.DateTimeFormat(undefined, {
-  month: 'short',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit'
-})
 
 const icons: Record<CellPost['status'], LucideIcon> = {
   scheduled: Clock,
@@ -28,7 +22,12 @@ export const PostBadge = memo(function PostBadge({ id, post }: { id: string; pos
   const { t } = useTranslation('planner')
   const { status, failure } = post
   const Icon = icons[status]
-  const time = timeFormat.format(new Date(post.scheduledFor))
+  const time = dateTimeFormat({
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(new Date(post.scheduledFor))
   return (
     <CellButton
       size="xs"

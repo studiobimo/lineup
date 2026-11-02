@@ -9,6 +9,7 @@ import { CellBadge } from '@/features/planner/cell-controls'
 import { settle } from '@/features/planner/motion'
 import { cellShape, instagram } from '@/features/planner/network-profile'
 import { usePlanner } from '@/features/planner/planner'
+import { dateTimeFormat } from '@/i18n/format'
 
 import { ProviderQueries } from './provider-queries'
 import { PublishedPicture } from './published-picture'
@@ -16,13 +17,13 @@ import { usePublishedPosts } from './use-connected-account'
 import { usePostSync } from './use-post-sync'
 import { useProblemText } from './use-problem-text'
 
-const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
-
 function PublishedCell({ post, position }: { post: PublishedPost; position: number }) {
   const { t } = useTranslation('provider')
   const { publishedAt } = post
   const label = publishedAt
-    ? t('published.cellOn', { date: dateFormat.format(new Date(publishedAt)) })
+    ? t('published.cellOn', {
+        date: dateTimeFormat({ dateStyle: 'medium' }).format(new Date(publishedAt))
+      })
     : t('published.cell')
   return (
     <m.div

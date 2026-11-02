@@ -1,0 +1,89 @@
+{
+  "title": "Instagram",
+  "tryAgain": "Intentar de nuevo",
+  "guide": {
+    "account": "Crea una cuenta gratuita en <site>{{provider}}</site>.",
+    "instagram": "Conecta ahí tu Instagram. Tiene que ser una cuenta profesional, y Instagram exige que sea pública.",
+    "key": "Crea una clave de API limitada a un solo perfil y pégala aquí. Una clave de solo lectura basta para ver tus publicaciones, pero no puede programar."
+  },
+  "key": {
+    "label": "Clave de API de {{provider}}",
+    "invalid": "Eso no parece una clave.",
+    "profile": "Perfil",
+    "chooseProfile": "Elige un perfil",
+    "save": "Guardar clave",
+    "connected": "Clave terminada en {{last4}}, válida hasta el {{date}}.",
+    "readOnly": "Esta clave es de solo lectura, así que tus publicaciones se ven pero no se puede programar nada. Para programar, sustitúyela por una clave de lectura y escritura.",
+    "replace": "Sustituir clave",
+    "forget": "Olvidar clave",
+    "expired": "Tu clave ha caducado. Lo que planificaste y programaste está a salvo. Añade una clave para continuar.",
+    "revoke": "Olvidar una clave la elimina de este navegador. Para cancelarla en todas partes, usa tu <site>panel de {{provider}}</site>."
+  },
+  "account": {
+    "label": "Cuenta de Instagram",
+    "choose": "Elige una cuenta",
+    "none": "Esta clave aún no tiene ninguna cuenta de Instagram.",
+    "connect": "Conectar Instagram",
+    "reconnect": "Esta cuenta necesita volver a conectarse antes de poder programar nada."
+  },
+  "post": {
+    "title": "Programar una publicación",
+    "existingTitle": "Tu publicación",
+    "status": {
+      "scheduled": "Programada para {{time}}.",
+      "publishing": "Se está publicando ahora.",
+      "published": "Publicada.",
+      "failed": "No se publicó. Elige una hora nueva para intentarlo de nuevo, o cancélala.",
+      "cancelled": "Cancelada."
+    },
+    "description_one": "Esta imagen se publica a la hora que elijas.",
+    "description_other": "Estas {{count}} imágenes se publican como un carrusel a la hora que elijas.",
+    "picture": "La imagen de la publicación",
+    "caption": "Pie de foto",
+    "captionCount": "{{count}} de {{limit}}",
+    "time": "Fecha y hora",
+    "timeZone": "En tu zona horaria, {{zone}}.",
+    "timeInvalid": "Elige una hora que aún no haya pasado.",
+    "outOfOrder": "Con esta hora, las publicaciones no saldrán en el orden de tu cuadrícula.",
+    "notice": "Al programar, las imágenes y el pie de foto se envían a {{provider}} y a Instagram. Nada más sale de este dispositivo.",
+    "noKey": "Añade tu clave en Ajustes para programar esto.",
+    "readOnly": "Esta clave es de solo lectura. Sustitúyela en Ajustes por una clave de lectura y escritura para programar esto.",
+    "noAccount": "Conecta una cuenta de Instagram en Ajustes para programar esto. Instagram solo lo permite con una cuenta profesional.",
+    "saveChanges": "Guardar cambios",
+    "cancel": "Cancelar publicación",
+    "cancelTitle": "¿Cancelar esta publicación?",
+    "cancelDescription": "No se publicará y se eliminará de {{provider}}. La imagen vuelve a ser una celda planificada.",
+    "cancelConfirm": "Cancelar publicación",
+    "keep": "Mantenerla",
+    "view": "Ver en Instagram",
+    "free": "Liberar esta celda",
+    "freePublished": "Liberar esta celda deja la publicación en Instagram, y se muestra después de las celdas planificadas.",
+    "freeWithoutKey": "Sin una clave que pueda publicar, esto no se puede cambiar desde aquí. Liberar la celda no detiene la publicación: sigue en {{provider}}.",
+    "schedule": "Programar",
+    "sending": "Enviando {{position}} de {{count}}",
+    "scheduled": "Programada para {{time}}",
+    "missingCopy": "La copia completa de esta imagen ya no está en este dispositivo, así que no se puede enviar."
+  },
+  "published": {
+    "cell": "Publicación publicada",
+    "cellOn": "Publicada el {{date}}",
+    "failed": "No se pudieron cargar tus publicaciones."
+  },
+  "problems": {
+    "offline": "No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
+    "not_found": "No se encontró. Puede que se haya eliminado.",
+    "validation": "Algo de esto no era válido. Compruébalo e inténtalo de nuevo.",
+    "internal": "Algo salió mal por nuestra parte. Inténtalo de nuevo.",
+    "origin": "Se bloqueó esta solicitud. Recarga la página e inténtalo de nuevo.",
+    "rate_limited": "Demasiados intentos. Espera un minuto e inténtalo de nuevo.",
+    "key_missing": "Tu clave ya no está. Añádela de nuevo en Ajustes.",
+    "key_rejected": "Se rechazó esa clave. Compruébala e inténtalo de nuevo.",
+    "key_not_allowed": "Esta clave no tiene permiso para hacer eso.",
+    "profile_required": "Elige un perfil para esta clave.",
+    "idempotency_required": "A esta solicitud le faltaba algo. Recarga la página e inténtalo de nuevo.",
+    "time_in_past": "Esa hora ya pasó. Elige una posterior.",
+    "provider_refused": "Se rechazó esto.",
+    "provider_busy": "Todavía se está procesando. Inténtalo de nuevo en un momento.",
+    "provider_failed": "El servicio de programación no respondió. Inténtalo de nuevo en un momento."
+  }
+}
