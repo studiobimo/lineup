@@ -19,9 +19,24 @@ const aim = (overrides: Partial<Parameters<typeof dropTarget>[0]>) =>
     hover: { id: 'b', container: 'grid', isCell: true },
     point: { x: 150, y: 50 },
     inserting: false,
+    dwelling: null,
     boxOf: (id) => boxes[id],
     ...overrides
   })
+
+describe('dropTarget over a cell it has been held on', () => {
+  it('groups with that cell', () => {
+    expect(aim({ dwelling: 'b', hover: { id: 'b', container: 'grid', isCell: true } })).toEqual({
+      kind: 'group',
+      id: 'b'
+    })
+  })
+
+  it('swaps with any other', () => {
+    const target = aim({ dwelling: 'a', hover: { id: 'b', container: 'grid', isCell: true } })
+    expect(target).toEqual({ kind: 'swap', id: 'b' })
+  })
+})
 
 describe('dropTarget on a locked cell', () => {
   it('inserts beside it, because it cannot swap', () => {

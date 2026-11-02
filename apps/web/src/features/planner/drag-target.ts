@@ -27,7 +27,7 @@ interface Beside {
 
 /** Where a dragged cell would land. The drop and its indicator both go by this. */
 export type DropTarget =
-  | { kind: 'swap'; id: string }
+  | { kind: 'swap' | 'group'; id: string }
   | {
       kind: 'insert'
       container: Container
@@ -49,6 +49,8 @@ interface Aim {
   hover: Hover | null
   point: Point | null
   inserting: boolean
+  /** The cell the dragged one has been held over for long enough to group with it. */
+  dwelling: string | null
   boxOf: (id: string) => Box | undefined
 }
 
@@ -94,13 +96,14 @@ function nearSideEdge({ left, right }: Box, { x }: Point) {
   return x < left + edge || x > right - edge
 }
 
-export function dropTarget({ board, active, hover, point, inserting, boxOf }: Aim) {
+export function dropTarget({ board, active, hover, point, inserting, dwelling, boxOf }: Aim) {
   if (!hover || !point) return null
   if (hover.isCell && !inserting && !isLocked(board, hover.id)) {
     if (hover.id === active) return null
     const box = boxOf(hover.id)
     if (!box || !nearSideEdge(box, point)) {
-      return { kind: 'swap', id: hover.id } satisfies DropTarget
+      const kind = dwelling === hover.id ? 'group' : 'swap'
+      return { kind, id: hover.id } satisfies DropTarget
     }
   }
 
@@ -127,6 +130,8 @@ export function dropTarget({ board, active, hover, point, inserting, boxOf }: Ai
 interface DragState {
   dragging: boolean
   target: DropTarget | null
+  /** Held over a cell, but the album would have more images than a carousel can. */
+  albumFull: boolean
   /** Cells drawn by something flying to them, so the real one waits, hidden, where it will land. */
   airborne: ReadonlySet<string>
 }
@@ -134,6 +139,7 @@ interface DragState {
 export const dragStore = createStore<DragState>(() => ({
   dragging: false,
   target: null,
+  albumFull: false,
   airborne: new Set()
 }))
 
@@ -173,8 +179,9 @@ export function gapBeside({ id, side }: Beside) {
 /** Only the cells the indicator is on change, so the other 299 do not render on every move. */
 export function useDropMark(id: string) {
   return useStore(dragStore, ({ target }) => {
-    if (target?.kind === 'swap') return target.id === id ? 'swap' : null
-    return target?.beside?.id === id ? target.beside.side : null
+    if (!target) return null
+    if (target.kind !== 'insert') return target.id === id ? target.kind : null
+    return target.beside?.id === id ? target.beside.side : null
   })
 }
 

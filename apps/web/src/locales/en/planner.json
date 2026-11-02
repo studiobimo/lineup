@@ -19,6 +19,15 @@
   "selected_other": "{{count}} selected",
   "selectionActions": "Selected cells",
   "clearSelection": "Clear the selection",
+  "group": "Group",
+  "dropToGroup": "Drop to make an album",
+  "groupRefused": {
+    "tooFew": "An album needs at least two images.",
+    "locked": "Unlock a cell before grouping it.",
+    "tooMany": "An album holds at most {{limit}} images."
+  },
+  "albumOf_one": "Album of 1 image",
+  "albumOf_other": "Album of {{count}} images",
   "cellRoleLocked": "locked image",
   "place_tray": "image {{position}} in the tray",
   "place_grid": "image {{position}} in the grid",

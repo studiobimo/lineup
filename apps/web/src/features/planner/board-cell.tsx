@@ -2,6 +2,7 @@ import {
   ArrowRightLeft,
   Check,
   ImageOff,
+  Layers,
   Lock,
   LockOpen,
   type LucideIcon,
@@ -9,13 +10,13 @@ import {
   Trash2
 } from 'lucide-react'
 import { m, useMotionValue } from 'motion/react'
-import { memo, useCallback, useRef } from 'react'
+import { memo, type ReactNode, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
 import { cn } from '@/lib/utils'
 
-import { type Container, isLocked } from './board'
+import { type Container, coverOf, isLocked } from './board'
 import { cellTooltip } from './cell-tooltip'
 import { useAirborne, useDropMark } from './drag-target'
 import { openLightbox } from './lightbox-store'
@@ -128,10 +129,17 @@ const SelectToggle = memo(function SelectToggle({
   )
 })
 
-function CellBadge({ icon: Icon, label }: { icon: LucideIcon; label?: string }) {
+interface CellBadgeProps {
+  icon: LucideIcon
+  label?: string
+  children?: ReactNode
+}
+
+function CellBadge({ icon: Icon, label, children }: CellBadgeProps) {
   return (
-    <span className="flex rounded-sm bg-background p-1 text-foreground shadow-xs">
+    <span className="flex items-center gap-0.5 rounded-sm bg-background p-1 text-xs/3 text-foreground shadow-xs">
       <Icon aria-hidden className="size-3" />
+      {children}
       {label && <span className="sr-only">{label}</span>}
     </span>
   )
@@ -148,7 +156,9 @@ export const BoardCell = memo(function BoardCell({
   const cell = useRef<HTMLDivElement>(null)
   const near = useNearViewport(cell)
   const locked = usePlanner(({ board }) => isLocked(board, id))
-  const missing = usePlanner(({ images }) => images[id]?.missing)
+  const cover = usePlanner(({ board }) => coverOf(board, id))
+  const albumSize = usePlanner(({ board }) => board.albums?.[id]?.length)
+  const missing = usePlanner(({ images }) => images[cover]?.missing)
   const selected = useIsSelected(id)
   const {
     ref: dragRef,
@@ -207,10 +217,11 @@ export const BoardCell = memo(function BoardCell({
         className={cn(
           'size-full transition duration-200 ease-out',
           missing && 'opacity-50 grayscale',
-          mark === 'swap' && 'scale-95 opacity-50'
+          mark === 'swap' && 'scale-95 opacity-50',
+          mark === 'group' && 'scale-90'
         )}
       >
-        {near && <Thumbnail id={id} label={t('cell', { position })} />}
+        {near && <Thumbnail id={cover} label={t('cell', { position })} />}
       </div>
       <div
         className={cn(
@@ -218,7 +229,19 @@ export const BoardCell = memo(function BoardCell({
           (mark === 'swap' || isDragging) && 'opacity-100'
         )}
       />
+      {mark === 'group' && (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="rounded-md bg-primary p-1.5 text-primary-foreground shadow-md">
+            <Layers aria-hidden className="size-5" />
+          </span>
+        </span>
+      )}
       <div className="pointer-events-none absolute bottom-1 left-1 flex gap-1">
+        {albumSize && (
+          <CellBadge icon={Layers} label={t('albumOf', { count: albumSize })}>
+            <span aria-hidden>{albumSize}</span>
+          </CellBadge>
+        )}
         {locked && <CellBadge icon={Lock} />}
         {missing && <CellBadge icon={ImageOff} label={t('missingOriginal')} />}
       </div>

@@ -10,9 +10,11 @@ import {
 } from '@dnd-kit/core'
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
+import { useStore } from 'zustand'
 
 import { Kbd } from '@/components/ui/kbd'
 
+import { groupProblem } from './board'
 import { CellFlights } from './cell-flights'
 import { dragAnnouncements } from './drag-announcements'
 import { DragGhost } from './drag-ghost'
@@ -30,6 +32,7 @@ import {
 } from './drag-target'
 import { InsertLine } from './insert-line'
 import { stepBetweenCells } from './keyboard-drag'
+import { instagram } from './network-profile'
 import { plannerStore } from './planner'
 import { useDragGhost } from './use-drag-ghost'
 
@@ -46,10 +49,13 @@ function startOf(event: MouseEvent | TouchEvent | KeyboardEvent, cell: Box) {
   return 'clientX' in event ? pointOf(event) : centreOf(cell)
 }
 
+/** Where the cell ended up, which after grouping is a cell that did not exist before. */
 function place(id: string, target: DropTarget) {
-  const { swap, move } = plannerStore.getState()
-  if (target.kind === 'swap') swap(id, target.id)
-  else move(id, target.container, target.index)
+  const { swap, move, group } = plannerStore.getState()
+  if (target.kind === 'group') return group([target.id, id]) ?? id
+  if (target.kind === 'insert') move(id, target.container, target.index)
+  else swap(id, target.id)
+  return id
 }
 
 interface Latest {
@@ -57,13 +63,38 @@ interface Latest {
   hover: Hover | null
   point: Point | null
   inserting: boolean
+  dwelling: string | null
 }
+
+// Long enough that dragging across a cell does not offer to group with it.
+const GROUP_DWELL_MS = 600
 
 // Only Space picks up: Enter on a cell opens its menu. Either still drops what is being carried.
 const keyboardCodes = {
   start: [KeyboardCode.Space],
   cancel: [KeyboardCode.Esc],
   end: [KeyboardCode.Space, KeyboardCode.Enter, KeyboardCode.Tab]
+}
+
+/** A status, so that what holding a cell still will do is said as well as shown. */
+function DragHint() {
+  const { t } = useTranslation('planner')
+  const grouping = useStore(dragStore, ({ target }) => target?.kind === 'group')
+  const albumFull = useStore(dragStore, (state) => state.albumFull)
+  return (
+    <p
+      role="status"
+      className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md pointer-coarse:hidden"
+    >
+      {albumFull ? (
+        t('groupRefused.tooMany', { limit: instagram.carouselLimit })
+      ) : grouping ? (
+        t('dropToGroup')
+      ) : (
+        <Trans i18nKey="planner:dragHint" components={{ key: <Kbd /> }} />
+      )}
+    </p>
+  )
 }
 
 export function BoardDrag({ children }: { children: ReactNode }) {
@@ -83,15 +114,41 @@ export function BoardDrag({ children }: { children: ReactNode }) {
   const ghost = useDragGhost()
   const { lift, follow, glide, land } = ghost
   const [active, setActive] = useState<string | null>(null)
-  const latest = useRef<Latest>({ active: null, hover: null, point: null, inserting: false })
+  const latest = useRef<Latest>({
+    active: null,
+    hover: null,
+    point: null,
+    inserting: false,
+    dwelling: null
+  })
+  const dwell = useRef<{ cell: string | null; timer?: ReturnType<typeof setTimeout> }>({
+    cell: null
+  })
   const boxes = useRef<(id: string) => DOMRect | undefined>(() => undefined)
 
-  const aim = useCallback(() => {
-    const { active, hover, point, inserting } = latest.current
+  const aim = useCallback(function aim() {
+    const { active, hover, point, inserting, dwelling } = latest.current
     if (!active) return
     const { board } = plannerStore.getState()
-    const target = dropTarget({ board, active, hover, point, inserting, boxOf: boxes.current })
+    const boxOf = boxes.current
+    const target = dropTarget({ board, active, hover, point, inserting, dwelling, boxOf })
     dragStore.setState({ target })
+
+    const over = target && target.kind !== 'insert' ? target.id : null
+    if (over === dwell.current.cell) return
+    clearTimeout(dwell.current.timer)
+    latest.current.dwelling = null
+    dragStore.setState({ albumFull: false })
+    dwell.current = { cell: over }
+    if (!over) return
+    dwell.current.timer = setTimeout(() => {
+      if (groupProblem(plannerStore.getState().board, [over, active]) === 'tooMany') {
+        dragStore.setState({ albumFull: true })
+        return
+      }
+      latest.current.dwelling = over
+      aim()
+    }, GROUP_DWELL_MS)
   }, [])
 
   // Asks the page what is under the pointer. Rectangles measured beforehand would go stale beside
@@ -141,13 +198,16 @@ export function BoardDrag({ children }: { children: ReactNode }) {
     const { target } = dragStore.getState()
     const { active: id } = latest.current
     latest.current.active = null
-    dragStore.setState({ dragging: false, target: null })
+    latest.current.dwelling = null
+    clearTimeout(dwell.current.timer)
+    dwell.current = { cell: null }
+    dragStore.setState({ dragging: false, target: null, albumFull: false })
     setActive(null)
     if (!id) return
     launch([id])
-    if (apply && target) place(id, target)
+    const landing = apply && target ? place(id, target) : id
     // The board has changed but the page has not, until React has committed it.
-    requestAnimationFrame(() => land(cellBox(id), () => ground([id])))
+    requestAnimationFrame(() => land(cellBox(landing), () => ground([id])))
   }
 
   return (
@@ -177,11 +237,7 @@ export function BoardDrag({ children }: { children: ReactNode }) {
       <CellFlights />
       <InsertLine />
       <DragGhost ghost={ghost} />
-      {active && (
-        <p className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md pointer-coarse:hidden">
-          <Trans i18nKey="planner:dragHint" components={{ key: <Kbd /> }} />
-        </p>
-      )}
+      {active && <DragHint />}
     </DndContext>
   )
 }

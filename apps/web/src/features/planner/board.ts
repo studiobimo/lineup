@@ -1,4 +1,5 @@
 import type { Board } from './board-store'
+import { instagram } from './network-profile'
 
 export type Container = 'tray' | 'grid'
 
@@ -55,6 +56,37 @@ export function moveCells(board: Board, ids: string[], to: Container): Board {
   const from = to === 'tray' ? board.grid : board.tray
   const moving = from.filter((id) => chosen.has(id))
   return { ...lift(board, moving), [to]: [...board[to], ...moving] }
+}
+
+/** Why these cells cannot become one album, if they cannot. */
+export function groupProblem(board: Board, cells: string[]) {
+  if (cells.length < 2) return 'tooFew'
+  if (cells.some((cell) => isLocked(board, cell))) return 'locked'
+  const images = cells.flatMap((cell) => imagesOf(board, cell))
+  return images.length > instagram.carouselLimit ? 'tooMany' : null
+}
+
+/** The album takes the first cell's place. An album among the cells gives up its images, in order. */
+export function group(board: Board, cells: string[], album: string): Board {
+  const [first, ...rest] = cells
+  const { container } = locate(board, first)
+  const without = lift(board, rest)
+  const merged = new Set(cells)
+  const albums = Object.entries(board.albums ?? {}).filter(([id]) => !merged.has(id))
+  return {
+    ...without,
+    [container]: without[container].map((cell) => (cell === first ? album : cell)),
+    albums: {
+      ...Object.fromEntries(albums),
+      [album]: cells.flatMap((cell) => imagesOf(board, cell))
+    }
+  }
+}
+
+/** The cells in the order they sit on the board, tray first, however they were chosen. */
+export function inBoardOrder(board: Board, cells: string[]) {
+  const chosen = new Set(cells)
+  return [...board.tray, ...board.grid].filter((cell) => chosen.has(cell))
 }
 
 export function swap(board: Board, first: string, second: string): Board {

@@ -85,6 +85,7 @@ export interface SavedBoard {
   tray: string[]
   grid: string[]
   locked?: string[]
+  albums?: Record<string, string[]>
 }
 
 export interface SavedImage {

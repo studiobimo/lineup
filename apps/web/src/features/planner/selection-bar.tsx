@@ -1,14 +1,16 @@
-import { ArrowRightLeft, Trash2, X } from 'lucide-react'
+import { ArrowRightLeft, Layers, Trash2, X } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { useStore } from 'zustand'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
 import { Button } from '@/components/ui/button'
+import { toastManager } from '@/components/ui/toast'
 
-import { containerOf } from './board'
+import { containerOf, groupProblem, inBoardOrder } from './board'
 import { dragStore } from './drag-target'
 import { settle } from './motion'
+import { instagram } from './network-profile'
 import { plannerStore } from './planner'
 import { clearSelection, selectedCells, useSelectionSize } from './selection-store'
 
@@ -22,6 +24,14 @@ function SelectionActions({ count }: { count: number }) {
   const act = (action: () => void) => {
     action()
     clearSelection()
+  }
+  const groupSelection = () => {
+    const cells = inBoardOrder(board, chosen)
+    const problem = groupProblem(board, cells)
+    if (problem) {
+      const limit = instagram.carouselLimit
+      toastManager.add({ type: 'warning', title: t(`groupRefused.${problem}`, { limit }) })
+    } else act(() => plannerStore.getState().group(cells))
   }
   return (
     <m.div
@@ -48,6 +58,10 @@ function SelectionActions({ count }: { count: number }) {
           {t('moveToTray')}
         </Button>
       )}
+      <Button variant="ghost" size="sm" onClick={groupSelection}>
+        <Layers />
+        {t('group')}
+      </Button>
       <Button variant="ghost" size="sm" onClick={() => act(() => remove(chosen))}>
         <Trash2 />
         {t('remove')}

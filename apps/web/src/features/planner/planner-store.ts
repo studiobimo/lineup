@@ -8,6 +8,8 @@ import {
   clear,
   type Container,
   coverOf,
+  group,
+  groupProblem,
   imagesOn,
   keepLocked,
   move,
@@ -47,6 +49,8 @@ export interface PlannerState {
   swap(first: string, second: string): void
   moveAll(from: Container): void
   moveCells(ids: string[], to: Container): void
+  /** The album's id, or nothing if `groupProblem` has a reason to refuse. */
+  group(cells: string[]): string | undefined
   shuffle(container: Container): void
   sortByColour(container: Container, strategy: SortStrategy): Promise<void>
   /** Not a change to the board, so it is no part of undo. */
@@ -202,6 +206,15 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
       swap: (first, second) => commit(swap(get().board, first, second)),
       moveAll: (from) => commit(moveAll(get().board, from)),
       moveCells: (ids, to) => commit(moveCells(get().board, ids, to)),
+
+      group(cells) {
+        const { board } = get()
+        if (groupProblem(board, cells)) return undefined
+        const album = crypto.randomUUID()
+        commit(group(board, cells, album))
+        return album
+      },
+
       shuffle: (container) => commit(shuffle(get().board, container)),
       toggleLock: (id) => commit(toggleLock(get().board, id)),
 

@@ -6,8 +6,11 @@ import {
   clear,
   coverOf,
   freeCells,
+  group,
+  groupProblem,
   imagesOf,
   imagesOn,
+  inBoardOrder,
   isLocked,
   keepLocked,
   move,
@@ -196,5 +199,43 @@ describe('a board with an album', () => {
     const plain: Board = { tray: ['a'], grid: ['b'], locked: ['b'] }
     expect(withKnownImages(plain, () => true)).toEqual(plain)
     expect(withKnownImages(plain, () => true)).not.toHaveProperty('albums')
+  })
+})
+
+describe('grouping', () => {
+  const board: Board = { tray: ['a', 'b', 'c'], grid: ['d'] }
+
+  it('puts the album where the first cell was, with the images in order', () => {
+    expect(group(board, ['b', 'd', 'a'], 'album')).toEqual({
+      tray: ['album', 'c'],
+      grid: [],
+      albums: { album: ['b', 'd', 'a'] }
+    })
+  })
+
+  it('merges an album that is among the cells', () => {
+    const start: Board = { tray: ['one', 'c'], grid: [], albums: { one: ['a', 'b'] } }
+    expect(group(start, ['c', 'one'], 'two')).toEqual({
+      tray: ['two'],
+      grid: [],
+      albums: { two: ['c', 'a', 'b'] }
+    })
+  })
+
+  it('takes cells in board order, tray first, whatever order they were chosen in', () => {
+    expect(inBoardOrder(board, ['d', 'c', 'a'])).toEqual(['a', 'c', 'd'])
+  })
+
+  it('refuses what would not be a valid carousel, and says why', () => {
+    const full: Board = {
+      tray: ['album', 'a', 'b'],
+      grid: ['locked'],
+      locked: ['locked'],
+      albums: { album: Array.from({ length: 19 }, (_, index) => `image-${index}`) }
+    }
+    expect(groupProblem(full, ['a'])).toBe('tooFew')
+    expect(groupProblem(full, ['a', 'locked'])).toBe('locked')
+    expect(groupProblem(full, ['album', 'a'])).toBeNull()
+    expect(groupProblem(full, ['album', 'a', 'b'])).toBe('tooMany')
   })
 })
