@@ -39,7 +39,7 @@
   "folderChoosing": "Copiando tu tablero",
   "folderNote": "Guarda tu tablero y tus originales a tamaño completo en una carpeta que elijas, para que borrar el navegador no los afecte. Una carpeta vacía recibe una copia de este tablero. Una carpeta que ya tiene un tablero lo abre.",
   "folderInUse": "Tu tablero está en <name>{{name}}</name>.",
-  "folderInUseNote": "Tus originales están ahí a tamaño completo. Lineup añade cosas a esa carpeta, pero nunca cambia ni borra tus fotos.",
+  "folderInUseNote": "Tus originales están ahí a tamaño completo. Lineup añade cosas a esa carpeta y nunca cambia tus fotos. Solo borra una si se lo pides.",
   "folderLeave": "Dejar de usar esta carpeta",
   "folderFailed": "No se pudo usar esa carpeta. Inténtalo de nuevo o elige otra.",
   "folderFull": "Esa unidad no tiene espacio. Libera algo de espacio o elige otra carpeta.",
@@ -110,5 +110,15 @@
   "appearance": "Apariencia",
   "backupTitle": "Copia de seguridad",
   "folderTitle": "Carpeta",
-  "removedTitle": "Fotos quitadas"
+  "removedTitle": "Fotos quitadas",
+  "deleteRemoved": "Quitar del todo",
+  "deleteRemovedTitle_one": "¿Borrar esta foto de tu carpeta?",
+  "deleteRemovedTitle_other": "¿Borrar estas {{count}} fotos de tu carpeta?",
+  "deleteRemovedNote_one": "Se borra de {{name}} en tu dispositivo, no se mueve a la papelera. No se puede deshacer.",
+  "deleteRemovedNote_other": "Se borran de {{name}} en tu dispositivo, no se mueven a la papelera. No se puede deshacer.",
+  "deleteRemovedKeep": "Conservarlas",
+  "deleteRemovedConfirm_one": "Borrar foto",
+  "deleteRemovedConfirm_other": "Borrar {{count}} fotos",
+  "removedDone_one": "1 foto borrada de tu carpeta.",
+  "removedDone_other": "{{count}} fotos borradas de tu carpeta."
 }

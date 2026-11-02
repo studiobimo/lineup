@@ -257,6 +257,31 @@ test('a photo removed long ago can be offered again, with no second copy', async
   await expect(page.getByRole('button', { name: 'Offer again' })).toHaveCount(0)
 })
 
+test('a photo removed long ago can be deleted from the folder, once confirmed', async ({
+  page
+}) => {
+  const errors = watchErrors(page)
+  await replacePicker(page)
+  await page.goto('/')
+  await useFolder(page)
+  await addToFolder(page, '01.jpg', photo('01.jpg').buffer)
+  await addToFolder(page, '.lineup/forgotten.json', Buffer.from('["01.jpg"]'))
+  await page.reload()
+
+  await openSettings(page)
+  await page.getByRole('button', { name: 'Remove completely' }).click()
+  const confirm = page.getByRole('alertdialog')
+  await confirm.getByRole('button', { name: 'Keep them' }).click()
+  expect(await folderFiles(page)).toHaveProperty(['01.jpg'])
+
+  await page.getByRole('button', { name: 'Remove completely' }).click()
+  await confirm.getByRole('button', { name: 'Delete photo' }).click()
+  await expect(page.getByText('1 photo deleted from your folder.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Remove completely' })).toHaveCount(0)
+  expect(await folderFiles(page)).not.toHaveProperty(['01.jpg'])
+  expect(errors).toEqual([])
+})
+
 test('a file deleted outside the app is a missing cell, and comes back', async ({ page }) => {
   const errors = watchErrors(page)
   await replacePicker(page)

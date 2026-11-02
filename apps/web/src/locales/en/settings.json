@@ -39,7 +39,7 @@
   "folderChoosing": "Copying your board",
   "folderNote": "Keeps your board and your full-size originals in a folder you choose, so a cleared browser cannot touch them. An empty folder takes a copy of this board. A folder that has a board opens it.",
   "folderInUse": "Your board is in <name>{{name}}</name>.",
-  "folderInUseNote": "Your originals are there at full size. Lineup adds to that folder but never changes or deletes your photos.",
+  "folderInUseNote": "Your originals are there at full size. Lineup adds to that folder and never changes your photos. It deletes one only if you ask it to.",
   "folderLeave": "Stop using this folder",
   "folderFailed": "That folder could not be used. Try again, or choose another one.",
   "folderFull": "That drive is out of room. Free up some space, or choose another folder.",
@@ -110,5 +110,15 @@
   "appearance": "Appearance",
   "backupTitle": "Backup",
   "folderTitle": "Folder",
-  "removedTitle": "Removed photos"
+  "removedTitle": "Removed photos",
+  "deleteRemoved": "Remove completely",
+  "deleteRemovedTitle_one": "Delete this photo from your folder?",
+  "deleteRemovedTitle_other": "Delete these {{count}} photos from your folder?",
+  "deleteRemovedNote_one": "It is deleted from {{name}} on your device, not moved to the bin. This cannot be undone.",
+  "deleteRemovedNote_other": "They are deleted from {{name}} on your device, not moved to the bin. This cannot be undone.",
+  "deleteRemovedKeep": "Keep them",
+  "deleteRemovedConfirm_one": "Delete photo",
+  "deleteRemovedConfirm_other": "Delete {{count}} photos",
+  "removedDone_one": "1 photo deleted from your folder.",
+  "removedDone_other": "{{count}} photos deleted from your folder."
 }

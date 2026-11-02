@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogPopup,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { toastManager } from '@/components/ui/toast'
 import {
   chooseFolder,
   countRemovedFiles,
+  deleteRemovedFiles,
   leaveFolder,
   offerRemovedFiles,
   useFolder
@@ -15,10 +26,11 @@ import { useFolderAction } from '@/features/planner/use-folder-action'
 import { DialogSection } from './dialog-sections'
 
 /** The offer is a toast, and a toast behind this dialog could not be clicked. */
-function RemovedPhotos({ onOffered }: { onOffered: () => void }) {
+function RemovedPhotos({ name, onOffered }: { name: string; onOffered: () => void }) {
   const { t } = useTranslation('settings')
   const { busy, run } = useFolderAction()
   const [count, setCount] = useState(0)
+  const [confirming, setConfirming] = useState(false)
 
   useEffect(() => {
     // Without a count there is nothing to show, and the photos are still in the folder.
@@ -30,13 +42,40 @@ function RemovedPhotos({ onOffered }: { onOffered: () => void }) {
     await offerRemovedFiles()
     onOffered()
   }
+  const remove = async () => {
+    const removed = await deleteRemovedFiles()
+    setConfirming(false)
+    setCount(0)
+    toastManager.add({ type: 'success', title: t('removedDone', { count: removed }) })
+  }
   return (
     <DialogSection title={t('removedTitle')} description={t('removedFiles', { count })}>
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" disabled={busy} onClick={() => void run(offer)}>
           {t('offerRemoved')}
         </Button>
+        <Button variant="destructive-outline" disabled={busy} onClick={() => setConfirming(true)}>
+          {t('deleteRemoved')}
+        </Button>
       </div>
+      <AlertDialog open={confirming} onOpenChange={setConfirming}>
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('deleteRemovedTitle', { count })}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('deleteRemovedNote', { name, count })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose render={<Button variant="ghost" />}>
+              {t('deleteRemovedKeep')}
+            </AlertDialogClose>
+            <Button variant="destructive" loading={busy} onClick={() => void run(remove)}>
+              {t('deleteRemovedConfirm', { count })}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      </AlertDialog>
     </DialogSection>
   )
 }
@@ -90,7 +129,7 @@ export function FolderSettings({ onOffered }: { onOffered: () => void }) {
           {t('folderLeave')}
         </Button>
       </DialogSection>
-      <RemovedPhotos onOffered={onOffered} />
+      <RemovedPhotos name={folder.name} onOffered={onOffered} />
     </>
   )
 }
