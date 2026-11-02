@@ -2,6 +2,7 @@ import { Calendar, ImageOff, MapPin } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { dateTimeFormat } from '@/i18n/format'
 import { cn } from '@/lib/utils'
 
 import { usePlanner } from './planner'
@@ -21,13 +22,12 @@ export function Pill({ className, children }: { className?: string; children: Re
 
 /** When and where the photo was taken, for an image that says. Most say nothing. */
 export function ImageDetails({ id }: { id: string }) {
-  const { t, i18n } = useTranslation('planner')
+  const { t } = useTranslation('planner')
   const takenAt = usePlanner(({ images }) => images[id]?.takenAt)
   const place = usePlanner(({ images }) => images[id]?.place)
   const missing = usePlanner(({ images }) => images[id]?.missing)
   if (!takenAt && !place && !missing) return null
-  const date = (iso: string) =>
-    new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(iso))
+  const date = (iso: string) => dateTimeFormat({ dateStyle: 'medium' }).format(new Date(iso))
   return (
     <Pill className="gap-3">
       {takenAt && (

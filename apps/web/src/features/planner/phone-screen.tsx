@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next'
 
 import { PublishedPicture } from '@/features/provider/published-picture'
 import { useConnectedAccount } from '@/features/provider/use-connected-account'
+import { dateTimeFormat } from '@/i18n/format'
 import { cn } from '@/lib/utils'
 
 import { cellShape, gridColumns, instagram } from './network-profile'
@@ -29,11 +30,9 @@ import { useNearViewport } from './use-near-viewport'
 // A new account's feed still reads as a feed, with room for what is planned next.
 const MINIMUM_SLOTS = instagram.columns * 3
 
-const timeFormat = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
-
 /** A phone's status bar leaves out AM and PM. */
 function phoneTime() {
-  return timeFormat
+  return dateTimeFormat({ hour: 'numeric', minute: '2-digit' })
     .formatToParts(new Date())
     .filter(({ type }) => type !== 'dayPeriod')
     .map(({ value }) => value)

@@ -55,7 +55,7 @@ could not connect to a real account.
 - Publishing through Meta's API directly (see [ADR-0003](adr/0003-zernio-byok.md) and the
   [API research](research/instagram-apis.md)).
 - Team features: sharing, comments, approval.
-- Languages other than English. Strings are kept out of components so this can follow.
+- Languages other than English and Spanish. Strings are kept out of components so another can follow.
 
 ### Beyond Instagram
 
@@ -207,6 +207,7 @@ The user brings their own Zernio API key. See [ADR-0003](adr/0003-zernio-byok.md
 | SHL-8  | It is accessible                            | WCAG 2.2 AA for contrast, focus, names and keyboard operation                                                                                                                                                                                                                    | Must     |
 | SHL-9  | I can install it and use it offline         | The app installs to the Dock or home screen, opens in its own window, and works with no network after the first visit                                                                                                                                                            | Must     |
 | SHL-10 | I can see what changed                      | `/releases` lists each version with its date and its features, fixes and performance changes, built from the changelog that release-please generates from Conventional Commits. It is part of the build, so it needs no network, and it has no links into the private repository | Should   |
+| SHL-11 | I can use it in English or Spanish          | Follows the browser's language by default, English when it has neither; the choice is in Settings and is kept in this browser. Every string, including the terms and the privacy policy, and every date and time follows it. A key missing from a language fails the tests       | Should   |
 
 ## 8. Quality requirements
 

@@ -31,9 +31,40 @@ for (const [path, catalog] of Object.entries(catalogs)) {
 /** The language of site.locale. Its catalogs are the source the others are held to. */
 export const defaultLanguage = site.locale.split('_')[0]
 
+/** Every language that has catalogs, the default first. */
+export const languages = Object.keys(resources).sort((a, b) =>
+  a === defaultLanguage ? -1 : b === defaultLanguage ? 1 : a.localeCompare(b)
+)
+
+const storageKey = 'language'
+
+// Storage can be blocked, and a language is not worth failing to start over.
+function savedLanguage() {
+  try {
+    return localStorage.getItem(storageKey)
+  } catch {
+    return null
+  }
+}
+
+/** The language chosen in the app, or the first of the browser's that has catalogs. */
+function startingLanguage() {
+  const wanted = [savedLanguage(), ...navigator.languages].map((tag) => tag?.split('-')[0])
+  return wanted.find((language) => language && languages.includes(language)) ?? defaultLanguage
+}
+
+export function setLanguage(language: string) {
+  try {
+    localStorage.setItem(storageKey, language)
+  } catch {
+    // The choice still holds until the page is closed.
+  }
+  void i18n.changeLanguage(language)
+}
+
 void i18n.use(initReactI18next).init({
   resources,
-  lng: defaultLanguage,
+  lng: startingLanguage(),
   fallbackLng: defaultLanguage,
   supportedLngs: Object.keys(resources),
   defaultNS: 'common',
