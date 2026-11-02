@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -15,6 +15,7 @@ import {
   nextFreeHour,
   toFieldTime
 } from './post-time'
+import { PROVIDER_KEY } from './queries'
 import { MissingCopyError, sendPost } from './send-post'
 import { useProblemText } from './use-problem-text'
 
@@ -29,6 +30,7 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
   const problemText = useProblemText()
   const images = imagesOf(plannerStore.getState().board, cell)
   const [sending, setSending] = useState(0)
+  const queryClient = useQueryClient()
 
   const send = useMutation({
     mutationFn: async ({ caption, when }: PostFormValues) => {
@@ -38,6 +40,7 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
     },
     onSuccess: (post) => {
       plannerStore.getState().linkPost(cell, post)
+      void queryClient.invalidateQueries({ queryKey: [PROVIDER_KEY] })
       const time = formatPostTime(post.scheduledFor)
       toastManager.add({ type: 'success', title: t('post.scheduled', { time }) })
       onDone()

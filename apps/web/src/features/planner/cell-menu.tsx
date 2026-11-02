@@ -61,6 +61,12 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
           <Check />
           {t(selectedCells().includes(id) ? 'deselect' : 'select')}
         </MenuItem>
+        {posted && (
+          <MenuItem onClick={() => openPost(id)}>
+            <CalendarClock />
+            {t('postDetails')}
+          </MenuItem>
+        )}
         {toTray && connected && !posted && (
           <MenuItem onClick={() => openPost(id)}>
             <CalendarClock />

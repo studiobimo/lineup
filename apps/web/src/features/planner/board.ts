@@ -22,7 +22,8 @@ export const imagesOn = (board: Board) =>
 const postedCells = (board: Board) => Object.keys(board.posts ?? {})
 
 /** The cells that hold their place: those the user locked, and those with a post. */
-const lockedCells = (board: Board) => new Set([...(board.locked ?? []), ...postedCells(board)])
+export const lockedCells = (board: Board) =>
+  new Set([...(board.locked ?? []), ...postedCells(board)])
 
 /**
  * An album belongs to the board only while a cell holds it. Snapshots keep their own. A locked cell

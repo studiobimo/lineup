@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query'
 import type { PublishedPost } from 'lineup-contract'
 import { Lock } from 'lucide-react'
 import { m } from 'motion/react'
@@ -13,7 +12,8 @@ import { usePlanner } from '@/features/planner/planner'
 
 import { ProviderQueries } from './provider-queries'
 import { PublishedPicture } from './published-picture'
-import { publishedQuery } from './queries'
+import { usePublishedPosts } from './use-connected-account'
+import { usePostSync } from './use-post-sync'
 import { useProblemText } from './use-problem-text'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
@@ -57,7 +57,8 @@ function Failure({ error, onRetry }: { error: Error; onRetry: () => void }) {
 
 function Cells({ accountId }: { accountId: string }) {
   const planned = usePlanner(({ board }) => board.grid.length)
-  const { data: posts, error, refetch } = useQuery(publishedQuery(accountId))
+  const { posts, error, refetch } = usePublishedPosts(accountId)
+  usePostSync(accountId)
   if (posts) {
     return posts.map((post, index) => (
       <PublishedCell key={post.id} post={post} position={planned + index} />

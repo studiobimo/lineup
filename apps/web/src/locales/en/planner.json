@@ -69,7 +69,20 @@
   "cancel": "Cancel",
   "phonePreview": "Preview on a phone",
   "schedule": "Schedule",
-  "postScheduled": "Scheduled for",
+  "postDetails": "Post details",
+  "postStatus": {
+    "scheduled": "Scheduled for {{time}}",
+    "publishing": "Going out now",
+    "published": "Published",
+    "failed": "Did not go out: {{failure}}",
+    "cancelled": "Cancelled"
+  },
+  "postStatusShort": {
+    "publishing": "Publishing",
+    "published": "Published",
+    "failed": "Failed",
+    "cancelled": "Cancelled"
+  },
   "postName": "The post",
   "phonePreviewName": "The phone preview",
   "lightboxName": "The image",

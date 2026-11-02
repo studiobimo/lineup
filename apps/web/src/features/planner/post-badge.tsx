@@ -1,7 +1,12 @@
-import { Clock } from 'lucide-react'
+import { Check, Clock, LoaderCircle, type LucideIcon, TriangleAlert, X } from 'lucide-react'
+import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { openPost } from '@/features/provider/post-store'
+import { cn } from '@/lib/utils'
+
 import type { CellPost } from './board-schema'
+import { CellButton } from './cell-controls'
 
 const timeFormat = new Intl.DateTimeFormat(undefined, {
   month: 'short',
@@ -10,15 +15,30 @@ const timeFormat = new Intl.DateTimeFormat(undefined, {
   minute: '2-digit'
 })
 
-/** What is happening to a cell's post, which is the reason it cannot be moved. */
-export function PostBadge({ post }: { post: CellPost }) {
+const icons: Record<CellPost['status'], LucideIcon> = {
+  scheduled: Clock,
+  publishing: LoaderCircle,
+  published: Check,
+  failed: TriangleAlert,
+  cancelled: X
+}
+
+/** What is happening to a cell's post, which is the reason it cannot be moved. Opens the post. */
+export const PostBadge = memo(function PostBadge({ id, post }: { id: string; post: CellPost }) {
   const { t } = useTranslation('planner')
+  const { status, failure } = post
+  const Icon = icons[status]
   const time = timeFormat.format(new Date(post.scheduledFor))
   return (
-    <span className="flex items-center gap-1 rounded-sm bg-background px-1 py-0.5 text-xs/4 whitespace-nowrap text-foreground tabular-nums shadow-xs">
-      <Clock aria-hidden className="size-3" />
-      <span className="sr-only">{t('postScheduled')}</span>
-      {time}
-    </span>
+    <CellButton
+      size="xs"
+      variant={status === 'failed' ? 'destructive-outline' : 'outline'}
+      label={t(`postStatus.${status}`, { time, failure })}
+      className="pointer-events-auto gap-1 px-1 whitespace-nowrap tabular-nums"
+      onClick={() => openPost(id)}
+    >
+      <Icon className={cn(status === 'publishing' && 'motion-safe:animate-spin')} />
+      {status === 'scheduled' ? time : t(`postStatusShort.${status}`)}
+    </CellButton>
   )
-}
+})

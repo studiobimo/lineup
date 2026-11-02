@@ -126,7 +126,12 @@ export async function mockProvider(page: Page, seed: Partial<MockProvider> = {})
       if (index >= 0) state.scheduled.splice(index, 1)
       return route.fulfill({ status: 204 })
     }
-    state.scheduled[index] = { ...state.scheduled[index], ...body }
+    state.scheduled[index] = {
+      ...state.scheduled[index],
+      ...body,
+      status: 'scheduled',
+      failure: undefined
+    }
     return route.fulfill({ json: state.scheduled[index] })
   })
 

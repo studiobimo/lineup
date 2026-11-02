@@ -296,14 +296,18 @@ test('a planned image is sent, scheduled and held in place', async ({ page }) =>
 
   const cell = grid(page).first()
   await cell.hover()
-  await expect(cell.getByText('Scheduled for')).toBeAttached()
+  await expect(cell.getByRole('button', { name: /^Scheduled for/ })).toBeVisible()
   await expect(cell.getByRole('button', { name: 'Open full size' })).toBeVisible()
   await expect(cell.getByRole('button', { name: 'Move to the tray' })).toHaveCount(0)
   await expect(cell.getByRole('button', { name: 'Schedule', exact: true })).toHaveCount(0)
   await expect(cell.getByRole('button', { name: /lock/i })).toHaveCount(0)
 
   await page.reload()
-  await expect(grid(page).first().getByText('Scheduled for')).toBeAttached()
+  await expect(
+    grid(page)
+      .first()
+      .getByRole('button', { name: /^Scheduled for/ })
+  ).toBeVisible()
   expect(errors).toEqual([])
 })
 
@@ -396,4 +400,140 @@ test('a time out of grid order warns, and does not stop anyone', async ({ page }
   await later.getByRole('button', { name: 'Schedule', exact: true }).click()
   await expect(later).toBeHidden()
   expect(provider.scheduled).toHaveLength(2)
+})
+
+/** A cell on the grid with a post at the provider, ready for what happens to the post next. */
+async function scheduledCell(page: Page) {
+  const provider = await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+  const dialog = await openSchedule(page)
+  await schedule(dialog)
+  await expect(dialog).toBeHidden()
+  return provider
+}
+
+const postBadge = (page: Page, name: RegExp | string) =>
+  grid(page).first().getByRole('button', { name })
+
+test('a post that goes out says so, links to it, and is not shown twice', async ({ page }) => {
+  const provider = await scheduledCell(page)
+  const url = 'https://www.instagram.com/p/abc/'
+  provider.scheduled[0] = { ...provider.scheduled[0], status: 'published', url }
+  provider.published.push({ id: provider.scheduled[0].id, url, publishedAt: YESTERDAY })
+  await page.reload()
+
+  await postBadge(page, 'Published').click()
+  const dialog = page.getByRole('dialog', { name: 'Your post' })
+  await expect(dialog.getByRole('link', { name: 'View on Instagram' })).toHaveAttribute('href', url)
+  await expect(dialog.getByRole('button', { name: 'Save changes' })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(publishedCells(page)).toHaveCount(0)
+
+  await postBadge(page, 'Published').click()
+  await dialog.getByRole('button', { name: 'Free this cell' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(publishedCells(page)).toHaveCount(1)
+})
+
+test('a post that failed gives the reason, and a new time tries again', async ({ page }) => {
+  const provider = await scheduledCell(page)
+  const failure = 'The image is too wide'
+  provider.scheduled[0] = { ...provider.scheduled[0], status: 'failed', failure }
+  await page.reload()
+
+  await postBadge(page, `Did not go out: ${failure}`).click()
+  const dialog = page.getByRole('dialog', { name: 'Your post' })
+  await expect(dialog.getByText(failure)).toBeVisible()
+  await dialog.getByLabel('Date and time').fill(fieldTime(IN_A_WEEK))
+  await dialog.getByRole('button', { name: 'Save changes' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(postBadge(page, /^Scheduled for/)).toBeVisible()
+})
+
+test('a post can be rescheduled and its caption changed', async ({ page }) => {
+  const provider = await scheduledCell(page)
+  await postBadge(page, /^Scheduled for/).click()
+  const dialog = page.getByRole('dialog', { name: 'Your post' })
+  await expect(dialog.getByLabel('Caption')).toHaveValue('Hello')
+  await dialog.getByLabel('Caption').fill('Hello again')
+  await dialog.getByRole('button', { name: 'Save changes' }).click()
+  await expect(dialog).toBeHidden()
+
+  const at = provider.requests.findIndex((request) => request.startsWith('PATCH'))
+  expect(provider.bodies[at]).toMatchObject({ caption: 'Hello again' })
+  await postBadge(page, /^Scheduled for/).click()
+  await expect(dialog.getByLabel('Caption')).toHaveValue('Hello again')
+})
+
+test('cancelling asks first, then frees the cell', async ({ page }) => {
+  const provider = await scheduledCell(page)
+  await postBadge(page, /^Scheduled for/).click()
+  await page.getByRole('button', { name: 'Cancel post' }).click()
+  const confirm = page.getByRole('alertdialog', { name: 'Cancel this post?' })
+  await confirm.getByRole('button', { name: 'Keep it' }).click()
+  await expect(confirm).toBeHidden()
+  expect(provider.scheduled).toHaveLength(1)
+
+  await page.getByRole('button', { name: 'Cancel post' }).click()
+  await confirm.getByRole('button', { name: 'Cancel post' }).click()
+  await expect(confirm).toBeHidden()
+  await expect(postBadge(page, /^Scheduled for/)).toHaveCount(0)
+  expect(provider.scheduled).toHaveLength(0)
+
+  await grid(page).first().hover()
+  await expect(grid(page).first().getByRole('button', { name: 'Move to the tray' })).toBeVisible()
+})
+
+test('a post cancelled elsewhere frees its cell', async ({ page }) => {
+  const provider = await scheduledCell(page)
+  provider.scheduled[0] = { ...provider.scheduled[0], status: 'cancelled' }
+  await page.reload()
+  await expect(postBadge(page, /^Scheduled for/)).toHaveCount(0)
+})
+
+test('a post the provider has lost stays as it was, and cancelling clears it', async ({ page }) => {
+  const provider = await scheduledCell(page)
+  provider.scheduled.length = 0
+  provider.failures.set(`/scheduled-posts/post-1`, { status: 404, code: 'not_found' })
+  await page.reload()
+  await postBadge(page, /^Scheduled for/).click()
+  await page.getByRole('button', { name: 'Cancel post' }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel post' }).click()
+  await expect(postBadge(page, /^Scheduled for/)).toHaveCount(0)
+})
+
+test('a refused cancel says why, and the cell stays', async ({ page }) => {
+  const provider = await scheduledCell(page)
+  const detail = 'This post has already gone out'
+  provider.failures.set('/scheduled-posts/post-1', {
+    status: 409,
+    code: 'provider_refused',
+    detail
+  })
+  await postBadge(page, /^Scheduled for/).click()
+  await page.getByRole('button', { name: 'Cancel post' }).click()
+  const confirm = page.getByRole('alertdialog')
+  await confirm.getByRole('button', { name: 'Cancel post' }).click()
+  await expect(confirm.getByText(detail)).toBeVisible()
+  await confirm.getByRole('button', { name: 'Keep it' }).click()
+  await page.keyboard.press('Escape')
+  await expect(postBadge(page, /^Scheduled for/)).toBeVisible()
+})
+
+test('without a key a post can still be let go, and the cell is never stuck', async ({ page }) => {
+  const provider = await scheduledCell(page)
+  await page.getByRole('button', { name: 'Settings' }).click()
+  const settings = page.getByRole('dialog', { name: 'Settings' })
+  await settings.getByRole('button', { name: 'Forget key' }).click()
+  await expect(settings.getByLabel('Zernio API key')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(settings).toBeHidden()
+
+  await postBadge(page, /^Scheduled for/).click()
+  const dialog = page.getByRole('dialog', { name: 'Your post' })
+  await expect(dialog.getByText(/does not stop the post/)).toBeVisible()
+  await dialog.getByRole('button', { name: 'Free this cell' }).click()
+  await expect(postBadge(page, /^Scheduled for/)).toHaveCount(0)
+  expect(provider.requests.filter((request) => request.startsWith('DELETE /sch'))).toEqual([])
 })

@@ -20,6 +20,18 @@ export const accountsQuery = queryOptions({
   staleTime: MINUTE
 })
 
+/** Fresh whenever the tab comes back, as posts go out while nobody is looking. */
+export const postsQuery = (accountId: string) =>
+  queryOptions({
+    queryKey: [PROVIDER_KEY, 'scheduled', accountId],
+    queryFn: async () => {
+      const query = { accountId }
+      return (await answer(providerApi['scheduled-posts'].$get({ query }))).items
+    },
+    retry: worthRetrying,
+    refetchInterval: MINUTE
+  })
+
 export const publishedQuery = (accountId: string) =>
   queryOptions({
     queryKey: [PROVIDER_KEY, 'published', accountId],

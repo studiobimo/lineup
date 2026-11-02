@@ -128,7 +128,7 @@ export const BoardCell = memo(function BoardCell({
       )}
       <div className="pointer-events-none absolute bottom-1 left-1 flex flex-wrap gap-1">
         {albumSize && <AlbumButton id={id} size={albumSize} />}
-        {post && <PostBadge post={post} />}
+        {post && <PostBadge id={id} post={post} />}
         {locked && !post && <CellBadge icon={Lock} />}
         {missing && <CellBadge icon={ImageOff} label={t('missingOriginal')} />}
       </div>

@@ -47,7 +47,7 @@ export function CellBadge({ icon: Icon, label }: CellBadgeProps) {
 }
 
 /** For the mouse: the keyboard has Enter on the cell, or these would be more tab stops per image. */
-function CellButton(props: ComponentProps<typeof IconButton>) {
+export function CellButton(props: ComponentProps<typeof IconButton>) {
   return (
     <IconButton variant="outline" size="icon-xs" tabIndex={-1} tooltip={cellTooltip} {...props} />
   )
