@@ -1,5 +1,6 @@
 import {
   ArrowRightLeft,
+  CalendarClock,
   Check,
   Layers,
   Lock,
@@ -13,6 +14,8 @@ import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
 import { openAlbum } from '@/features/albums/album-store'
+import { liveAccount, useConnection } from '@/features/provider/connection'
+import { openPost } from '@/features/provider/post-store'
 import { cn } from '@/lib/utils'
 
 import { type Container, coverOf } from './board'
@@ -25,6 +28,8 @@ interface CellActionsProps {
   id: string
   container: Container
   locked: boolean
+  /** A post holds the cell, so neither locking nor scheduling means anything here. */
+  posted: boolean
 }
 
 interface CellBadgeProps {
@@ -49,19 +54,30 @@ function CellButton(props: ComponentProps<typeof IconButton>) {
 }
 
 /** Memoised, because every cell renders when one moves and these do not depend on position. */
-export const CellActions = memo(function CellActions({ id, container, locked }: CellActionsProps) {
+export const CellActions = memo(function CellActions({
+  id,
+  container,
+  locked,
+  posted
+}: CellActionsProps) {
   const { t } = useTranslation('planner')
   const toTray = container === 'grid'
   const LockToggle = locked ? LockOpen : Lock
+  const connected = liveAccount(useConnection()) !== undefined
   return (
-    <div className="absolute inset-x-0 top-0 flex justify-end gap-1 p-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
+    <div className="absolute inset-x-0 top-0 flex flex-wrap justify-end gap-1 p-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
       <CellButton
         label={t('openImage')}
         onClick={() => openLightbox(coverOf(plannerStore.getState().board, id))}
       >
         <Maximize2 />
       </CellButton>
-      {toTray && (
+      {toTray && connected && !posted && (
+        <CellButton label={t('schedule')} onClick={() => openPost(id)}>
+          <CalendarClock />
+        </CellButton>
+      )}
+      {toTray && !posted && (
         <CellButton
           label={t(locked ? 'unlock' : 'lock')}
           onClick={() => plannerStore.getState().toggleLock(id)}

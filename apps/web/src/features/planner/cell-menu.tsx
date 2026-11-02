@@ -1,5 +1,6 @@
 import {
   ArrowRightLeft,
+  CalendarClock,
   Check,
   Layers,
   Lock,
@@ -13,6 +14,8 @@ import { useTranslation } from 'react-i18next'
 
 import { Menu, MenuItem, MenuPopup } from '@/components/ui/menu'
 import { openAlbum } from '@/features/albums/album-store'
+import { liveAccount, useConnection } from '@/features/provider/connection'
+import { openPost } from '@/features/provider/post-store'
 
 import { containerOf, coverOf, isLocked } from './board'
 import { closeCellMenu, useCellMenu } from './cell-menu-store'
@@ -30,10 +33,12 @@ const neighbourOf = (cell: HTMLElement) =>
 function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
   const { t } = useTranslation('planner')
   const returnTo = useRef<HTMLElement | null>(cell)
+  const connected = liveAccount(useConnection()) !== undefined
   const { board } = plannerStore.getState()
   const toTray = containerOf(board, id) === 'grid'
   const locked = isLocked(board, id)
   const album = board.albums?.[id] !== undefined
+  const posted = board.posts?.[id] !== undefined
   const LockToggle = locked ? LockOpen : Lock
   const leave = (action: () => void) => {
     returnTo.current = neighbourOf(cell)
@@ -56,7 +61,13 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
           <Check />
           {t(selectedCells().includes(id) ? 'deselect' : 'select')}
         </MenuItem>
-        {toTray && (
+        {toTray && connected && !posted && (
+          <MenuItem onClick={() => openPost(id)}>
+            <CalendarClock />
+            {t('schedule')}
+          </MenuItem>
+        )}
+        {toTray && !posted && (
           <MenuItem onClick={() => plannerStore.getState().toggleLock(id)}>
             <LockToggle />
             {t(locked ? 'unlock' : 'lock')}

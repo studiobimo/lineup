@@ -1,6 +1,6 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
 
-import { addImages, grid, image, png, watchErrors } from './fixtures'
+import { addImages, grid, groupCells, image, png, tray, watchErrors } from './fixtures'
 import { mockProvider } from './provider-mock'
 
 const KEY = 'pasted-key-ending-abcd'
@@ -230,4 +230,170 @@ test('the phone preview shows the connected account and its posts', async ({ pag
   await expect(profile.getByText('1234')).toBeAttached()
   await expect(profile.getByText('2', { exact: true })).toBeAttached()
   await expect(phone.locator('[data-empty-slot]')).toHaveCount(7)
+})
+
+const IN_A_WEEK = new Date(Date.now() + 7 * 86_400_000)
+/** As a date and time field wants it, here and in the zone the test runs in. */
+const fieldTime = (date: Date) =>
+  new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
+
+async function planOnGrid(page: Page, count = 1) {
+  await page.goto('/')
+  await expect(page.getByText('Move images here to plan your feed.')).toBeVisible()
+  await addImages(
+    page,
+    Array.from({ length: count }, (_, index) => image(`${index}.png`))
+  )
+  await expect(tray(page)).toHaveCount(count)
+  await page.getByRole('button', { name: 'Move all to the grid' }).click()
+  await expect(grid(page)).toHaveCount(count)
+}
+
+async function openSchedule(page: Page, position = 0) {
+  const cell = grid(page).nth(position)
+  await cell.hover()
+  await cell.getByRole('button', { name: 'Schedule', exact: true }).click()
+  return page.getByRole('dialog', { name: 'Schedule a post' })
+}
+
+async function schedule(dialog: Locator, when = IN_A_WEEK, caption = 'Hello') {
+  await dialog.getByLabel('Caption').fill(caption)
+  await dialog.getByLabel('Date and time').fill(fieldTime(when))
+  await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
+}
+
+test('no key, no way to schedule', async ({ page }) => {
+  await mockProvider(page)
+  await planOnGrid(page)
+  await grid(page).first().hover()
+  await expect(grid(page).first().getByRole('button', { name: 'Move to the tray' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Schedule', exact: true })).toHaveCount(0)
+})
+
+test('a planned image is sent, scheduled and held in place', async ({ page }) => {
+  const errors = watchErrors(page)
+  const provider = await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  await expect(dialog.getByText(/sent to Zernio and Instagram/)).toBeVisible()
+  await schedule(dialog)
+  await expect(dialog).toBeHidden()
+  await expect(page.getByRole('heading', { name: /^Scheduled for/ })).toBeVisible()
+
+  const at = provider.requests.indexOf('POST /scheduled-posts')
+  expect(provider.bodies[at]).toMatchObject({
+    accountId: 'account-1',
+    caption: 'Hello',
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+  })
+  expect(provider.bodies[at].mediaUrls).toHaveLength(1)
+  expect(provider.headers[provider.requests.indexOf('PUT storage')]['content-type']).toBe(
+    'image/jpeg'
+  )
+  expect(provider.requests.indexOf('POST /uploads')).toBeLessThan(at)
+
+  const cell = grid(page).first()
+  await cell.hover()
+  await expect(cell.getByText('Scheduled for')).toBeAttached()
+  await expect(cell.getByRole('button', { name: 'Open full size' })).toBeVisible()
+  await expect(cell.getByRole('button', { name: 'Move to the tray' })).toHaveCount(0)
+  await expect(cell.getByRole('button', { name: 'Schedule', exact: true })).toHaveCount(0)
+  await expect(cell.getByRole('button', { name: /lock/i })).toHaveCount(0)
+
+  await page.reload()
+  await expect(grid(page).first().getByText('Scheduled for')).toBeAttached()
+  expect(errors).toEqual([])
+})
+
+test('an album goes as one post, and each image on its own', async ({ page }) => {
+  const provider = await mockProvider(page)
+  await planOnGrid(page, 2)
+  await groupCells(page, grid(page), 2)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  await expect(dialog.getByText(/2 images go out as a carousel/)).toBeVisible()
+  await schedule(dialog)
+  await expect(dialog).toBeHidden()
+
+  expect(provider.requests.filter((request) => request === 'PUT storage')).toHaveLength(2)
+  const at = provider.requests.indexOf('POST /scheduled-posts')
+  expect(provider.bodies[at].mediaUrls).toHaveLength(2)
+})
+
+test('a time that has passed is refused before anything leaves', async ({ page }) => {
+  const provider = await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+  const dialog = await openSchedule(page)
+  await schedule(dialog, new Date(Date.now() - 86_400_000))
+  await expect(dialog.getByText('Pick a time that is still to come.')).toBeVisible()
+  expect(provider.requests).not.toContain('POST /uploads')
+})
+
+test('a caption past the limit is refused before anything leaves', async ({ page }) => {
+  const provider = await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+  const dialog = await openSchedule(page)
+  await schedule(dialog, IN_A_WEEK, 'x'.repeat(2201))
+  await expect(dialog.getByText('2201 of 2200')).toBeVisible()
+  await expect(dialog).toBeVisible()
+  expect(provider.requests).not.toContain('POST /uploads')
+})
+
+test('a retry after a lost answer does not post twice', async ({ page }) => {
+  const provider = await mockProvider(page, { loseNextAnswer: true })
+  await planOnGrid(page)
+  await connect(page)
+  const dialog = await openSchedule(page)
+  await schedule(dialog)
+  await expect(dialog.getByText(/Could not reach the server/)).toBeVisible()
+
+  await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  expect(provider.scheduled).toHaveLength(1)
+  expect(provider.requests.filter((request) => request === 'PUT storage')).toHaveLength(1)
+  const keys = provider.requests.flatMap((request, index) =>
+    request === 'POST /scheduled-posts' ? [provider.headers[index]['idempotency-key']] : []
+  )
+  expect(keys).toHaveLength(2)
+  expect(new Set(keys).size).toBe(1)
+})
+
+test('storage turning an image down says so, and trying again picks up', async ({ page }) => {
+  const provider = await mockProvider(page, { storageFails: true })
+  await planOnGrid(page)
+  await connect(page)
+  const dialog = await openSchedule(page)
+  await schedule(dialog)
+  await expect(dialog.getByText(/Could not reach the server/)).toBeVisible()
+  expect(provider.requests).not.toContain('POST /scheduled-posts')
+
+  provider.storageFails = false
+  await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  expect(provider.scheduled).toHaveLength(1)
+})
+
+test('a time out of grid order warns, and does not stop anyone', async ({ page }) => {
+  const provider = await mockProvider(page)
+  await planOnGrid(page, 2)
+  await connect(page)
+  const first = await openSchedule(page, 0)
+  await schedule(first)
+  await expect(first).toBeHidden()
+
+  const later = await openSchedule(page, 1)
+  await later.getByLabel('Date and time').fill(fieldTime(new Date(IN_A_WEEK.getTime() + 3_600_000)))
+  await expect(later.getByText(/will not go out in the order of your grid/)).toBeVisible()
+  await later.getByLabel('Date and time').fill(fieldTime(new Date(IN_A_WEEK.getTime() - 3_600_000)))
+  await expect(later.getByText(/will not go out in the order of your grid/)).toBeHidden()
+
+  await later.getByLabel('Date and time').fill(fieldTime(new Date(IN_A_WEEK.getTime() + 3_600_000)))
+  await later.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await expect(later).toBeHidden()
+  expect(provider.scheduled).toHaveLength(2)
 })

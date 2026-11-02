@@ -25,6 +25,24 @@
     "connect": "Connect Instagram",
     "reconnect": "This account needs connecting again before anything can be scheduled."
   },
+  "post": {
+    "title": "Schedule a post",
+    "description_one": "This image goes out at the time you choose.",
+    "description_other": "These {{count}} images go out as a carousel at the time you choose.",
+    "picture": "The post's picture",
+    "caption": "Caption",
+    "captionCount": "{{count}} of {{limit}}",
+    "time": "Date and time",
+    "timeZone": "In your time zone, {{zone}}.",
+    "timeInvalid": "Pick a time that is still to come.",
+    "outOfOrder": "With this time, posts will not go out in the order of your grid.",
+    "notice": "When you schedule, the images and caption are sent to {{provider}} and Instagram. Nothing else leaves this device.",
+    "noKey": "Add your key in Settings to schedule this.",
+    "schedule": "Schedule",
+    "sending": "Sending {{position}} of {{count}}",
+    "scheduled": "Scheduled for {{time}}",
+    "missingCopy": "This image's full copy is no longer on this device, so it cannot be sent."
+  },
   "published": {
     "cell": "Published post",
     "cellOn": "Published on {{date}}",

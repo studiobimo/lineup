@@ -1,0 +1,68 @@
+import { useMutation } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+
+import { toastManager } from '@/components/ui/toast'
+import { provider } from '@/config/provider'
+import { imagesOf } from '@/features/planner/board'
+import { plannerStore } from '@/features/planner/planner'
+
+import { PostForm, type PostFormValues } from './post-form'
+import {
+  formatPostTime,
+  fromFieldTime,
+  localTimeZone,
+  nextFreeHour,
+  toFieldTime
+} from './post-time'
+import { MissingCopyError, sendPost } from './send-post'
+import { useProblemText } from './use-problem-text'
+
+interface NewPostProps {
+  cell: string
+  accountId: string
+  onDone: () => void
+}
+
+export function NewPost({ cell, accountId, onDone }: NewPostProps) {
+  const { t } = useTranslation('provider')
+  const problemText = useProblemText()
+  const images = imagesOf(plannerStore.getState().board, cell)
+  const [sending, setSending] = useState(0)
+
+  const send = useMutation({
+    mutationFn: async ({ caption, when }: PostFormValues) => {
+      const scheduledFor = fromFieldTime(when)
+      const post = { accountId, caption, scheduledFor, timeZone: localTimeZone() }
+      return sendPost({ cell, images, post, onImage: setSending })
+    },
+    onSuccess: (post) => {
+      plannerStore.getState().linkPost(cell, post)
+      const time = formatPostTime(post.scheduledFor)
+      toastManager.add({ type: 'success', title: t('post.scheduled', { time }) })
+      onDone()
+    },
+    onSettled: () => setSending(0)
+  })
+
+  const missing = send.error instanceof MissingCopyError
+
+  return (
+    <PostForm
+      cell={cell}
+      initial={{ caption: '', when: toFieldTime(nextFreeHour()) }}
+      submitLabel={
+        sending > 0
+          ? t('post.sending', { position: sending, count: images.length })
+          : t('post.schedule')
+      }
+      pending={send.isPending}
+      problem={missing ? t('post.missingCopy') : problemText(send.error)}
+      onSubmit={send.mutateAsync}
+    >
+      <p className="text-sm text-muted-foreground">
+        {t('post.notice', { provider: provider.name })}
+      </p>
+    </PostForm>
+  )
+}

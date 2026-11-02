@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { LazyOverlay } from '@/components/lazy-overlay'
 import { closeAlbum, useOpenAlbumId } from '@/features/albums/album-store'
+import { closePost, useOpenPost } from '@/features/provider/post-store'
 import { loadStrings } from '@/i18n/load-strings'
 import { lazyComponent } from '@/lib/lazy-component'
 
@@ -12,6 +13,11 @@ const Lightbox = lazyComponent(() => import('./lightbox').then(({ Lightbox }) =>
 const AlbumDialog = lazyComponent(
   () => import('@/features/albums/album-dialog').then(({ AlbumDialog }) => AlbumDialog),
   () => loadStrings('albums')
+)
+
+const PostDialog = lazyComponent(
+  () => import('@/features/provider/post-dialog').then(({ PostDialog }) => PostDialog),
+  () => loadStrings('provider')
 )
 
 function OpenAlbum() {
@@ -36,12 +42,24 @@ function OpenImage() {
   )
 }
 
+function OpenPost() {
+  const { t } = useTranslation('planner')
+  const cell = useOpenPost()
+  if (!cell) return null
+  return (
+    <LazyOverlay name={t('postName')} onClose={closePost}>
+      <PostDialog key={cell} cell={cell} />
+    </LazyOverlay>
+  )
+}
+
 /** Everything that opens over the board, whichever cell or key opened it. */
 export function PlannerOverlays() {
   return (
     <>
       <OpenImage />
       <OpenAlbum />
+      <OpenPost />
       <CellMenu />
     </>
   )

@@ -13,6 +13,7 @@ import { openLightbox } from './lightbox-store'
 import { GLIDING_Z, settle } from './motion'
 import { cellShape } from './network-profile'
 import { usePlanner } from './planner'
+import { PostBadge } from './post-badge'
 import { clickCell, useIsSelected } from './selection-store'
 import { setTabStop } from './tab-stop'
 import { CellThumbnail } from './thumbnail'
@@ -40,6 +41,7 @@ export const BoardCell = memo(function BoardCell({
   const locked = usePlanner(({ board }) => isLocked(board, id))
   const cover = usePlanner(({ board }) => coverOf(board, id))
   const albumSize = usePlanner(({ board }) => board.albums?.[id]?.length)
+  const post = usePlanner(({ board }) => board.posts?.[id])
   const missing = usePlanner(({ images }) => images[cover]?.missing)
   const selected = useIsSelected(id)
   const {
@@ -124,13 +126,16 @@ export const BoardCell = memo(function BoardCell({
           </m.span>
         </span>
       )}
-      <div className="pointer-events-none absolute bottom-1 left-1 flex gap-1">
+      <div className="pointer-events-none absolute bottom-1 left-1 flex flex-wrap gap-1">
         {albumSize && <AlbumButton id={id} size={albumSize} />}
-        {locked && <CellBadge icon={Lock} />}
+        {post && <PostBadge post={post} />}
+        {locked && !post && <CellBadge icon={Lock} />}
         {missing && <CellBadge icon={ImageOff} label={t('missingOriginal')} />}
       </div>
       {!mark && <SelectToggle id={id} selected={selected} />}
-      {!mark && <CellActions id={id} container={container} locked={locked} />}
+      {!mark && (
+        <CellActions id={id} container={container} locked={locked} posted={post !== undefined} />
+      )}
     </m.div>
   )
 })
