@@ -29,7 +29,7 @@ original for the lightbox, and a backup that decodes up to 300 originals on the 
   second path.
 - **Lineup never changes or deletes a person's photo.** A name that is taken becomes `photo (2).jpg`.
   Removing an image from the board removes the app's copies from `.lineup/`, leaves the file, and
-  adds its path to `forgotten.json`, so it is not offered again.
+  adds its path to `forgotten.json`, so it is not offered again. Settings shows how many such files remain, and can offer them again.
 - **A folder is read by name only.** A file counts as missing when its path is gone, and as back
   when the path returns. Files are not hashed, so a renamed file is one missing cell and one new
   file.

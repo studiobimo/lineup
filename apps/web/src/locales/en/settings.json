@@ -52,5 +52,8 @@
   "folderLeaveForBrowser": "Use the board in this browser",
   "newFiles_one": "1 new photo in your folder",
   "newFiles_other": "{{count}} new photos in your folder",
-  "addNewFiles": "Add to tray"
+  "addNewFiles": "Add to tray",
+  "removedFiles_one": "1 photo you removed from the board is still in this folder.",
+  "removedFiles_other": "{{count}} photos you removed from the board are still in this folder.",
+  "offerRemoved": "Offer again"
 }

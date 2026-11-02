@@ -129,7 +129,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 )}
               </>
             )}
-            <FolderSettings />
+            <FolderSettings onOffered={close} />
             <BackupActions onRestored={close} />
             <p className="mt-2 text-sm text-muted-foreground">{t('backupNote')}</p>
           </section>

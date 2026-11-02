@@ -21,6 +21,10 @@ export interface FolderBoardStore extends BoardStore {
   hasBoard(): Promise<boolean>
   /** Files in the folder the board has not seen, or been told to forget. */
   newFiles(): Promise<File[]>
+  /** How many files that left the board are still in the folder. */
+  countForgotten(): Promise<number>
+  /** Lets `newFiles` offer those files again. */
+  remember(): Promise<void>
 }
 
 const storedRecordSchema = imageRecordSchema.extend({ fileName: z.string().optional() })
@@ -220,6 +224,17 @@ export async function createFolderBoardStore(
         files.push(file)
       }
       return files
+    },
+
+    async countForgotten() {
+      let count = 0
+      for await (const [path] of walk(folder)) if (forgotten.has(path)) count += 1
+      return count
+    },
+
+    async remember() {
+      forgotten.clear()
+      await forgottenFile.write([])
     },
 
     // The folder is the person's disk, so it has no quota to report or browser to persuade.

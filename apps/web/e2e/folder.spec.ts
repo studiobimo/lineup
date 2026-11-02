@@ -228,6 +228,32 @@ test('a removed image stays in the folder and is not offered again', async ({ pa
   expect(await folderFiles(page)).toHaveProperty(['01.jpg'])
 })
 
+test('a photo removed long ago can be offered again, with no second copy', async ({ page }) => {
+  await replacePicker(page)
+  await page.goto('/')
+  await useFolder(page)
+  const removed = photo('01.jpg')
+  // As the board leaves it once undo can no longer reach the image, which takes 50 more changes.
+  await addToFolder(page, '01.jpg', removed.buffer)
+  await addToFolder(page, '.lineup/forgotten.json', Buffer.from('["01.jpg"]'))
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Add images' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Add to tray' })).toHaveCount(0)
+
+  await openSettings(page)
+  await expect(page.getByText('1 photo you removed from the board')).toBeVisible()
+  await page.getByRole('button', { name: 'Offer again' }).click()
+  await page.getByRole('button', { name: 'Add to tray' }).click()
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
+  const files = Object.keys(await folderFiles(page)).filter((name) => !name.startsWith('.'))
+  expect(files).toEqual(['01.jpg'])
+
+  await openSettings(page)
+  await expect(page.getByRole('button', { name: 'Back up' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Offer again' })).toHaveCount(0)
+})
+
 test('a file deleted outside the app is a missing cell, and comes back', async ({ page }) => {
   const errors = watchErrors(page)
   await replacePicker(page)

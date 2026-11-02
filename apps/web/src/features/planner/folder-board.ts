@@ -68,11 +68,15 @@ plannerStore.subscribe(({ saveFailed }, { saveFailed: failedBefore }) => {
   if (saveFailed && !failedBefore) checkFolder().catch(() => undefined)
 })
 
+let standingOffer: string | undefined
+
 /** Stays up until it is answered, because the photos will still be there if it is not. */
 export async function offerNewFiles() {
   const files = (await openFolder?.newFiles())?.filter(isImage) ?? []
   if (files.length === 0) return
   await loadSettingsStrings()
+  // It would be out of date, and two offers would add the same files twice.
+  if (standingOffer) toastManager.close(standingOffer)
   const offer = toastManager.add({
     title: i18n.t('settings:newFiles', { count: files.length }),
     timeout: 0,
@@ -84,6 +88,15 @@ export async function offerNewFiles() {
       }
     }
   })
+  standingOffer = offer
+}
+
+export const countRemovedFiles = async () => (await openFolder?.countForgotten()) ?? 0
+
+/** For a photo that left the board by mistake, long after undo could bring it back. */
+export async function offerRemovedFiles() {
+  await openFolder?.remember()
+  await offerNewFiles()
 }
 
 /** Only from a click: the browser will not ask otherwise. */
