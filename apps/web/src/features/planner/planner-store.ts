@@ -36,7 +36,7 @@ import type { ProcessedImage } from './process-image'
 
 const HISTORY_LIMIT = 50
 
-export interface ImageImport {
+interface ImageImport {
   /** Stores a batch. The images reach the board only at `finish`, so the import is one undo step. */
   add(images: ProcessedImage[]): Promise<void>
   /** Puts everything that was stored in the tray, and throws the first error that stopped any. */
