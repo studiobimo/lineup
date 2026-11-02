@@ -12,7 +12,12 @@ export const keyInputSchema = z.object({
 })
 export type KeyInput = z.infer<typeof keyInputSchema>
 
-export const keyStatusSchema = z.object({ last4: z.string(), expiresAt: z.iso.datetime() })
+export const keyStatusSchema = z.object({
+  last4: z.string(),
+  expiresAt: z.iso.datetime(),
+  /** False for a read-only key, which still reads the account's posts. */
+  canPost: z.boolean()
+})
 export type KeyStatus = z.infer<typeof keyStatusSchema>
 
 export const accountSchema = z.object({

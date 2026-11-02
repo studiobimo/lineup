@@ -283,6 +283,39 @@ test('a key with no account says what is missing, and sends nothing', async ({ p
   expect(provider.requests).not.toContain('POST /uploads')
 })
 
+test('a read-only key shows published posts and offers no way to schedule', async ({ page }) => {
+  const provider = await mockProvider(page, { readOnly: true, published: [post('one')] })
+  await planOnGrid(page)
+  const settings = await addKey(page)
+  await expect(settings.getByText(/This key is read-only/)).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(settings).toBeHidden()
+
+  await expect(publishedCells(page)).toHaveCount(1)
+  await grid(page).first().hover()
+  await expect(grid(page).first().getByRole('button', { name: 'Move to the tray' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Schedule', exact: true })).toHaveCount(0)
+  expect(provider.requests).not.toContain('POST /uploads')
+})
+
+test('a post on the board can be let go under a read-only key', async ({ page }) => {
+  const provider = await scheduledCell(page)
+  await page.getByRole('button', { name: 'Settings' }).click()
+  const settings = page.getByRole('dialog', { name: 'Settings' })
+  provider.readOnly = true
+  await settings.getByRole('button', { name: 'Replace key' }).click()
+  await settings.getByLabel('Zernio API key').fill(KEY)
+  await settings.getByRole('button', { name: 'Save key' }).click()
+  await expect(settings.getByText(/This key is read-only/)).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(settings).toBeHidden()
+
+  await postBadge(page, /^Scheduled for/).click()
+  const dialog = page.getByRole('dialog', { name: 'Your post' })
+  await expect(dialog.getByRole('button', { name: 'Save changes' })).toHaveCount(0)
+  await expect(dialog.getByText(/does not stop the post/)).toBeVisible()
+})
+
 test('a planned image is sent, scheduled and held in place', async ({ page }) => {
   const errors = watchErrors(page)
   const provider = await mockProvider(page)

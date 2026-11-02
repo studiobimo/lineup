@@ -22,6 +22,8 @@ export interface MockProvider {
   headers: Record<string, string>[]
   /** Makes the post, then drops the answer, as a connection can. */
   loseNextAnswer?: boolean
+  /** Whether the key is read-only. */
+  readOnly?: boolean
   /** Whether storage turns down what is sent to it. */
   storageFails?: boolean
 }
@@ -52,7 +54,8 @@ export async function mockProvider(page: Page, seed: Partial<MockProvider> = {})
   const answered = new Map<string, object>()
   const status = () => ({
     last4: LAST4,
-    expiresAt: new Date(Date.now() + 30 * DAY_MS).toISOString()
+    expiresAt: new Date(Date.now() + 30 * DAY_MS).toISOString(),
+    canPost: !state.readOnly
   })
 
   await page.route('**/api/v1/provider/**', async (route) => {

@@ -13,12 +13,17 @@ import { usePlanner } from '@/features/planner/planner'
 import { CellThumbnail } from '@/features/planner/thumbnail'
 import { useDialogPresence } from '@/hooks/use-dialog-presence'
 
-import { hasLiveKey, liveAccount, useConnection } from './connection'
+import { hasLiveKey, liveAccount, mayPost, useConnection } from './connection'
 import { NewPost } from './new-post'
 import { PostDetails } from './post-details'
 import { closePost } from './post-store'
 import { formatPostTime } from './post-time'
 import { ProviderQueries } from './provider-queries'
+
+const whatIsMissing = (connection: ReturnType<typeof useConnection>) => {
+  if (!hasLiveKey(connection)) return 'post.noKey'
+  return mayPost(connection) ? 'post.noAccount' : 'post.readOnly'
+}
 
 export function PostDialog({ cell }: { cell: string }) {
   const { t } = useTranslation('provider')
@@ -45,12 +50,10 @@ export function PostDialog({ cell }: { cell: string }) {
           <ProviderQueries>
             {post ? (
               <PostDetails cell={cell} post={post} onDone={close} />
-            ) : accountId ? (
+            ) : accountId && mayPost(connection) ? (
               <NewPost cell={cell} accountId={accountId} onDone={close} />
             ) : (
-              <p className="text-sm text-muted-foreground">
-                {t(hasLiveKey(connection) ? 'post.noAccount' : 'post.noKey')}
-              </p>
+              <p className="text-sm text-muted-foreground">{t(whatIsMissing(connection))}</p>
             )}
           </ProviderQueries>
         </DialogPanel>

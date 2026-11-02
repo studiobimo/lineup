@@ -46,6 +46,28 @@ describe('zernio', () => {
     expect(await provider.narrowed('profile', 30)).toBeUndefined()
   })
 
+  it('takes a refused write for a read-only key, and not for a bad one', async () => {
+    stub.mockResolvedValue(respond({}, 401))
+    expect(await provider.narrowed('profile', 30)).toBeUndefined()
+  })
+
+  it.each([401, 403])('says a key that gets %i asking to upload cannot post', async (status) => {
+    stub.mockResolvedValue(respond({}, status))
+    expect(await provider.canPost()).toBe(false)
+  })
+
+  it('says a key that gets an upload URL can post, and uploads nothing', async () => {
+    stub.mockResolvedValue(respond({ uploadUrl: 'https://u.test', publicUrl: 'https://p.test' }))
+    expect(await provider.canPost()).toBe(true)
+    expect(sent().url).toContain('/media/presign')
+    expect(stub).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not call a key read-only because of an outage', async () => {
+    stub.mockResolvedValue(respond({}, 503))
+    await expect(provider.canPost()).rejects.toMatchObject({ failure: 'down' })
+  })
+
   it('does not hide an outage behind a key that could not be narrowed', async () => {
     stub.mockResolvedValue(respond({}, 503))
     await expect(provider.narrowed('profile', 30)).rejects.toMatchObject({ failure: 'down' })

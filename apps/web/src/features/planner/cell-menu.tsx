@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Menu, MenuItem, MenuPopup } from '@/components/ui/menu'
 import { openAlbum } from '@/features/albums/album-store'
-import { hasLiveKey, useConnection } from '@/features/provider/connection'
+import { mayPost, useConnection } from '@/features/provider/connection'
 import { openPost } from '@/features/provider/post-store'
 
 import { containerOf, coverOf, isLocked } from './board'
@@ -33,7 +33,7 @@ const neighbourOf = (cell: HTMLElement) =>
 function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
   const { t } = useTranslation('planner')
   const returnTo = useRef<HTMLElement | null>(cell)
-  const hasKey = hasLiveKey(useConnection())
+  const canSchedule = mayPost(useConnection())
   const { board } = plannerStore.getState()
   const toTray = containerOf(board, id) === 'grid'
   const locked = isLocked(board, id)
@@ -67,7 +67,7 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
             {t('postDetails')}
           </MenuItem>
         )}
-        {toTray && hasKey && !posted && (
+        {toTray && canSchedule && !posted && (
           <MenuItem onClick={() => openPost(id)}>
             <CalendarClock />
             {t('schedule')}

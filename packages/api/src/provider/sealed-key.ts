@@ -9,6 +9,7 @@ export interface SealedKey {
   last4: string
   expiresAt: string
   profileId: string
+  canPost: boolean
 }
 
 /** The Worker's secrets by version. Old ones stay for 30 days, so a rotation drops no one's key. */

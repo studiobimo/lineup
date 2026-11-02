@@ -115,6 +115,9 @@ const externalPostsSchema = z.object({
 const postsSchema = z.object({ posts: z.array(zernioPostSchema) })
 const postSchema = z.object({ post: zernioPostSchema })
 const createdKeySchema = z.object({ apiKey: z.object({ key: z.string() }) })
+const refusedThis = (error: unknown, failures: ProviderFailure[]) =>
+  error instanceof ProviderError && failures.includes(error.failure)
+
 const presignSchema = z.object({ uploadUrl: z.string(), publicUrl: z.string() })
 const connectSchema = z.object({ authUrl: z.string() })
 const nothing = z.unknown()
@@ -166,10 +169,22 @@ export function zernio(key: string): Provider {
         const { apiKey } = await call('/api-keys', createdKeySchema, { method: 'POST', body })
         return apiKey.key
       } catch (error) {
-        // A narrow key cannot make another, and that is the key the guide asks for.
-        if (error instanceof ProviderError && ['forbidden', 'refused'].includes(error.failure)) {
-          return undefined
-        }
+        // A narrow key cannot make another, and that is the key the guide asks for. Nor can a
+        // read-only key, and this key has just read the profiles, so it is not a bad key.
+        if (refusedThis(error, ['forbidden', 'refused', 'key'])) return undefined
+        throw error
+      }
+    },
+
+    async canPost() {
+      // An upload URL leaves nothing behind unless something is uploaded to it. Zernio has no way
+      // to ask a key what it may do, and limits a read-only key to GET requests.
+      const body = { filename: 'lineup-check.jpg', contentType: 'image/jpeg', size: 1 }
+      try {
+        await call('/media/presign', presignSchema, { method: 'POST', body })
+        return true
+      } catch (error) {
+        if (refusedThis(error, ['forbidden', 'key'])) return false
         throw error
       }
     },

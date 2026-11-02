@@ -19,7 +19,7 @@ import type { CellPost } from '@/features/planner/board-schema'
 import { plannerStore } from '@/features/planner/planner'
 
 import { answer, providerApi, ProviderRequestError } from './api'
-import { liveAccount, useConnection } from './connection'
+import { mayPost, useConnection } from './connection'
 import { PostForm, type PostFormValues } from './post-form'
 import { fromFieldTime, localTimeZone, toFieldTime } from './post-time'
 import { PROVIDER_KEY } from './queries'
@@ -155,7 +155,7 @@ function FreeCell({ cell, onDone, note }: Pick<PostProps, 'cell' | 'onDone'> & {
 
 export function PostDetails({ cell, post, onDone }: PostProps) {
   const { t } = useTranslation('provider')
-  const connected = liveAccount(useConnection()) !== undefined
+  const canChange = mayPost(useConnection())
   const { caption, status, url } = post
   if (status === 'published') {
     return (
@@ -166,7 +166,7 @@ export function PostDetails({ cell, post, onDone }: PostProps) {
       </div>
     )
   }
-  if (!connected) {
+  if (!canChange) {
     return (
       <div className="flex flex-col gap-3">
         <Caption caption={caption} />

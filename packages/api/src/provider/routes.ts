@@ -144,9 +144,11 @@ export function providerRoutes(providerFor: ProviderFor) {
         const maxAge = KEY_DAYS * DAY_SECONDS
         const expiresAt = new Date(Date.now() + maxAge * 1000).toISOString()
         const last4 = key.slice(-4)
-        const sealed = { key: narrowed ?? key, last4, expiresAt, profileId: profile.id }
+        const usable = narrowed ?? key
+        const canPost = await providerFor(usable).canPost()
+        const sealed = { key: usable, last4, expiresAt, profileId: profile.id, canPost }
         setCookie(c, COOKIE, await seal(sealed, c.env), { ...cookieOptions, maxAge })
-        return c.json({ last4, expiresAt })
+        return c.json({ last4, expiresAt, canPost })
       }
     )
     .get(
@@ -162,7 +164,8 @@ export function providerRoutes(providerFor: ProviderFor) {
         if (!sealed) {
           throw new ProblemError({ status: 404, code: 'not_found', title: 'There is no key here' })
         }
-        return c.json({ last4: sealed.last4, expiresAt: sealed.expiresAt })
+        const { last4, expiresAt, canPost } = sealed
+        return c.json({ last4, expiresAt, canPost })
       }
     )
     .delete(

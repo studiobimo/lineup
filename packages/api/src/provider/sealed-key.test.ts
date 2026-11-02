@@ -5,7 +5,13 @@ import { seal, unseal } from './sealed-key'
 const secret = (fill: number) => btoa(String.fromCharCode(...new Uint8Array(32).fill(fill)))
 const env = { PROVIDER_KEY_SECRET_V1: secret(1) }
 const later = new Date(Date.now() + 60_000).toISOString()
-const sealed = { key: 'sk_the_real_key', last4: 'key1', expiresAt: later, profileId: 'profile' }
+const sealed = {
+  key: 'sk_the_real_key',
+  last4: 'key1',
+  expiresAt: later,
+  profileId: 'profile',
+  canPost: true
+}
 
 describe('the sealed key', () => {
   it('comes back as it went in, and shows nothing of it on the way', async () => {

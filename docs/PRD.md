@@ -191,6 +191,7 @@ The user brings their own Zernio API key. See [ADR-0003](adr/0003-zernio-byok.md
 | ZRN-12 | A retry never double-posts                       | Repeating a schedule request after a network failure does not create a second post                                                                                                      | Must     |
 | ZRN-13 | I understand what leaves my device               | Before the first schedule, a notice says the image and caption are sent to Zernio and Instagram                                                                                         | Must     |
 | ZRN-14 | My key expires                                   | A key lasts 30 days at most. Settings shows the date, and the app then asks for a key again; nothing planned or already scheduled is affected                                           | Must     |
+| ZRN-15 | I can use a read-only key                        | My published posts show and nothing can be scheduled; Settings says so, and how to change it                                                                                            | Should   |
 
 ### E8. Shell
 

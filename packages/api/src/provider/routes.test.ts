@@ -21,6 +21,7 @@ function stubProvider(): Provider {
   return {
     profiles: vi.fn(async () => [{ id: 'profile', name: 'Main' }]),
     narrowed: vi.fn(async () => NARROW),
+    canPost: vi.fn(async () => true),
     accounts: vi.fn(async () => [{ id: 'account', username: 'me', needsReconnection: false }]),
     connectUrl: vi.fn(async () => 'https://zernio.com/connect'),
     publishedPosts: vi.fn(async () => [{ id: 'live' }]),
@@ -112,6 +113,17 @@ describe('provider routes', () => {
       expect(providerFor).toHaveBeenLastCalledWith(NARROW)
     })
 
+    it('says what the key can do, and asks it of the key that will be used', async () => {
+      vi.mocked(provider.canPost).mockResolvedValue(false)
+      const saved = await putKey()
+      expect(await saved.clone().json()).toMatchObject({ canPost: false })
+      expect(providerFor).toHaveBeenLastCalledWith(NARROW)
+
+      const cookie = saved.headers.get('Set-Cookie') ?? ''
+      const read = await send('/key', { headers: { Cookie: cookie.split(';')[0] } })
+      expect(await read.json()).toMatchObject({ canPost: false })
+    })
+
     it('seals the key as given when it cannot be narrowed', async () => {
       vi.mocked(provider.narrowed).mockResolvedValue(undefined)
       const headers = await signedIn()
@@ -170,11 +182,12 @@ describe('provider routes', () => {
 
     it('refuses an altered cookie', async () => {
       const { Cookie } = await signedIn()
+      providerFor.mockClear()
       const altered = `${Cookie.slice(0, -2)}${Cookie.endsWith('AA') ? 'BB' : 'AA'}`
       const response = await send('/accounts', { headers: { Cookie: altered } })
       expect(response.status).toBe(401)
       expect(await code(response)).toBe('key_missing')
-      expect(providerFor).toHaveBeenCalledTimes(1)
+      expect(providerFor).not.toHaveBeenCalled()
     })
 
     it('refuses an expired key', async () => {

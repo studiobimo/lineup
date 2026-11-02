@@ -4,7 +4,7 @@
   "guide": {
     "account": "Create a free account at <site>{{provider}}</site>.",
     "instagram": "Connect your Instagram there. It has to be a professional account, which Instagram requires to be public.",
-    "key": "Create an API key limited to one profile, and paste it here."
+    "key": "Create an API key limited to one profile, and paste it here. A read-only key is enough to see your posts, and it cannot schedule."
   },
   "key": {
     "label": "{{provider}} API key",
@@ -13,6 +13,7 @@
     "chooseProfile": "Choose a profile",
     "save": "Save key",
     "connected": "Key ending {{last4}}, good until {{date}}.",
+    "readOnly": "This key is read-only, so your posts show but nothing can be scheduled. To schedule, replace it with a read and write key.",
     "replace": "Replace key",
     "forget": "Forget key",
     "expired": "Your key has expired. What you planned and scheduled is safe. Add a key to carry on.",
@@ -46,6 +47,7 @@
     "outOfOrder": "With this time, posts will not go out in the order of your grid.",
     "notice": "When you schedule, the images and caption are sent to {{provider}} and Instagram. Nothing else leaves this device.",
     "noKey": "Add your key in Settings to schedule this.",
+    "readOnly": "This key is read-only. Replace it in Settings with a read and write key to schedule this.",
     "noAccount": "Connect an Instagram account in Settings to schedule this. Instagram only allows it for a professional account.",
     "saveChanges": "Save changes",
     "cancel": "Cancel post",
@@ -56,7 +58,7 @@
     "view": "View on Instagram",
     "free": "Free this cell",
     "freePublished": "Freeing this cell leaves the post on Instagram, and it shows after the planned cells.",
-    "freeWithoutKey": "Without your key, this can't be changed from here. Freeing the cell does not stop the post: it stays at {{provider}}.",
+    "freeWithoutKey": "Without a key that can post, this can't be changed from here. Freeing the cell does not stop the post: it stays at {{provider}}.",
     "schedule": "Schedule",
     "sending": "Sending {{position}} of {{count}}",
     "scheduled": "Scheduled for {{time}}",

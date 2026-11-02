@@ -14,6 +14,8 @@ export interface Provider {
   profiles(): Promise<Profile[]>
   /** A key limited to one profile and to what Lineup uses. Nothing, if this key cannot make one. */
   narrowed(profileId: string, days: number): Promise<string | undefined>
+  /** Whether this key can post, asked in a way that changes nothing at the provider. */
+  canPost(): Promise<boolean>
   accounts(profileId: string): Promise<Account[]>
   connectUrl(profileId: string, returnTo: string): Promise<string>
   publishedPosts(accountId: string): Promise<PublishedPost[]>

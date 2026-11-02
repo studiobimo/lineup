@@ -30,6 +30,10 @@ group makes it a restricted `zrk_` key, which cannot manage keys. Revoking is do
 
 Most comparison data came from vendor-written articles; treat prices as approximate.
 
+A `read` key is limited to GET requests, and no endpoint reports a key's own permission. The status a
+write gets from one is undocumented, so Lineup asks for an upload URL when a key is saved, which
+leaves nothing behind, and takes a 401 or 403 to mean read-only. **Unverified** on a real read key.
+
 ## 2. Publishing directly through Meta (no third-party API)
 
 Question raised: use an API only to fetch, and post and schedule from our own app?

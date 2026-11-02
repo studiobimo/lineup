@@ -10,7 +10,7 @@ import { SettingsNote, SettingsSection } from '@/features/help/settings-section'
 
 import { AccountChoice } from './account-choice'
 import { answer, providerApi, ProviderRequestError } from './api'
-import { forgetConnection, hasLiveKey, useConnection } from './connection'
+import { forgetConnection, hasLiveKey, saveConnection, useConnection } from './connection'
 import { KeyForm, KeyGuide } from './key-form'
 import { ProviderQueries } from './provider-queries'
 import { keyQuery, PROVIDER_KEY } from './queries'
@@ -30,15 +30,19 @@ function useForgetKey() {
 function ConnectedKey() {
   const { t, i18n } = useTranslation('provider')
   const problemText = useProblemText()
-  const { last4, expiresAt } = useConnection()
+  const { last4, expiresAt, canPost } = useConnection()
   const [replacing, setReplacing] = useState(false)
   const forget = useForgetKey()
-  const { error } = useQuery(keyQuery)
+  const { data: status, error } = useQuery(keyQuery)
 
   // The browser dropped the cookie, or the Worker can no longer open it: this hint is out of date.
   useEffect(() => {
     if (error instanceof ProviderRequestError && error.problem?.status === 404) forgetConnection()
   }, [error])
+
+  useEffect(() => {
+    if (status) saveConnection(status)
+  }, [status])
 
   const expires = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(
     new Date(expiresAt ?? 0)
@@ -46,6 +50,7 @@ function ConnectedKey() {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm">{t('key.connected', { last4, date: expires })}</p>
+      {canPost === false && <SettingsNote>{t('key.readOnly')}</SettingsNote>}
       <AccountChoice />
       {replacing ? (
         <KeyForm onSaved={() => setReplacing(false)} />
