@@ -4,6 +4,7 @@ import { createStore } from 'zustand/vanilla'
 import { toastManager } from '@/components/ui/toast'
 import i18n from '@/i18n/config'
 
+import { imagesOn } from './board'
 import { importImages } from './import-images'
 import { IMAGE_LIMIT, type ImportSource, planImport } from './import-source'
 import { boardStore, plannerStore } from './planner'
@@ -20,7 +21,7 @@ const importStore = createStore<ImportState>((set, get) => ({
     if (get().progress) return
     try {
       const { board } = plannerStore.getState()
-      const plan = planImport(await source.files(), board.tray.length + board.grid.length)
+      const plan = planImport(await source.files(), imagesOn(board).length)
       let failed = 0
       if (plan.accepted.length > 0) {
         set({ progress: { done: 0, total: plan.accepted.length } })

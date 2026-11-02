@@ -7,6 +7,8 @@ import {
   addToTray,
   clear,
   type Container,
+  coverOf,
+  imagesOn,
   keepLocked,
   move,
   moveAll,
@@ -14,7 +16,8 @@ import {
   sameBoard,
   shuffle,
   swap,
-  toggleLock
+  toggleLock,
+  withKnownImages
 } from './board'
 import type { Backup } from './backup'
 import { boardJournal, type BoardJournal } from './board-journal'
@@ -55,8 +58,7 @@ export interface PlannerState {
   redo(): void
 }
 
-const placedIn = (boards: Board[]) =>
-  new Set(boards.flatMap(({ tray, grid }) => [...tray, ...grid]))
+const placedIn = (boards: Board[]) => new Set(boards.flatMap(imagesOn))
 
 export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal = boardJournal) {
   return createStore<PlannerState>((set, get) => {
@@ -137,11 +139,7 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
         const [storedBoard, records, history] = reading
         const images = Object.fromEntries(records.map((record) => [record.id, record]))
         const known = (id: string) => id in images
-        const present = ({ tray, grid, locked }: Board): Board => ({
-          tray: tray.filter(known),
-          grid: grid.filter(known),
-          locked: locked?.filter(known)
-        })
+        const present = (saved: Board) => withKnownImages(saved, known)
         const stored = present(storedBoard)
         const future = history.future.map(present)
         let board = stored
@@ -153,7 +151,7 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
 
         // Each is a step of its own, so that what comes back can still be undone.
         const unsaved = journal.read()
-        if (unsaved && [...unsaved.tray, ...unsaved.grid].every(known)) {
+        if (unsaved && imagesOn(unsaved).every(known)) {
           if (!sameBoard(unsaved, board)) step(unsaved)
         }
         // Stored but on no board: an import stopped, or the board's own file was lost.
@@ -218,7 +216,7 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
 
       async sortByColour(container, strategy) {
         const { board, images } = get()
-        const cells = board[container].map((id) => images[id])
+        const cells = board[container].map((id) => ({ ...images[coverOf(board, id)], id }))
         const order = await sortByColour(cells, strategy)
         // An order for a board that has since moved on would undo whatever moved it.
         if (get().board === board) commit({ ...board, [container]: order })

@@ -60,6 +60,28 @@ describe('a backup', () => {
     expect(await file.text()).not.toContain('holiday')
   })
 
+  it('carries albums, and every image in them', async () => {
+    const withAlbum: Board = { tray: ['album'], grid: [], albums: { album: ['a', 'b'] } }
+    const backup = await readBackup(await createBackup(store(), withAlbum))
+    expect(backup.board).toEqual(withAlbum)
+    expect(backup.images.map(({ id }) => id)).toEqual(['a', 'b'])
+  })
+
+  it('reads a backup made before albums, as a board without them', async () => {
+    const manifest = JSON.stringify({
+      version: 1,
+      board: { tray: ['a'], grid: [] },
+      images: [{ ...record('a'), thumbnail: [0, 1], publish: [1, 1] }]
+    })
+    const length = new DataView(new ArrayBuffer(4))
+    length.setUint32(0, new TextEncoder().encode(manifest).length, true)
+    const file = new Blob(['LINEUPBK', length, manifest, 'tp'])
+
+    const backup = await readBackup(file)
+    expect(backup.board).toEqual({ tray: ['a'], grid: [] })
+    expect(await textOf(backup)).toEqual([['a', 't', 'p']])
+  })
+
   it('reads no bytes into the manifest, however large the images', async () => {
     const big = { ...store(), getPublishCopy: async () => new Blob([new Uint8Array(4096)]) }
     const file = await createBackup(big, board)

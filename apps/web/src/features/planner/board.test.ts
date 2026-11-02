@@ -4,7 +4,10 @@ import {
   addToTray,
   cellsThatCrossed,
   clear,
+  coverOf,
   freeCells,
+  imagesOf,
+  imagesOn,
   isLocked,
   keepLocked,
   move,
@@ -13,8 +16,10 @@ import {
   sameBoard,
   shuffle,
   swap,
-  toggleLock
+  toggleLock,
+  withKnownImages
 } from './board'
+import type { Board } from './board-store'
 
 const board = { tray: ['a', 'b'], grid: ['c', 'd', 'e'] }
 
@@ -126,5 +131,51 @@ describe('board operations', () => {
   it('tells boards apart by order', () => {
     expect(sameBoard(board, structuredClone(board))).toBe(true)
     expect(sameBoard(board, swap(board, 'a', 'b'))).toBe(false)
+  })
+})
+
+describe('a board with an album', () => {
+  const albums = { album: ['b', 'c'] }
+  const board: Board = { tray: ['a', 'album'], grid: ['d'], albums }
+
+  it('knows the images in a cell, and its cover', () => {
+    expect(imagesOf(board, 'album')).toEqual(['b', 'c'])
+    expect(imagesOf(board, 'a')).toEqual(['a'])
+    expect(coverOf(board, 'album')).toBe('b')
+    expect(imagesOn(board)).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('keeps the album through a move, a swap and a shuffle', () => {
+    expect(move(board, 'album', 'grid').albums).toEqual(albums)
+    expect(swap(board, 'album', 'd')).toMatchObject({ tray: ['a', 'd'], grid: ['album'], albums })
+    expect(shuffle(board, 'tray', () => 0).albums).toEqual(albums)
+  })
+
+  it('lets the album go with its cell', () => {
+    expect(remove(board, ['album']).albums).toEqual({})
+    expect(clear(board, ['tray']).albums).toEqual({})
+    expect(clear(board, ['grid']).albums).toEqual(albums)
+    expect(board.albums).toEqual(albums)
+  })
+
+  it('tells boards apart by their albums alone', () => {
+    const reordered = { ...board, albums: { album: ['c', 'b'] } }
+    expect(sameBoard(board, reordered)).toBe(false)
+    expect(sameBoard(board, { ...board, albums: { album: ['b', 'c'] } })).toBe(true)
+    expect(sameBoard({ tray: [], grid: [] }, { tray: [], grid: [], albums: {} })).toBe(true)
+  })
+
+  it('drops an image a store no longer has, and an album left with one is that image', () => {
+    const big: Board = { tray: ['album'], grid: [], albums: { album: ['a', 'b', 'c'] } }
+    const without = (gone: string[]) => withKnownImages(big, (id) => !gone.includes(id))
+    expect(without(['b'])).toMatchObject({ tray: ['album'], albums: { album: ['a', 'c'] } })
+    expect(without(['b', 'c'])).toMatchObject({ tray: ['a'], albums: {} })
+    expect(without(['a', 'b', 'c']).tray).toEqual([])
+  })
+
+  it('leaves a board that never had an album as it was', () => {
+    const plain: Board = { tray: ['a'], grid: ['b'], locked: ['b'] }
+    expect(withKnownImages(plain, () => true)).toEqual(plain)
+    expect(withKnownImages(plain, () => true)).not.toHaveProperty('albums')
   })
 })

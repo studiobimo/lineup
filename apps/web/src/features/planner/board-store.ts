@@ -6,6 +6,8 @@ export interface Board {
   grid: string[]
   /** Grid cells that hold their position: a post that is already live, say. */
   locked?: string[]
+  /** Each album's images, in order, by the id of the cell it fills. Those images are in no cell. */
+  albums?: Record<string, string[]>
 }
 
 export interface ImageRecord {

@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Group } from '@/components/ui/group'
 import { SortMenu } from '@/features/autosort/sort-menu'
 
-import { type Container, freeCells } from './board'
+import { type Container, freeCells, imagesIn } from './board'
 import { plannerStore, usePlanner } from './planner'
 
 const PhonePreview = lazy(() =>
@@ -81,8 +81,8 @@ export function PreviewOnPhone() {
 export function ClearBoard() {
   const { t } = useTranslation('planner')
   const [open, setOpen] = useState(false)
-  const tray = usePlanner((state) => state.board.tray.length)
-  const grid = usePlanner(({ board }) => freeCells(board, 'grid').length)
+  const tray = usePlanner(({ board }) => imagesIn(board, 'tray').length)
+  const grid = usePlanner(({ board }) => imagesIn(board, 'grid').length)
   const locked = usePlanner(({ board }) => board.locked?.length ?? 0)
   const clear = (containers: Container[]) => {
     plannerStore.getState().clear(containers)

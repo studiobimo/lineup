@@ -319,6 +319,53 @@ describe('the planner store', () => {
     expect(boardStore.deleteImages).not.toHaveBeenCalled()
   })
 
+  it('opens a board saved before albums exactly as it was', async () => {
+    const saved = { tray: ['a'], grid: ['b'], locked: ['b'] }
+    const boardStore = fakeBoardStore(saved, ['a', 'b'])
+    const store = createPlannerStore(boardStore)
+    await store.getState().load()
+
+    expect(store.getState().board).toStrictEqual(saved)
+    expect(store.getState().past).toEqual([])
+    expect(boardStore.saveBoard).not.toHaveBeenCalled()
+  })
+
+  it('counts an image in an album as placed, and keeps it', async () => {
+    const saved = { tray: ['album'], grid: [], albums: { album: ['a', 'b'] } }
+    const boardStore = fakeBoardStore(saved, ['a', 'b'])
+    const store = createPlannerStore(boardStore)
+    await store.getState().load()
+
+    expect(store.getState().board).toEqual(saved)
+    expect(boardStore.deleteImages).not.toHaveBeenCalled()
+  })
+
+  it('holds an image on as long as a snapshot of its album can bring it back', async () => {
+    const saved = { tray: ['album', 'c'], grid: [], albums: { album: ['a', 'b'] } }
+    const boardStore = fakeBoardStore(saved, ['a', 'b', 'c'])
+    const store = createPlannerStore(boardStore)
+    await store.getState().load()
+
+    store.getState().remove(['album'])
+    expect(boardStore.deleteImages).not.toHaveBeenCalled()
+    store.getState().undo()
+    expect(store.getState().board).toEqual(saved)
+  })
+
+  it('sorts an album by its cover, and keeps it one cell', async () => {
+    const tone = (lightness: number) => ({ ...colour, dominant: { ...colour.dominant, lightness } })
+    const saved = { tray: ['album', 'c'], grid: [], albums: { album: ['a', 'b'] } }
+    const boardStore = fakeBoardStore(saved, ['a', 'b', 'c'])
+    const store = createPlannerStore(boardStore)
+    await store.getState().load()
+    store.getState().setColour('a', tone(0.1))
+    store.getState().setColour('b', tone(0.9))
+    store.getState().setColour('c', tone(0.5))
+
+    await store.getState().sortByColour('tray', 'lightToDark')
+    expect(store.getState().board.tray).toEqual(['c', 'album'])
+  })
+
   it('puts an image no board reaches in the tray, as a step that can be undone', async () => {
     const boardStore = fakeBoardStore({ tray: ['a'], grid: [] }, ['a', 'stranded'])
     const store = createPlannerStore(boardStore)

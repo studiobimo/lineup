@@ -6,7 +6,8 @@ const oklch = z.object({ lightness: z.number(), chroma: z.number(), hue: z.numbe
 export const boardSchema = z.object({
   tray: z.array(z.string()),
   grid: z.array(z.string()),
-  locked: z.array(z.string()).optional()
+  locked: z.array(z.string()).optional(),
+  albums: z.record(z.string(), z.array(z.string())).optional()
 })
 
 export const historySchema = z.object({

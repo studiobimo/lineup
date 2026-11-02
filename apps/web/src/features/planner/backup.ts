@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { imagesOn } from './board'
 import { boardSchema, imageRecordSchema } from './board-schema'
 import type { Board, BoardStore, ImageRecord, StoredImage } from './board-store'
 
@@ -7,13 +8,15 @@ import type { Board, BoardStore, ImageRecord, StoredImage } from './board-store'
 // and then every image's bytes, which the manifest finds by offset from where they start.
 const SIGNATURE = 'LINEUPBK'
 const HEADER_BYTES = SIGNATURE.length + Uint32Array.BYTES_PER_ELEMENT
-const FORMAT_VERSION = 1
+// 1 had no albums, and reads as a board that has none.
+const FORMAT_VERSION = 2
+const READABLE_VERSIONS = [1, FORMAT_VERSION] as const
 const IMAGE_TYPE = 'image/jpeg'
 
 const span = z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()])
 
 const manifestSchema = z.object({
-  version: z.literal(FORMAT_VERSION),
+  version: z.literal(READABLE_VERSIONS),
   board: boardSchema,
   images: z.array(imageRecordSchema.extend({ thumbnail: span, publish: span }))
 })
@@ -32,7 +35,7 @@ type BackupSource = Pick<BoardStore, 'listImages' | 'getThumbnail' | 'getPublish
  * history stays behind, so an image only a past step could bring back is not in the file.
  */
 export async function createBackup(store: BackupSource, board: Board) {
-  const onBoard = new Set([...board.tray, ...board.grid])
+  const onBoard = new Set(imagesOn(board))
   const records = (await store.listImages()).filter(({ id }) => onBoard.has(id))
   const bytes: Blob[] = []
   let offset = 0
@@ -82,7 +85,7 @@ export async function readBackup(file: Blob): Promise<Backup> {
   }))
 
   const known = new Set(images.map(({ id }) => id))
-  if (![...board.tray, ...board.grid].every((id) => known.has(id))) {
+  if (!imagesOn(board).every((id) => known.has(id))) {
     throw new Error('The board names an image the file does not hold')
   }
   return { board, images: stored }
