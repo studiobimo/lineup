@@ -1,4 +1,3 @@
-import { QueryClient } from '@tanstack/react-query'
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
@@ -8,10 +7,9 @@ import { createAppRouter } from './router'
 
 describe('router', () => {
   it('renders the home page at /', async () => {
-    const queryClient = new QueryClient()
-    const router = createAppRouter(queryClient, createMemoryHistory({ initialEntries: ['/'] }))
+    const router = createAppRouter(createMemoryHistory({ initialEntries: ['/'] }))
     render(
-      <AppProviders queryClient={queryClient}>
+      <AppProviders>
         <RouterProvider router={router} />
       </AppProviders>
     )

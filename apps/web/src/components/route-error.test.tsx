@@ -1,4 +1,3 @@
-import { QueryClient } from '@tanstack/react-query'
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -21,10 +20,9 @@ describe('RouteError', () => {
   it('keeps the shell when a page crashes, and tries again', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const user = userEvent.setup()
-    const queryClient = new QueryClient()
-    const router = createAppRouter(queryClient, createMemoryHistory({ initialEntries: ['/'] }))
+    const router = createAppRouter(createMemoryHistory({ initialEntries: ['/'] }))
     render(
-      <AppProviders queryClient={queryClient}>
+      <AppProviders>
         <RouterProvider router={router} />
       </AppProviders>
     )

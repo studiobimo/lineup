@@ -10,10 +10,16 @@ const report = process.env.ANALYZE
   ? [visualizer({ filename: 'dist/bundle-report.html', gzipSize: true, template: 'treemap' })]
   : []
 
+// The router is on every page. Queries and forms are only in what the provider's screens load, and
+// a shared chunk would bring all of them to a first visit, so these stay with whatever imports them.
+const vendors = {
+  tanstack: /[\\/]node_modules[\\/]@tanstack[\\/](?!react-form|form-core|react-query|query-core)/
+}
+
 // The hosting profile's plugin, if there is one, comes in through app().
 export default defineConfig(
   // public/_headers allows no data: URIs, so a small font or image has to stay a file.
-  mergeConfig(await app({ site }), {
+  mergeConfig(await app({ site, vendors }), {
     build: { assetsInlineLimit: 0 },
     plugins: [
       ...report,

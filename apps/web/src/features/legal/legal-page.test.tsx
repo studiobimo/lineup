@@ -1,4 +1,3 @@
-import { QueryClient } from '@tanstack/react-query'
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -8,10 +7,9 @@ import { AppProviders } from '@/components/app-providers'
 import { createAppRouter } from '@/router'
 
 function open(path: string) {
-  const queryClient = new QueryClient()
-  const router = createAppRouter(queryClient, createMemoryHistory({ initialEntries: [path] }))
+  const router = createAppRouter(createMemoryHistory({ initialEntries: [path] }))
   render(
-    <AppProviders queryClient={queryClient}>
+    <AppProviders>
       <RouterProvider router={router} />
     </AppProviders>
   )

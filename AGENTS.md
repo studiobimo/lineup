@@ -164,6 +164,10 @@ pnpm cf:deploy:production  # lineup.bimo.dev
 - **Storage changes ship with a migration** and a test that opens a board saved by the previous release.
 - **Icon-only buttons use `IconButton`,** which requires a label and shows it as a tooltip.
 - **Every app-wide provider goes in `AppProviders`,** in `src/components/app-providers.tsx`.
+- **The first load has a limit,** 200 kB of script before any lazy route, which `make -C .devtools
+  first-load` enforces. TanStack Query and Form are kept out of it: they load with the provider's
+  screens, whose `ProviderQueries` holds the one query client. So a route loader has no query
+  client, and code from `gen.mjs` that expects one needs that moved into a feature.
 - **Page edges use `gutter`** (`px-gutter`, `p-gutter`), the spacing token in `src/index.css`, so
   every region lines up. Padding inside a component keeps its own size.
 - **Spelling is British** in prose and identifiers (`colour`), matching the rest of the org.

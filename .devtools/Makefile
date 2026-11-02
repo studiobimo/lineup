@@ -8,8 +8,12 @@ APP_DIR := apps/web
 # code has to ship in the image worker as well as the app, and sorting, backups and offline support
 # follow it. Keep raising this rather than cut features: heavy trimming starts at half of
 # Cloudflare's bundle limit. Raising it still needs a reason. The city list and the metadata reader
-# are 82 KiB of this, and load only for someone who turns on capture dates or locations.
-BUNDLE_TOTAL_KIB := 480
+# are 82 KiB of this, and load only for someone who turns on capture dates or locations. M4's forms
+# and the provider's screens load with Settings or a schedule, never before.
+BUNDLE_TOTAL_KIB := 600
+
+# The PRD's limit on what loads before any lazy route.
+FIRST_LOAD_KB := 200
 
 # M4's provider routes took it from 18.5 to 61.8 KiB, nearly all of it zod, which the contract shares
 # with the app (ADR-0005). That is 2% of Cloudflare's limit. Raising it needs a reason.
@@ -21,12 +25,16 @@ include vite.mk
 # Nothing imports these yet, so tsc would not reach them through the app.
 TSC_PROJECTS += ../../packages/api ../../packages/contract
 
-.PHONY: e2e worker-budget knip duplication bundle-report
+.PHONY: e2e first-load worker-budget knip duplication bundle-report
 
 # GitHub's runners set CI, and have the browser's system libraries to install.
 e2e: build ## Playwright, against the built app
 	$(APP_PNPM) exec playwright install $(if $(CI),--with-deps) chromium
 	$(APP_PNPM) exec playwright test
+
+first-load: build ## Fail if the script a first visit downloads passes the PRD's limit
+	$(APP_CD) && $(MISE) exec -- node $(ROOT)/.devtools/scripts/first-load.mjs \
+		--dir dist/client --limit-kb $(FIRST_LOAD_KB)
 
 worker-budget: build ## Fail if the Worker outgrows its gzip budget
 	$(APP_CD) && $(MISE) exec -- node $(ROOT)/.devtools/scripts/worker-budget.mjs \
@@ -41,4 +49,4 @@ duplication: ## Fail if copied code passes the threshold in .jscpd.json
 bundle-report: ## Build, and write a picture of the bundle to dist/bundle-report.html
 	$(APP_CD) && ANALYZE=1 $(MISE) exec -- pnpm exec vite build
 
-ci: e2e worker-budget knip duplication
+ci: e2e first-load worker-budget knip duplication
