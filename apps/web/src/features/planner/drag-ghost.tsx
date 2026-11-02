@@ -1,6 +1,6 @@
 import { m } from 'motion/react'
 
-import { Thumbnail } from './thumbnail'
+import { CellThumbnail } from './thumbnail'
 import { type DragGhostState, GHOST_HEIGHT, GHOST_WIDTH } from './use-drag-ghost'
 
 export function DragGhost({ ghost }: { ghost: DragGhostState }) {
@@ -23,7 +23,7 @@ export function DragGhost({ ghost }: { ghost: DragGhostState }) {
         opacity
       }}
     >
-      <Thumbnail id={id} label="" />
+      <CellThumbnail id={id} label="" />
     </m.div>
   )
 }

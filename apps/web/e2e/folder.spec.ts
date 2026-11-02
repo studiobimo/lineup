@@ -393,6 +393,28 @@ test('a folder board survives a browser restart', async ({ baseURL }) => {
   await second.close()
 })
 
+test('a folder board keeps an album, and its files stay where they are', async ({ page }) => {
+  await replacePicker(page)
+  await page.goto('/')
+  await useFolder(page)
+  await addImages(page, [photo('01.jpg'), photo('02.jpg')])
+  const cells = page.locator('aside').getByRole('group', { name: /^Image \d+$/ })
+  await expect(cells).toHaveCount(2)
+  await cells.nth(0).hover()
+  await cells.nth(0).getByRole('button', { name: 'Select' }).click()
+  await cells.nth(1).click()
+  await page.getByRole('toolbar').getByRole('button', { name: 'Group' }).click()
+  await expect(cells).toHaveCount(1)
+  await expect
+    .poll(async () => Object.keys((await folderBoard(page))?.albums ?? {}))
+    .toHaveLength(1)
+
+  await page.reload()
+  await expect(page.getByText('Album of 2 images')).toBeAttached()
+  expect(await folderFiles(page)).toHaveProperty(['01.jpg'])
+  expect(await folderFiles(page)).toHaveProperty(['02.jpg'])
+})
+
 test('the option is absent where the browser has no folders', async ({ page }) => {
   await page.addInitScript(() => {
     delete window.showDirectoryPicker

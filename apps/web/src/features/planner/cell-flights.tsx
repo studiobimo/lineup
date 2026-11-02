@@ -5,7 +5,7 @@ import { cellsThatCrossed } from './board'
 import { type Box, cellBox, dragStore, ground, launch } from './drag-target'
 import { settle } from './motion'
 import { plannerStore } from './planner'
-import { Thumbnail } from './thumbnail'
+import { CellThumbnail } from './thumbnail'
 
 // A bulk move should not start hundreds of flights, and most of them would be off screen anyway.
 const MAX_FLIGHTS = 24
@@ -71,7 +71,7 @@ export function CellFlights() {
       transition={settle}
       onAnimationComplete={() => arrive(id)}
     >
-      <Thumbnail id={id} label="" />
+      <CellThumbnail id={id} label="" />
     </m.div>
   ))
 }

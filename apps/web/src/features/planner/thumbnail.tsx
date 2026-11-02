@@ -2,7 +2,8 @@ import { useRef } from 'react'
 
 import { cn } from '@/lib/utils'
 
-import { boardStore } from './planner'
+import { boardStore, usePlanner } from './planner'
+import { coverOf } from './board'
 import { useCanvasImage } from './use-canvas-image'
 
 const readThumbnail = (id: string) => boardStore.getThumbnail(id)
@@ -25,6 +26,12 @@ type ImageProps = Pick<StoredImageProps, 'id' | 'label'>
 
 export function Thumbnail(props: ImageProps) {
   return <StoredImage {...props} read={readThumbnail} className="size-full object-cover" />
+}
+
+/** A cell's picture, for anything that draws a cell: an album's cover, or the image itself. */
+export function CellThumbnail({ id, label }: ImageProps) {
+  const cover = usePlanner(({ board }) => coverOf(board, id))
+  return <Thumbnail id={cover} label={label} />
 }
 
 export function FullSizeImage({ className, ...props }: ImageProps & { className?: string }) {

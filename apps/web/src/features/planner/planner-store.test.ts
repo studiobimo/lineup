@@ -366,6 +366,72 @@ describe('the planner store', () => {
     expect(store.getState().board.tray).toEqual(['c', 'album'])
   })
 
+  describe('with an album on the board', () => {
+    const saved = { tray: ['a', 'b', 'c'], grid: [] }
+    const grouped = async () => {
+      const boardStore = fakeBoardStore(saved, ['a', 'b', 'c'])
+      const store = createPlannerStore(boardStore)
+      await store.getState().load()
+      const album = store.getState().group(['a', 'b'])!
+      return { boardStore, store, album }
+    }
+
+    it('undoes and redoes grouping, ungrouping and reordering, each as one step', async () => {
+      const { store, album } = await grouped()
+      const { getState: state } = store
+      expect(state().board.tray).toEqual([album, 'c'])
+
+      state().reorderAlbum(album, ['b', 'a'])
+      state().ungroup(album)
+      expect(state().board.tray).toEqual(['b', 'a', 'c'])
+
+      state().undo()
+      expect(state().board.albums?.[album]).toEqual(['b', 'a'])
+      state().undo()
+      expect(state().board.albums?.[album]).toEqual(['a', 'b'])
+      state().undo()
+      expect(state().board).toEqual(saved)
+      state().redo()
+      expect(state().board.tray).toEqual([album, 'c'])
+    })
+
+    it('deletes it in one step, and undo brings every image back', async () => {
+      const { boardStore, store, album } = await grouped()
+      store.getState().remove([album])
+      expect(store.getState().board.tray).toEqual(['c'])
+      expect(boardStore.deleteImages).not.toHaveBeenCalled()
+      store.getState().undo()
+      expect(store.getState().board.albums?.[album]).toEqual(['a', 'b'])
+    })
+
+    it('clears it, and undo brings it back', async () => {
+      const { store, album } = await grouped()
+      store.getState().clear(['tray'])
+      expect(store.getState().board.tray).toEqual([])
+      store.getState().undo()
+      expect(store.getState().board.tray).toEqual([album, 'c'])
+    })
+
+    it('saves it, and a save that never finished brings it back', async () => {
+      const { boardStore, album } = await grouped()
+      await vi.waitFor(() => expect(boardStore.saved.albums?.[album]).toEqual(['a', 'b']))
+
+      const journal = memoryJournal()
+      journal.write(boardStore.saved)
+      boardStore.saved = saved
+      const reopened = createPlannerStore(boardStore, journal)
+      await reopened.getState().load()
+      expect(reopened.getState().board.albums?.[album]).toEqual(['a', 'b'])
+    })
+
+    it('refuses what groupProblem refuses, and changes nothing', async () => {
+      const { store } = await grouped()
+      const before = store.getState().board
+      expect(store.getState().group(['c'])).toBeUndefined()
+      expect(store.getState().board).toBe(before)
+    })
+  })
+
   it('puts an image no board reaches in the tray, as a step that can be undone', async () => {
     const boardStore = fakeBoardStore({ tray: ['a'], grid: [] }, ['a', 'stranded'])
     const store = createPlannerStore(boardStore)

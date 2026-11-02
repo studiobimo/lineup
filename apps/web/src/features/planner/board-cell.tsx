@@ -26,7 +26,7 @@ import { cellShape } from './network-profile'
 import { plannerStore, usePlanner } from './planner'
 import { clickCell, toggleSelected, useIsSelected } from './selection-store'
 import { setTabStop } from './tab-stop'
-import { Thumbnail } from './thumbnail'
+import { CellThumbnail } from './thumbnail'
 import { useCellDrag } from './use-board-drag'
 import { useNearViewport } from './use-near-viewport'
 
@@ -215,7 +215,7 @@ export const BoardCell = memo(function BoardCell({
       style={{ ...cellShape, zIndex }}
     >
       <div
-        onDoubleClick={() => openLightbox(id)}
+        onDoubleClick={() => openLightbox(cover)}
         className={cn(
           'size-full transition duration-200 ease-out',
           missing && 'opacity-50 grayscale',
@@ -223,7 +223,7 @@ export const BoardCell = memo(function BoardCell({
           mark === 'group' && 'scale-90'
         )}
       >
-        {near && <Thumbnail id={cover} label={t('cell', { position })} />}
+        {near && <CellThumbnail id={id} label={t('cell', { position })} />}
       </div>
       <div
         className={cn(

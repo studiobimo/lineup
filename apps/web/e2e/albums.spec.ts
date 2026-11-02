@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
 
-import { addImages, image, reloadWhenSaved, savedBoard, watchErrors } from './fixtures'
+import { addImages, choose, image, reloadWhenSaved, savedBoard, watchErrors } from './fixtures'
 
 const tray = (page: Page) => page.locator('aside').getByRole('group', { name: /^Image \d+$/ })
 const grid = (page: Page) => page.locator('section').getByRole('group', { name: /^Image \d+$/ })
@@ -117,6 +117,8 @@ test('an album opens, reorders from the keyboard, and undo puts it back', async 
   await dialog.getByRole('group', { name: 'Album image 1', exact: true }).focus()
   await page.keyboard.press('Space')
   await expect(page.getByText('Picked up Album image 1.')).toBeAttached()
+  // The sensor starts listening a tick after the pick-up, which no hand on a keyboard can beat.
+  await page.waitForTimeout(50)
   await page.keyboard.press('ArrowRight')
   await expect(page.getByText('Over Album image 2.')).toBeAttached()
   await page.keyboard.press('Space')
@@ -177,6 +179,82 @@ test('a locked album cannot be changed until it is unlocked', async ({ page }) =
   await expect(dialog.getByText('Unlock it to change it')).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Ungroup' })).toHaveCount(0)
   await expect(dialog.getByRole('button', { name: 'Take out of the album' })).toHaveCount(0)
+})
+
+test('the lightbox steps through an album before the next cell', async ({ page }) => {
+  await boardOf(page, 3)
+  await groupFirst(page, 2)
+  await tray(page).first().dblclick()
+  const lightbox = page.getByRole('dialog')
+  await expect(lightbox.getByText('1 of 2', { exact: true })).toBeVisible()
+  await expect(lightbox.getByText('Album 1 of 2')).toBeVisible()
+
+  await page.keyboard.press('ArrowRight')
+  await expect(lightbox.getByText('Album 2 of 2')).toBeVisible()
+  await page.keyboard.press('ArrowRight')
+  await expect(lightbox.getByText('2 of 2', { exact: true })).toBeVisible()
+  await expect(lightbox.getByText(/^Album/)).toHaveCount(0)
+  await page.keyboard.press('ArrowLeft')
+  await expect(lightbox.getByText('Album 2 of 2')).toBeVisible()
+})
+
+test('an album drags as one cell, across and back', async ({ page }) => {
+  await boardOf(page, 3)
+  await groupFirst(page, 2)
+  await page.getByRole('button', { name: 'Move all to the grid' }).click()
+  await expect(grid(page)).toHaveCount(2)
+  const first = (await grid(page).nth(0).boundingBox())!
+  const second = (await grid(page).nth(1).boundingBox())!
+  await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(second.x + second.width / 2, second.y + second.height / 2, { steps: 8 })
+  await page.mouse.up()
+  await expect(grid(page)).toHaveCount(2)
+  await expect(page.getByText('Album of 2 images')).toBeAttached()
+  await expect(grid(page).nth(1).getByText('Album of 2 images')).toBeAttached()
+})
+
+test('an album is one post in the phone preview, with the carousel marker', async ({ page }) => {
+  await boardOf(page, 3)
+  await groupFirst(page, 2)
+  await page.getByRole('button', { name: 'Move all to the grid' }).click()
+  await expect(grid(page)).toHaveCount(2)
+  await page.getByRole('button', { name: 'Preview on a phone' }).click()
+  const phone = page.getByRole('dialog')
+  await expect(phone.getByRole('img')).toHaveCount(2)
+  await expect(phone.locator('svg.lucide-layers')).toHaveCount(1)
+})
+
+test('a board with an album survives a backup, and every image comes back', async ({
+  page,
+  browser,
+  baseURL
+}) => {
+  await boardOf(page, 3)
+  await groupFirst(page, 2)
+  await expect.poll(() => albumOnBoard(page)).toHaveLength(2)
+  await page.getByRole('button', { name: 'Settings' }).click()
+  const saving = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Back up' }).click()
+  const path = test.info().outputPath('board.lineup')
+  await (await saving).saveAs(path)
+
+  const elsewhere = await browser.newContext({ baseURL })
+  const device = await elsewhere.newPage()
+  await device.goto('/')
+  await device.getByRole('button', { name: 'Settings' }).click()
+  await choose(device, 'Restore', path)
+  await expect(device.getByText('Album of 2 images')).toBeAttached()
+  await expect(tray(device)).toHaveCount(2)
+  await elsewhere.close()
+})
+
+test('the clear dialog counts images, not cells', async ({ page }) => {
+  await boardOf(page, 3)
+  await groupFirst(page, 2)
+  await expect(bar(page)).toHaveCount(0)
+  await page.getByRole('button', { name: 'Clear', exact: true }).click()
+  await expect(page.getByRole('alertdialog').getByText(/3/).first()).toBeVisible()
 })
 
 test('a locked cell is not grouped', async ({ page }) => {

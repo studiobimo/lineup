@@ -93,6 +93,7 @@
   "lock": "Lock in place",
   "unlock": "Unlock",
   "lightboxPosition": "{{position}} of {{total}}",
+  "lightboxAlbumPosition": "Album {{position}} of {{total}}",
   "zoom": "Zoom",
   "zoomIn": "Zoom in",
   "zoomOut": "Zoom out",

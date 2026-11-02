@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   addToTray,
+  cellOf,
   cellsThatCrossed,
   clear,
   coverOf,
@@ -275,5 +276,43 @@ describe('editing an album', () => {
       grid: [],
       albums: {}
     })
+  })
+})
+
+// Every action in E2, E4 and E5 treats an album as one cell, and undo needs nothing of its own.
+describe('an album moves as one', () => {
+  const albums = { album: ['b', 'c'] }
+  const board: Board = { tray: ['a', 'album'], grid: ['d', 'e'], albums }
+  const images = ['a', 'b', 'c', 'd', 'e']
+  const everyImage = (next: Board) => expect(imagesOn(next).sort()).toEqual(images)
+
+  it.each<[string, (start: Board) => Board]>([
+    ['swap', (start) => swap(start, 'album', 'd')],
+    ['insert', (start) => move(start, 'album', 'grid', 1)],
+    ['move across', (start) => move(start, 'album', 'grid')],
+    ['move several', (start) => moveCells(start, ['a', 'album'], 'grid')],
+    ['move all', (start) => moveAll(start, 'tray')],
+    ['shuffle', (start) => shuffle(start, 'tray', () => 0)]
+  ])('through a %s', (_, change) => {
+    const next = change(board)
+    everyImage(next)
+    expect(next.albums).toEqual(albums)
+    expect([...next.tray, ...next.grid].filter((cell) => cell === 'album')).toHaveLength(1)
+    expect([...next.tray, ...next.grid]).toHaveLength(4)
+  })
+
+  it('holds its place when it is locked, whatever happens around it', () => {
+    const locked = toggleLock(move(board, 'album', 'grid', 0), 'album')
+    const next = keepLocked(
+      locked,
+      shuffle(locked, 'grid', () => 0.9)
+    )
+    expect(next.grid[0]).toBe('album')
+    expect(isLocked(next, 'album')).toBe(true)
+  })
+
+  it('finds the cell an image is in', () => {
+    expect(cellOf(board, 'c')).toBe('album')
+    expect(cellOf(board, 'a')).toBe('a')
   })
 })

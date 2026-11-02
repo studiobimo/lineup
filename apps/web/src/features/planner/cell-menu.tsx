@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { Menu, MenuItem, MenuPopup } from '@/components/ui/menu'
 
 import { openAlbum } from './album-store'
-import { containerOf, isLocked } from './board'
+import { containerOf, coverOf, isLocked } from './board'
 import { closeCellMenu, useCellMenu } from './cell-menu-store'
 import { openLightbox } from './lightbox-store'
 import { plannerStore } from './planner'
@@ -42,7 +42,7 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
   return (
     <Menu open onOpenChange={(open) => !open && closeCellMenu()}>
       <MenuPopup anchor={cell} sideOffset={OVERLAP} finalFocus={returnTo}>
-        <MenuItem onClick={() => openLightbox(id)}>
+        <MenuItem onClick={() => openLightbox(coverOf(board, id))}>
           <Maximize2 />
           {t('openImage')}
         </MenuItem>

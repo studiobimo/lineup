@@ -9,6 +9,12 @@ export const imagesOf = (board: Board, cell: string) => board.albums?.[cell] ?? 
 /** What a cell shows, and what it sorts by. An album's first image is its cover. */
 export const coverOf = (board: Board, cell: string) => imagesOf(board, cell)[0]
 
+/** The cell an image is in: the album that holds it, or its own. */
+export function cellOf(board: Board, image: string) {
+  const album = Object.entries(board.albums ?? {}).find(([, images]) => images.includes(image))
+  return album?.[0] ?? image
+}
+
 /** Every image a board holds, in albums or not, which is not the same as every cell. */
 export const imagesOn = (board: Board) =>
   [...board.tray, ...board.grid].flatMap((cell) => imagesOf(board, cell))

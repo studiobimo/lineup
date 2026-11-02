@@ -9,7 +9,7 @@ import {
   ZoomOut
 } from 'lucide-react'
 import { animate, m, type PanInfo, useMotionValue } from 'motion/react'
-import { type KeyboardEvent, useEffect, useRef, useState, type WheelEvent } from 'react'
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState, type WheelEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
@@ -23,7 +23,7 @@ import {
 import { Group } from '@/components/ui/group'
 import { useDialogPresence } from '@/hooks/use-dialog-presence'
 
-import { containerOf } from './board'
+import { cellOf, containerOf, imagesOf } from './board'
 import { closeLightbox, openLightbox } from './lightbox-store'
 import { settle } from './motion'
 import { usePlanner } from './planner'
@@ -74,10 +74,18 @@ function ImageDetails({ id }: { id: string }) {
 export function Lightbox({ id }: { id: string }) {
   const { t } = useTranslation('planner')
   const { dialog, close } = useDialogPresence(closeLightbox)
-  const cells = usePlanner(({ board }) => board[containerOf(board, id)])
-  const index = cells.indexOf(id)
-  const previous = cells[index - 1]
-  const next = cells[index + 1]
+  const board = usePlanner((state) => state.board)
+  const { cells, cell, images } = useMemo(() => {
+    const cell = cellOf(board, id)
+    const cells = board[containerOf(board, cell)]
+    // An album's images come one after another, so that stepping goes through it and out again.
+    return { cells, cell, images: cells.flatMap((each) => imagesOf(board, each)) }
+  }, [board, id])
+  const index = cells.indexOf(cell)
+  const stepIndex = images.indexOf(id)
+  const previous = images[stepIndex - 1]
+  const next = images[stepIndex + 1]
+  const album = board.albums?.[cell]
 
   const [zoom, setZoom] = useState(MIN_ZOOM)
   const zoomed = zoom > MIN_ZOOM
@@ -143,6 +151,14 @@ export function Lightbox({ id }: { id: string }) {
               <p className="rounded-md bg-popover px-2 py-1 text-sm text-popover-foreground">
                 {t('lightboxPosition', { position: index + 1, total: cells.length })}
               </p>
+              {album && (
+                <p className="rounded-md bg-popover px-2 py-1 text-sm text-popover-foreground">
+                  {t('lightboxAlbumPosition', {
+                    position: album.indexOf(id) + 1,
+                    total: album.length
+                  })}
+                </p>
+              )}
               <ImageDetails id={id} />
             </div>
             <div className="flex shrink-0 gap-2">

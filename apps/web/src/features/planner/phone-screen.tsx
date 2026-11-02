@@ -5,6 +5,7 @@ import {
   Clapperboard,
   Grid3x3,
   House,
+  Layers,
   Menu,
   Search,
   Signal,
@@ -20,7 +21,7 @@ import { cn } from '@/lib/utils'
 import { cellShape, gridColumns, instagram } from './network-profile'
 import { usePlanner } from './planner'
 import { useProfile } from './profile-store'
-import { Thumbnail } from './thumbnail'
+import { CellThumbnail } from './thumbnail'
 import { useNearViewport } from './use-near-viewport'
 
 // A new account's feed still reads as a feed, with room for what is planned next.
@@ -159,9 +160,13 @@ function PreviewCell({ id, position }: { id: string; position: number }) {
   const { t } = useTranslation('planner')
   const cell = useRef<HTMLDivElement>(null)
   const near = useNearViewport(cell)
+  const album = usePlanner(({ board }) => board.albums?.[id] !== undefined)
   return (
-    <div ref={cell} className="bg-foreground/5" style={cellShape}>
-      {near && <Thumbnail id={id} label={t('cell', { position })} />}
+    <div ref={cell} className="relative bg-foreground/5" style={cellShape}>
+      {near && <CellThumbnail id={id} label={t('cell', { position })} />}
+      {album && (
+        <Layers aria-hidden className="absolute top-2 right-2 size-4 text-on-photo drop-shadow" />
+      )}
     </div>
   )
 }
