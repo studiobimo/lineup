@@ -3,6 +3,7 @@ export const instagram = {
   columns: 3,
   cellRatio: { width: 3, height: 4 },
   carouselLimit: 20,
+  captionLimit: 2200,
   handleMaxLength: 30,
   nameMaxLength: 30
 } as const

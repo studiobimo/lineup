@@ -1,5 +1,7 @@
 import type { ImageColour } from '@/features/autosort/colour'
 
+import type { CellPost } from './board-schema'
+
 /** A cell is an image's id for now. Albums arrive in M3, with a migration. */
 export interface Board {
   tray: string[]
@@ -8,6 +10,8 @@ export interface Board {
   locked?: string[]
   /** Each album's images, in order, by the id of the cell it fills. Those images are in no cell. */
   albums?: Record<string, string[]>
+  /** Each scheduled cell's post at the provider, by cell. Those cells are locked (ADR-0018). */
+  posts?: Record<string, CellPost>
 }
 
 export interface ImageRecord {

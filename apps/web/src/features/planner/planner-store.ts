@@ -10,8 +10,11 @@ import {
   coverOf,
   group,
   groupProblem,
+  holdsCell,
+  imagesOf,
   imagesOn,
   keepLocked,
+  keepPosted,
   move,
   moveAll,
   moveCells,
@@ -27,6 +30,7 @@ import {
 } from './board'
 import type { Backup } from './backup'
 import { boardJournal, type BoardJournal } from './board-journal'
+import type { CellPost } from './board-schema'
 import { type Board, type BoardStore, emptyBoard, type ImageRecord, toRecord } from './board-store'
 import type { ProcessedImage } from './process-image'
 
@@ -62,6 +66,13 @@ export interface PlannerState {
   /** Not a change to the board, so it is no part of undo. */
   setColour(id: string, colour: ImageColour): void
   toggleLock(id: string): void
+  /**
+   * A post exists now, whatever undo does, so the steps from before its cell was as it is go.
+   * Like every change to a post, this is no part of the history (ADR-0018).
+   */
+  linkPost(cell: string, post: CellPost): void
+  /** The latest on each post, by cell. Nothing in place of a post frees its cell. */
+  updatePosts(changes: Record<string, CellPost | undefined>): void
   /** One undo step, so the board it replaced is still there. */
   restore(backup: Backup): Promise<void>
   remove(ids: string[]): void
@@ -228,6 +239,31 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
       shuffle: (container) => commit(shuffle(get().board, container)),
       toggleLock: (id) => commit(toggleLock(get().board, id)),
 
+      linkPost(cell, post) {
+        const { board, past, future, session } = get()
+        if (session !== 'active') return
+        const images = imagesOf(board, cell)
+        const holding = (snapshot: Board) => holdsCell(snapshot, cell, images)
+        set({
+          board: { ...board, posts: { ...board.posts, [cell]: post } },
+          past: past.filter(holding),
+          future: future.filter(holding)
+        })
+        save()
+        purge()
+      },
+
+      updatePosts(changes) {
+        const { board, session } = get()
+        if (session !== 'active') return
+        const posts = { ...board.posts, ...changes }
+        for (const cell of Object.keys(changes)) if (!posts[cell]) delete posts[cell]
+        const next = { ...board, posts: posts as Board['posts'] }
+        if (sameBoard(board, next)) return
+        set({ board: next })
+        save()
+      },
+
       async restore({ board, images }) {
         if (get().session !== 'active') return
         // One at a time, so that a large backup is never all in memory on its way to the store.
@@ -261,7 +297,11 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
         const { board, past, future, session } = get()
         const previous = past.at(-1)
         if (!previous || session !== 'active') return
-        set({ board: previous, past: past.slice(0, -1), future: [board, ...future] })
+        set({
+          board: keepPosted(board, previous),
+          past: past.slice(0, -1),
+          future: [board, ...future]
+        })
         save()
       },
 
@@ -269,7 +309,7 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
         const { board, past, future, session } = get()
         const [next, ...rest] = future
         if (!next || session !== 'active') return
-        set({ board: next, past: [...past, board], future: rest })
+        set({ board: keepPosted(board, next), past: [...past, board], future: rest })
         save()
       }
     }

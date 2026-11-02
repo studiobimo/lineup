@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ImageColour } from '@/features/autosort/colour'
 
+import { isLocked } from './board'
 import type { BoardJournal } from './board-journal'
+import type { CellPost } from './board-schema'
 import type { Board, History, ImageRecord, StoredImage } from './board-store'
 import { createPlannerStore, type PlannerState } from './planner-store'
 import type { ProcessedImage } from './process-image'
@@ -364,6 +366,93 @@ describe('the planner store', () => {
 
     await store.getState().sortByColour('tray', 'lightToDark')
     expect(store.getState().board.tray).toEqual(['c', 'album'])
+  })
+
+  describe('with a post on the board', () => {
+    const post: CellPost = {
+      id: 'post',
+      accountId: 'account',
+      scheduledFor: '2030-01-01T10:00:00.000Z',
+      timeZone: 'Europe/London',
+      caption: 'Hello',
+      status: 'scheduled'
+    }
+
+    it('keeps the post through undo and redo, and it is never a step of its own', async () => {
+      const { boardStore, state } = await loaded()
+      state().move('a', 'grid')
+      const steps = state().past.length
+
+      state().linkPost('d', post)
+      expect(state().past).toHaveLength(steps)
+      expect(boardStore.saved.posts).toEqual({ d: post })
+
+      state().undo()
+      expect(state().board.tray).toEqual(['a', 'b'])
+      expect(state().board.posts).toEqual({ d: post })
+      state().redo()
+      expect(state().board.grid).toContain('a')
+      expect(state().board.posts).toEqual({ d: post })
+    })
+
+    it('holds a posted cell where it is when an undo would move it', async () => {
+      const { state } = await loaded()
+      state().swap('c', 'd')
+      state().linkPost('c', post)
+      state().undo()
+      expect(state().board.grid).toEqual(['d', 'c', 'e'])
+    })
+
+    it('loses only the steps that had the cell another way', async () => {
+      const { state } = await loaded()
+      const album = state().group(['a', 'b'])!
+      state().move(album, 'grid')
+      state().swap('c', 'd')
+      state().linkPost(album, post)
+      expect(state().past).toHaveLength(1)
+
+      state().undo()
+      expect(state().board.albums?.[album]).toEqual(['a', 'b'])
+      expect(state().past).toHaveLength(0)
+    })
+
+    it('frees the cell when nothing takes the post’s place', async () => {
+      const { boardStore, state } = await loaded()
+      state().linkPost('d', post)
+      expect(isLocked(state().board, 'd')).toBe(true)
+
+      state().updatePosts({ d: undefined })
+      expect(isLocked(state().board, 'd')).toBe(false)
+      expect(boardStore.saved.posts).toEqual({})
+    })
+
+    it('changes nothing and saves nothing for news that is not new', async () => {
+      const { boardStore, state } = await loaded()
+      state().linkPost('d', post)
+      const { board } = state()
+      const saves = boardStore.saveBoard.mock.calls.length
+
+      state().updatePosts({ d: { ...post } })
+      expect(state().board).toBe(board)
+      expect(boardStore.saveBoard.mock.calls).toHaveLength(saves)
+    })
+
+    it('writes the latest on a post without touching the history', async () => {
+      const { state } = await loaded()
+      state().linkPost('d', post)
+      const { past } = state()
+      state().updatePosts({ d: { ...post, status: 'published' } })
+      expect(state().board.posts?.d.status).toBe('published')
+      expect(state().past).toBe(past)
+    })
+
+    it('comes back after a reload', async () => {
+      const { boardStore, state } = await loaded()
+      state().linkPost('d', post)
+      const reopened = createPlannerStore(boardStore)
+      await reopened.getState().load()
+      expect(reopened.getState().board.posts).toEqual({ d: post })
+    })
   })
 
   describe('with an album on the board', () => {

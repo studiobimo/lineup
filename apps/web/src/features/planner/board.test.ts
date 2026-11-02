@@ -10,14 +10,17 @@ import {
   freeCells,
   group,
   groupProblem,
+  holdsCell,
   imagesOf,
   imagesOn,
   inBoardOrder,
   isLocked,
   keepLocked,
+  keepPosted,
   move,
   moveAll,
   moveCells,
+  outOfOrder,
   remove,
   reorderAlbum,
   sameBoard,
@@ -28,6 +31,7 @@ import {
   ungroup,
   withKnownImages
 } from './board'
+import type { CellPost } from './board-schema'
 import type { Board } from './board-store'
 
 const board = { tray: ['a', 'b'], grid: ['c', 'd', 'e'] }
@@ -77,6 +81,120 @@ describe('locked cells', () => {
   it('count as a change to the board', () => {
     expect(sameBoard(board, toggleLock(board, 'c'))).toBe(false)
     expect(sameBoard(board, { ...board, locked: [] })).toBe(true)
+  })
+})
+
+describe('a locked album', () => {
+  const album = {
+    tray: [],
+    grid: ['album', 'c'],
+    locked: ['album'],
+    albums: { album: ['a', 'b'] }
+  }
+
+  it('keeps its images when the board around it is cleared or the cell removed', () => {
+    expect(keepLocked(album, clear(album, ['grid']))).toMatchObject({
+      grid: ['album'],
+      albums: { album: ['a', 'b'] }
+    })
+    expect(keepLocked(album, remove(album, ['album']))).toEqual(album)
+  })
+})
+
+const postFor = (scheduledFor: string): CellPost => ({
+  id: `post-${scheduledFor}`,
+  accountId: 'account',
+  scheduledFor,
+  timeZone: 'Europe/London',
+  caption: '',
+  status: 'scheduled'
+})
+
+describe('a cell with a post', () => {
+  const posted: Board = {
+    tray: ['a'],
+    grid: ['b', 'c', 'd'],
+    posts: { c: postFor('2030-01-01T10:00:00Z') }
+  }
+
+  it('is locked, by the same rule as a cell the user locked', () => {
+    expect(isLocked(posted, 'c')).toBe(true)
+    expect(isLocked(posted, 'b')).toBe(false)
+    expect(freeCells(posted, 'grid')).toEqual(['b', 'd'])
+    expect(groupProblem(posted, ['b', 'c'])).toBe('locked')
+    expect(keepLocked(posted, moveAll(posted, 'grid')).grid).toEqual(['c'])
+    expect(keepLocked(posted, remove(posted, ['c']))).toEqual(posted)
+  })
+
+  it('cannot have its lock taken off', () => {
+    expect(toggleLock(posted, 'c')).toBe(posted)
+  })
+
+  it('goes with the image, and stays for as long as the image does', () => {
+    const present = withKnownImages(posted, (image) => image !== 'b')
+    expect(present.posts).toEqual(posted.posts)
+    const gone = withKnownImages(posted, (image) => image !== 'c')
+    expect(gone.posts).toEqual({})
+  })
+
+  it('tells boards apart, so that a journal holding only a new post is not missed', () => {
+    expect(sameBoard(posted, { ...posted, posts: undefined })).toBe(false)
+  })
+
+  describe('under a snapshot', () => {
+    const before: Board = { tray: ['c'], grid: ['d', 'b', 'a'] }
+
+    it('keeps today’s post and place, and the rest of the arrangement goes back', () => {
+      expect(keepPosted(posted, before)).toMatchObject({
+        tray: [],
+        grid: ['d', 'c', 'b', 'a'],
+        posts: posted.posts
+      })
+    })
+
+    it('drops a post that has since gone from the snapshot', () => {
+      expect(keepPosted({ tray: [], grid: ['c'] }, posted).posts).toBeUndefined()
+    })
+
+    it('keeps a posted album that the snapshot did not have', () => {
+      const today: Board = {
+        tray: [],
+        grid: ['album'],
+        albums: { album: ['a', 'b'] },
+        posts: { album: postFor('2030-01-01T10:00:00Z') }
+      }
+      expect(keepPosted(today, { tray: ['a', 'b'], grid: [] }).albums).toEqual(today.albums)
+    })
+  })
+
+  it('knows the snapshots that hold it unchanged', () => {
+    const album: Board = { tray: [], grid: ['x'], albums: { x: ['a', 'b'] } }
+    expect(holdsCell(album, 'x', ['a', 'b'])).toBe(true)
+    expect(holdsCell(album, 'x', ['b', 'a'])).toBe(false)
+    expect(holdsCell({ tray: ['x'], grid: [] }, 'x', ['x'])).toBe(false)
+  })
+})
+
+describe('publishing order', () => {
+  const newer = '2030-01-03T10:00:00Z'
+  const older = '2030-01-01T10:00:00Z'
+  const planned: Board = {
+    tray: [],
+    grid: ['first', 'cell', 'last'],
+    posts: { first: postFor(newer), last: postFor(older) }
+  }
+
+  it('is kept by a time between the cells around it', () => {
+    expect(outOfOrder(planned, 'cell', '2030-01-02T10:00:00Z')).toBe(false)
+  })
+
+  it('is broken by a time after a cell above, or before a cell below', () => {
+    expect(outOfOrder(planned, 'cell', '2030-01-04T10:00:00Z')).toBe(true)
+    expect(outOfOrder(planned, 'cell', '2029-12-31T10:00:00Z')).toBe(true)
+  })
+
+  it('has nothing to say about a cell with no post around it', () => {
+    expect(outOfOrder({ tray: [], grid: ['cell'] }, 'cell', newer)).toBe(false)
   })
 })
 

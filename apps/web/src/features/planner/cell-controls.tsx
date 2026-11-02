@@ -27,7 +27,6 @@ interface CellActionsProps {
   locked: boolean
 }
 
-/** For the mouse: the keyboard has Enter on the cell, or these would be more tab stops per image. */
 interface CellBadgeProps {
   icon: LucideIcon
   label?: string
@@ -42,6 +41,7 @@ export function CellBadge({ icon: Icon, label }: CellBadgeProps) {
   )
 }
 
+/** For the mouse: the keyboard has Enter on the cell, or these would be more tab stops per image. */
 function CellButton(props: ComponentProps<typeof IconButton>) {
   return (
     <IconButton variant="outline" size="icon-xs" tabIndex={-1} tooltip={cellTooltip} {...props} />
