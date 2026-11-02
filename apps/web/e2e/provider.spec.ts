@@ -8,7 +8,9 @@ const KEY = 'pasted-key-ending-abcd'
 async function openSettings(page: Page) {
   await page.goto('/')
   await page.getByRole('button', { name: 'Settings' }).click()
-  return page.getByRole('dialog', { name: 'Settings' })
+  const dialog = page.getByRole('dialog', { name: 'Settings' })
+  await dialog.getByRole('tab', { name: 'Integrations' }).click()
+  return dialog
 }
 
 async function addKey(page: Page, key = KEY) {
@@ -30,7 +32,7 @@ test('a key is saved, its account chosen, and only its end is ever shown', async
   const provider = await mockProvider(page)
   const settings = await addKey(page)
   await expect(settings.getByText(/Key ending abcd, good until/)).toBeVisible()
-  await expect(settings.getByRole('combobox', { name: 'Instagram account' })).toHaveText(/@studio/)
+  await expect(settings.getByRole('combobox', { name: 'Account' })).toHaveText(/@studio/)
   await expect(settings.getByLabel('Zernio API key')).toHaveCount(0)
   expect(provider.requests).toContain('PUT /key')
 
@@ -50,7 +52,8 @@ test('a refused key says so, and stays to be corrected', async ({ page }) => {
 test('forgetting the key clears it from this browser', async ({ page }) => {
   const provider = await mockProvider(page)
   const settings = await addKey(page)
-  await settings.getByRole('button', { name: 'Forget key' }).click()
+  await settings.getByRole('button', { name: 'Key options' }).click()
+  await page.getByRole('menuitem', { name: 'Forget key' }).click()
   await expect(settings.getByLabel('Zernio API key')).toBeVisible()
   expect(provider.requests).toContain('DELETE /key')
   const stored = await page.evaluate(() => localStorage.getItem('provider-connection'))
@@ -77,7 +80,7 @@ const publishedCells = (page: Page) => page.getByRole('img', { name: /^Published
 
 async function connect(page: Page) {
   const settings = await addKey(page)
-  await expect(settings.getByRole('combobox', { name: 'Instagram account' })).toBeVisible()
+  await expect(settings.getByRole('combobox', { name: 'Account' })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(settings).toBeHidden()
 }

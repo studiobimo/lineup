@@ -1,9 +1,8 @@
 {
-  "title": "Instagram",
   "tryAgain": "Try again",
   "guide": {
     "account": "Create a free account at <site>{{provider}}</site>.",
-    "instagram": "Connect your Instagram there. It has to be a professional account, which Instagram requires to be public.",
+    "instagram": "Connect the account you post to there. It has to be a professional account, which Instagram requires to be public.",
     "key": "Create an API key limited to one profile, and paste it here. A read-only key is enough to see your posts, and it cannot schedule."
   },
   "key": {
@@ -17,13 +16,15 @@
     "replace": "Replace key",
     "forget": "Forget key",
     "expired": "Your key has expired. What you planned and scheduled is safe. Add a key to carry on.",
-    "revoke": "Forgetting a key removes it from this browser. To cancel it everywhere, use your <site>{{provider}} dashboard</site>."
+    "revoke": "Forgetting a key removes it from this browser. To cancel it everywhere, use your <site>{{provider}} dashboard</site>.",
+    "options": "Key options",
+    "cancel": "Cancel"
   },
   "account": {
-    "label": "Instagram account",
+    "label": "Account",
     "choose": "Choose an account",
-    "none": "This key has no Instagram account yet.",
-    "connect": "Connect Instagram",
+    "none": "This key has no connected account yet.",
+    "connect": "Connect an account",
     "reconnect": "This account needs connecting again before anything can be scheduled."
   },
   "post": {
@@ -85,5 +86,6 @@
     "provider_refused": "This was refused.",
     "provider_busy": "This is still being worked on. Try again in a moment.",
     "provider_failed": "The scheduling service did not answer. Try again in a moment."
-  }
+  },
+  "disclaimer": "Lineup is an independent app. It is not affiliated with, endorsed by or sponsored by Instagram or Meta, and Instagram is a trademark of Meta Platforms, Inc."
 }

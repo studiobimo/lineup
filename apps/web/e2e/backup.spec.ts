@@ -22,6 +22,7 @@ const snapshot = async (page: Page) => ({
 
 async function backUp(page: Page, path: string) {
   await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('tab', { name: 'Storage' }).click()
   const saving = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Back up' }).click()
   const file = await saving
@@ -32,6 +33,7 @@ async function backUp(page: Page, path: string) {
 
 async function restore(page: Page, file: string | Parameters<typeof choose>[2]) {
   await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('tab', { name: 'Storage' }).click()
   await choose(page, 'Restore', file)
 }
 

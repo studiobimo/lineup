@@ -95,6 +95,7 @@ test('a date and a city are kept only when asked for, and a position never', asy
   await expect(page.getByRole('img')).toHaveCount(1)
 
   await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('tab', { name: 'Photos' }).click()
   const dates = page.getByRole('switch', { name: 'Read capture dates' })
   const locations = page.getByRole('switch', { name: 'Read locations' })
   await expect(dates).not.toBeChecked()
@@ -140,6 +141,7 @@ test('a date and a city are kept only when asked for, and a position never', asy
 
   await page.reload()
   await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('tab', { name: 'Photos' }).click()
   await expect(dates).toBeChecked()
   await expect(locations).toBeChecked()
 })

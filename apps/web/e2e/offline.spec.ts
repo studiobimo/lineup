@@ -25,6 +25,7 @@ test('it works with the network off after the first visit', async ({ page, conte
 
   // Lazy on purpose: these load their own chunks, which the worker has to have cached.
   await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('tab', { name: 'Photos' }).click()
   await expect(page.getByRole('switch', { name: 'Read locations' })).toBeVisible()
   await page.keyboard.press('Escape')
   await addImages(page, [image('b.png')])

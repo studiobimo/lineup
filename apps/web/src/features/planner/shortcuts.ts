@@ -1,17 +1,19 @@
 export type Shortcut = 'undo' | 'redo'
 
-/** What the Help dialog lists. Each name is a key in the help catalog. */
+/** What the Help dialog lists, under the group each belongs to. Names are keys in the help catalog. */
 export const shortcutList = [
-  { action: 'undo', keys: ['mod', 'z'] },
-  { action: 'redo', keys: ['mod', 'shift', 'z'] },
-  { action: 'focus', keys: ['arrows'] },
-  { action: 'actions', keys: ['enter'] },
-  { action: 'delete', keys: ['delete'] },
-  { action: 'pickUp', keys: ['space'] },
-  { action: 'move', keys: ['arrows'] },
-  { action: 'insert', keys: ['shift'] },
-  { action: 'cancel', keys: ['escape'] }
-]
+  { group: 'history', action: 'undo', keys: ['mod', 'z'] },
+  { group: 'history', action: 'redo', keys: ['mod', 'shift', 'z'] },
+  { group: 'board', action: 'focus', keys: ['arrows'] },
+  { group: 'board', action: 'actions', keys: ['enter'] },
+  { group: 'board', action: 'delete', keys: ['delete'] },
+  { group: 'moving', action: 'pickUp', keys: ['space'] },
+  { group: 'moving', action: 'move', keys: ['arrows'] },
+  { group: 'moving', action: 'insert', keys: ['shift'] },
+  { group: 'moving', action: 'cancel', keys: ['escape'] }
+] as const
+
+export const shortcutGroups = ['history', 'board', 'moving'] as const
 
 export const isDelete = ({ key }: Pick<KeyboardEvent, 'key'>) =>
   key === 'Delete' || key === 'Backspace'

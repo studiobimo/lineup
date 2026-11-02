@@ -20,7 +20,7 @@ import { useProblemText } from './use-problem-text'
 const KEY_FIELD = 'provider-key'
 
 /** The key stays in this form until it is sent, and goes when the form does. */
-export function KeyForm({ onSaved }: { onSaved?: () => void }) {
+export function KeyForm({ onSaved, onCancel }: { onSaved?: () => void; onCancel?: () => void }) {
   const { t } = useTranslation('provider')
   const queryClient = useQueryClient()
   const problemText = useProblemText()
@@ -113,9 +113,16 @@ export function KeyForm({ onSaved }: { onSaved?: () => void }) {
       )}
       <form.Subscribe selector={({ values }) => choosing && !values.profileId}>
         {(unchosen) => (
-          <Button type="submit" className="self-start" loading={save.isPending} disabled={unchosen}>
-            {t('key.save')}
-          </Button>
+          <div className="flex gap-2">
+            <Button type="submit" loading={save.isPending} disabled={unchosen}>
+              {t('key.save')}
+            </Button>
+            {onCancel && (
+              <Button type="button" variant="ghost" onClick={onCancel}>
+                {t('key.cancel')}
+              </Button>
+            )}
+          </div>
         )}
       </form.Subscribe>
     </form>
@@ -125,7 +132,7 @@ export function KeyForm({ onSaved }: { onSaved?: () => void }) {
 export function KeyGuide() {
   const { t } = useTranslation('provider')
   return (
-    <ol className="mb-3 list-inside list-decimal space-y-1 text-sm text-muted-foreground">
+    <ol className="list-outside list-decimal space-y-1 ps-4 text-xs text-muted-foreground">
       <li>
         <Trans
           t={t}
