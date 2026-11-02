@@ -23,11 +23,18 @@ export function IconButton({
   label,
   tooltip,
   size = 'icon',
+  variant,
   className,
   ...props
 }: IconButtonProps) {
   const button = (
-    <Button size={size} aria-label={label} className={cn(SOLID_HOVER, className)} {...props} />
+    <Button
+      size={size}
+      variant={variant}
+      aria-label={label}
+      className={cn(variant === 'outline' && SOLID_HOVER, className)}
+      {...props}
+    />
   )
   if (tooltip) return <TooltipTrigger handle={tooltip} payload={label} render={button} />
   return (

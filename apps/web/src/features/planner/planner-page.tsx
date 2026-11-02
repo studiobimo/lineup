@@ -177,7 +177,7 @@ function OpenAlbum() {
   if (!id) return null
   return (
     <LazyOverlay name={t('albumName')} onClose={closeAlbum}>
-      <AlbumDialog id={id} />
+      <AlbumDialog key={id} id={id} />
     </LazyOverlay>
   )
 }

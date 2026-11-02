@@ -1,4 +1,5 @@
 import { type CollisionDetection, DndContext } from '@dnd-kit/core'
+import { AnimatePresence, m } from 'motion/react'
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useStore } from 'zustand'
@@ -22,6 +23,7 @@ import {
   type Point
 } from './drag-target'
 import { InsertLine } from './insert-line'
+import { rise } from './motion'
 import { instagram } from './network-profile'
 import { plannerStore } from './planner'
 import { useCellSensors } from './use-cell-sensors'
@@ -61,8 +63,9 @@ function DragHint() {
   const grouping = useStore(dragStore, ({ target }) => target?.kind === 'group')
   const albumFull = useStore(dragStore, (state) => state.albumFull)
   return (
-    <p
+    <m.p
       role="status"
+      {...rise}
       className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md pointer-coarse:hidden"
     >
       {albumFull ? (
@@ -72,7 +75,7 @@ function DragHint() {
       ) : (
         <Trans i18nKey="planner:dragHint" components={{ key: <Kbd /> }} />
       )}
-    </p>
+    </m.p>
   )
 }
 
@@ -212,7 +215,7 @@ export function BoardDrag({ children }: { children: ReactNode }) {
       <CellFlights />
       <InsertLine />
       <DragGhost ghost={ghost} />
-      {active && <DragHint />}
+      <AnimatePresence>{active && <DragHint key="hint" />}</AnimatePresence>
     </DndContext>
   )
 }

@@ -3,13 +3,23 @@ import {
   ChevronLeft,
   ChevronRight,
   ImageOff,
+  Layers,
   MapPin,
   X,
   ZoomIn,
   ZoomOut
 } from 'lucide-react'
-import { animate, m, type PanInfo, useMotionValue } from 'motion/react'
-import { type KeyboardEvent, useEffect, useMemo, useRef, useState, type WheelEvent } from 'react'
+import { animate, AnimatePresence, m, type PanInfo, useMotionValue } from 'motion/react'
+import {
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type WheelEvent
+} from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
@@ -22,12 +32,14 @@ import {
 } from '@/components/ui/dialog'
 import { Group } from '@/components/ui/group'
 import { useDialogPresence } from '@/hooks/use-dialog-presence'
+import { cn } from '@/lib/utils'
 
 import { cellOf, containerOf, imagesOf } from './board'
 import { closeLightbox, openLightbox } from './lightbox-store'
-import { settle } from './motion'
+import { rise, settle } from './motion'
+import { cellShape } from './network-profile'
 import { usePlanner } from './planner'
-import { FullSizeImage } from './thumbnail'
+import { FullSizeImage, Thumbnail } from './thumbnail'
 
 const MIN_ZOOM = 1
 const MAX_ZOOM = 4
@@ -37,6 +49,62 @@ const WHEEL_SPEED = 0.002
 const SWIPE_DISTANCE = 80
 
 const clampZoom = (zoom: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
+
+function Pill({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <p
+      className={cn(
+        'flex items-center gap-1.5 rounded-md bg-popover px-2 py-1 text-sm text-popover-foreground',
+        className
+      )}
+    >
+      {children}
+    </p>
+  )
+}
+
+interface AlbumStripProps {
+  images: string[]
+  current: string
+  onPick: (image: string) => void
+}
+
+/** The whole album in view, which says more than a count that an image belongs to one. */
+function AlbumStrip({ images, current, onPick }: AlbumStripProps) {
+  const { t } = useTranslation('planner')
+  return (
+    <m.div
+      {...rise}
+      role="group"
+      aria-label={t('lightboxAlbumImages')}
+      className="absolute bottom-4 flex max-w-[calc(100%-2rem)] gap-1 overflow-x-auto rounded-lg bg-popover p-1 shadow-md"
+    >
+      {images.map((image, index) => (
+        <button
+          key={image}
+          type="button"
+          aria-label={t('lightboxAlbumImage', { position: index + 1 })}
+          aria-current={image === current || undefined}
+          className={cn(
+            'relative w-10 shrink-0 cursor-pointer overflow-hidden rounded-sm opacity-60 transition-opacity duration-150 ease-out outline-none hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring',
+            image === current && 'opacity-100'
+          )}
+          style={cellShape}
+          onClick={() => onPick(image)}
+        >
+          <Thumbnail id={image} label="" />
+          {image === current && (
+            <m.span
+              layoutId="album-strip-current"
+              transition={settle}
+              className="absolute inset-0 rounded-sm ring-2 ring-primary ring-inset"
+            />
+          )}
+        </button>
+      ))}
+    </m.div>
+  )
+}
 
 /** When and where the photo was taken, for an image that says. Most say nothing. */
 function ImageDetails({ id }: { id: string }) {
@@ -48,7 +116,7 @@ function ImageDetails({ id }: { id: string }) {
   const date = (iso: string) =>
     new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(iso))
   return (
-    <p className="flex items-center gap-3 rounded-md bg-popover px-2 py-1 text-sm text-popover-foreground">
+    <Pill className="gap-3">
       {takenAt && (
         <span className="flex items-center gap-1.5">
           <Calendar aria-hidden className="size-3.5 text-muted-foreground" />
@@ -67,7 +135,7 @@ function ImageDetails({ id }: { id: string }) {
           {t('missingOriginal')}
         </span>
       )}
-    </p>
+    </Pill>
   )
 }
 
@@ -93,6 +161,7 @@ export function Lightbox({ id }: { id: string }) {
   const y = useMotionValue(0)
   const scale = useMotionValue(MIN_ZOOM)
   const popup = useRef<HTMLDivElement>(null)
+  const dragged = useRef(false)
 
   useEffect(() => {
     animate(scale, zoom, settle)
@@ -119,6 +188,11 @@ export function Lightbox({ id }: { id: string }) {
     if (offset.x < -SWIPE_DISTANCE) step(next)
   }
 
+  // Letting go of a drag is a click too, wherever it ends.
+  const closeOutside = ({ target }: MouseEvent) => {
+    if (!dragged.current && 'outside' in (target as HTMLElement).dataset) close()
+  }
+
   const wheel = ({ deltaY }: WheelEvent) => {
     setZoom((current) => clampZoom(current * (1 - deltaY * WHEEL_SPEED)))
   }
@@ -142,22 +216,24 @@ export function Lightbox({ id }: { id: string }) {
         <DialogPrimitive.Popup
           ref={popup}
           aria-label={t('cell', { position: index + 1 })}
+          data-outside
           className="fixed inset-0 z-50 flex flex-col transition-opacity duration-200 outline-none data-ending-style:opacity-0 data-starting-style:opacity-0"
           onKeyDown={keydown}
+          onPointerDownCapture={() => (dragged.current = false)}
+          onClick={closeOutside}
         >
           <DialogTitle className="sr-only">{t('cell', { position: index + 1 })}</DialogTitle>
-          <div className="flex items-center justify-between gap-2 p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="rounded-md bg-popover px-2 py-1 text-sm text-popover-foreground">
-                {t('lightboxPosition', { position: index + 1, total: cells.length })}
-              </p>
+          <div data-outside className="flex items-center justify-between gap-2 p-4">
+            <div data-outside className="flex flex-1 flex-wrap items-center gap-2">
+              <Pill>{t('lightboxPosition', { position: index + 1, total: cells.length })}</Pill>
               {album && (
-                <p className="rounded-md bg-popover px-2 py-1 text-sm text-popover-foreground">
+                <Pill>
+                  <Layers aria-hidden className="size-3.5 text-muted-foreground" />
                   {t('lightboxAlbumPosition', {
                     position: album.indexOf(id) + 1,
                     total: album.length
                   })}
-                </p>
+                </Pill>
               )}
               <ImageDetails id={id} />
             </div>
@@ -186,10 +262,12 @@ export function Lightbox({ id }: { id: string }) {
             </div>
           </div>
           <div
+            data-outside
             className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden"
             onWheel={wheel}
           >
             <m.div
+              data-outside
               className="flex size-full items-center justify-center p-4"
               drag
               dragMomentum={false}
@@ -201,6 +279,7 @@ export function Lightbox({ id }: { id: string }) {
                 top: -reach.y,
                 bottom: reach.y
               }}
+              onDragStart={() => (dragged.current = true)}
               onDragEnd={swipe}
               style={{ x, y, scale }}
               data-zoom={zoom}
@@ -229,6 +308,9 @@ export function Lightbox({ id }: { id: string }) {
             >
               <ChevronRight />
             </IconButton>
+            <AnimatePresence>
+              {album && <AlbumStrip key={cell} images={album} current={id} onPick={step} />}
+            </AnimatePresence>
           </div>
         </DialogPrimitive.Popup>
       </DialogPortal>

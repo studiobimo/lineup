@@ -1,8 +1,12 @@
 const LOCK = 'lineup-board'
+// A reload runs the new page while the old one still holds the lock. That is not another tab.
+const HANDOVER_MS = 500
 
 interface HoldOptions {
   onActive: () => void
   onElsewhere: () => void
+  /** How long the lock may stay out of reach before that counts as being open elsewhere. */
+  patience?: number
 }
 
 export interface BoardHold {
@@ -15,7 +19,7 @@ export interface BoardHold {
  * closes, and a frozen phone tab never lets go, which is why `takeOver` does not wait.
  */
 export function holdBoard(
-  { onActive, onElsewhere }: HoldOptions,
+  { onActive, onElsewhere, patience = HANDOVER_MS }: HoldOptions,
   locks: LockManager | undefined = navigator.locks
 ): BoardHold {
   if (!locks) {
@@ -26,17 +30,20 @@ export function holdBoard(
   let waiting: AbortController | undefined
   let letGo: (() => void) | undefined
   let released = false
+  let handover: ReturnType<typeof setTimeout> | undefined
 
   const held = () => {
     if (released) return
     waiting = undefined
+    clearTimeout(handover)
     onActive()
     return new Promise<void>((resolve) => (letGo = resolve))
   }
 
-  const wait = () => {
+  const wait = (grace?: number) => {
     if (released) return
-    onElsewhere()
+    if (grace === undefined) onElsewhere()
+    else handover = setTimeout(onElsewhere, grace)
     const controller = new AbortController()
     waiting = controller
     locks.request(LOCK, { signal: controller.signal }, held).catch(() => {
@@ -45,20 +52,16 @@ export function holdBoard(
     })
   }
 
-  locks
-    .request(LOCK, { ifAvailable: true }, (lock) => {
-      if (lock) return held()
-      wait()
-    })
-    .catch(wait)
+  wait(patience)
 
   return {
     takeOver() {
       waiting?.abort()
-      locks.request(LOCK, { steal: true }, held).catch(wait)
+      locks.request(LOCK, { steal: true }, held).catch(() => wait())
     },
     release() {
       released = true
+      clearTimeout(handover)
       waiting?.abort()
       letGo?.()
     }

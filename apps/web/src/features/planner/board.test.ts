@@ -4,6 +4,7 @@ import {
   addToTray,
   cellOf,
   cellsThatCrossed,
+  flightsBetween,
   clear,
   coverOf,
   freeCells,
@@ -314,5 +315,38 @@ describe('an album moves as one', () => {
   it('finds the cell an image is in', () => {
     expect(cellOf(board, 'c')).toBe('album')
     expect(cellOf(board, 'a')).toBe('a')
+  })
+})
+
+describe('flightsBetween', () => {
+  const board = { tray: ['a', 'b', 'c'], grid: ['d'] }
+
+  it('sends each cell of a new album to it, carrying its own picture', () => {
+    expect(flightsBetween(board, group(board, ['a', 'c'], 'album'))).toEqual([
+      { from: 'a', to: 'album', image: 'a' },
+      { from: 'c', to: 'album', image: 'c' }
+    ])
+  })
+
+  it('deals an album back out, and undoing a group is the same thing', () => {
+    const grouped = group(board, ['a', 'c'], 'album')
+    expect(flightsBetween(grouped, board)).toEqual([
+      { from: 'album', to: 'a', image: 'a' },
+      { from: 'album', to: 'c', image: 'c' }
+    ])
+  })
+
+  it('moves an album that joins another with the picture on its cover', () => {
+    const grouped = group(board, ['a', 'b'], 'first')
+    expect(flightsBetween(grouped, group(grouped, ['c', 'first'], 'second'))).toEqual([
+      { from: 'first', to: 'second', image: 'a' },
+      { from: 'c', to: 'second', image: 'c' }
+    ])
+  })
+
+  it('follows a cell to the other container, and lets a deleted one go', () => {
+    const moved = { tray: ['b', 'c'], grid: ['d', 'a'] }
+    expect(flightsBetween(board, moved)).toEqual([{ from: 'a', to: 'a', image: 'a' }])
+    expect(flightsBetween(board, { tray: ['b', 'c'], grid: ['d'] })).toEqual([])
   })
 })

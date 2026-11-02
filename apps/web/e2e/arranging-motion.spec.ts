@@ -127,3 +127,56 @@ test('the ghost is centred on the pointer, and leans only while it moves', async
   expect(Math.abs(await lean())).toBeLessThan(0.5)
   await page.mouse.up()
 })
+
+test('the cells of an album fly to it and back out, with no gap on the way', async ({ page }) => {
+  const cells = page.locator('section').getByRole('group', { name: /^Image \d+$/ })
+  const modifier = process.platform === 'darwin' ? 'Meta' : 'Control'
+  await cells.nth(0).click({ modifiers: [modifier] })
+  await cells.nth(2).click({ modifiers: ['Shift'] })
+
+  // A frame with a cell neither on the board nor in the air is the flash this exists to prevent.
+  await page.evaluate(() => {
+    const seen: number[] = []
+    const shown = () =>
+      [...document.querySelectorAll<HTMLElement>('[data-drop-id], [data-flight]')].filter(
+        (element) => getComputedStyle(element).opacity !== '0' && element.querySelector('canvas')
+      ).length
+    // After the frame's own callbacks, which is when what will be painted has been decided.
+    const sample = () => {
+      seen.push(shown())
+      if (seen.length < 40) requestAnimationFrame(() => setTimeout(sample))
+    }
+    Object.assign(window, { seen })
+    sample()
+  })
+  await page.getByRole('button', { name: 'Group' }).click()
+  await expect(page.locator('[data-flight]')).toHaveCount(3)
+  await expect(page.locator('[data-flight]')).toHaveCount(0)
+  await expect(cells.first()).toHaveCSS('opacity', '1')
+  const seen = await page.evaluate(() => (window as unknown as { seen: number[] }).seen)
+  expect(seen.length).toBe(40)
+  expect(Math.min(...seen)).toBeGreaterThan(0)
+
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect(page.locator('[data-flight]')).toHaveCount(3)
+  await expect(page.locator('[data-flight]')).toHaveCount(0)
+  await expect(cells).toHaveCount(3)
+  await expect(cells.nth(2)).toHaveCSS('opacity', '1')
+})
+
+test('a cell dropped on another to make an album lands and leaves nothing hidden', async ({
+  page
+}) => {
+  const cells = page.locator('section').getByRole('group', { name: /^Image \d+$/ })
+  const start = (await cells.nth(1).boundingBox())!
+  const end = (await cells.nth(0).boundingBox())!
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, { steps: 8 })
+  await expect(page.getByText('Drop to make an album')).toBeVisible()
+  await page.mouse.up()
+  await expect(cells).toHaveCount(2)
+  await expect(page.locator('[data-flight], [data-ghost]')).toHaveCount(0)
+  await expect(cells.first()).toHaveCSS('opacity', '1')
+  await expect(page.getByText('Drop to make an album')).toHaveCount(0)
+})

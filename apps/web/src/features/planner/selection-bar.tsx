@@ -9,7 +9,7 @@ import { toastManager } from '@/components/ui/toast'
 
 import { containerOf, groupProblem, inBoardOrder } from './board'
 import { dragStore } from './drag-target'
-import { settle } from './motion'
+import { rise } from './motion'
 import { instagram } from './network-profile'
 import { plannerStore } from './planner'
 import { clearSelection, selectedCells, useSelectionSize } from './selection-store'
@@ -37,10 +37,7 @@ function SelectionActions({ count }: { count: number }) {
     <m.div
       role="toolbar"
       aria-label={t('selectionActions')}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 12 }}
-      transition={settle}
+      {...rise}
       className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
     >
       <p aria-live="polite" className="px-2 text-sm whitespace-nowrap">

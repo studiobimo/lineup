@@ -10,7 +10,7 @@ import {
   Trash2
 } from 'lucide-react'
 import { m, useMotionValue } from 'motion/react'
-import { memo, type ReactNode, useCallback, useRef } from 'react'
+import { memo, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
@@ -45,9 +45,8 @@ interface BoardCellProps {
 const CellActions = memo(function CellActions({
   id,
   container,
-  locked,
-  album
-}: Pick<BoardCellProps, 'id' | 'container'> & { locked: boolean; album: boolean }) {
+  locked
+}: Pick<BoardCellProps, 'id' | 'container'> & { locked: boolean }) {
   const { t } = useTranslation('planner')
   const toTray = container === 'grid'
   const LockToggle = locked ? LockOpen : Lock
@@ -58,10 +57,10 @@ const CellActions = memo(function CellActions({
         size="icon-xs"
         tabIndex={-1}
         tooltip={cellTooltip}
-        label={t(album ? 'openAlbum' : 'openImage')}
-        onClick={() => (album ? openAlbum(id) : openLightbox(id))}
+        label={t('openImage')}
+        onClick={() => openLightbox(coverOf(plannerStore.getState().board, id))}
       >
-        {album ? <Layers /> : <Maximize2 />}
+        <Maximize2 />
       </IconButton>
       {toTray && (
         <IconButton
@@ -103,6 +102,28 @@ const CellActions = memo(function CellActions({
   )
 })
 
+/** Always in view, unlike the actions: it says what the cell is, and opens what it says. */
+const AlbumButton = memo(function AlbumButton({ id, size }: { id: string; size: number }) {
+  const { t } = useTranslation('planner')
+  return (
+    <>
+      <IconButton
+        variant="outline"
+        size="xs"
+        tabIndex={-1}
+        tooltip={cellTooltip}
+        label={t('openAlbum')}
+        className="pointer-events-auto gap-0.5 px-1 tabular-nums"
+        onClick={() => openAlbum(id)}
+      >
+        <Layers />
+        {size}
+      </IconButton>
+      <span className="sr-only">{t('albumOf', { count: size })}</span>
+    </>
+  )
+})
+
 /** In its own corner, because a narrow cell's actions already fill its top edge. */
 const SelectToggle = memo(function SelectToggle({
   id,
@@ -114,15 +135,17 @@ const SelectToggle = memo(function SelectToggle({
   const { t } = useTranslation('planner')
   return (
     <IconButton
-      variant={selected ? 'default' : 'outline'}
+      variant="ghost"
       size="icon-xs"
       tabIndex={-1}
       tooltip={cellTooltip}
       label={t(selected ? 'deselect' : 'select')}
       aria-pressed={selected}
       className={cn(
-        'absolute right-1 bottom-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100',
-        selected && 'opacity-100'
+        'absolute right-1 bottom-1 rounded-full border-2 opacity-0 transition-[background-color,border-color,color,opacity,scale] duration-150 ease-out group-hover:opacity-100 focus-visible:opacity-100 active:scale-90 pointer-coarse:opacity-100',
+        selected
+          ? 'border-primary bg-primary text-primary-foreground opacity-100 hover:border-primary/90 hover:bg-primary/90'
+          : 'border-on-photo bg-photo-scrim text-transparent shadow-xs hover:bg-photo-scrim hover:text-on-photo'
       )}
       onClick={() => toggleSelected(id)}
     >
@@ -134,14 +157,12 @@ const SelectToggle = memo(function SelectToggle({
 interface CellBadgeProps {
   icon: LucideIcon
   label?: string
-  children?: ReactNode
 }
 
-function CellBadge({ icon: Icon, label, children }: CellBadgeProps) {
+function CellBadge({ icon: Icon, label }: CellBadgeProps) {
   return (
     <span className="flex items-center gap-0.5 rounded-sm bg-background p-1 text-xs/3 text-foreground shadow-xs">
       <Icon aria-hidden className="size-3" />
-      {children}
       {label && <span className="sr-only">{label}</span>}
     </span>
   )
@@ -197,6 +218,9 @@ export const BoardCell = memo(function BoardCell({
       onClick={(event) => {
         if (!(event.target as HTMLElement).closest('button')) clickCell(id, event)
       }}
+      onDoubleClick={(event) => {
+        if (!(event.target as HTMLElement).closest('button')) openLightbox(cover)
+      }}
       aria-label={t('cell', { position })}
       {...dropArea}
       data-mark={mark}
@@ -215,7 +239,6 @@ export const BoardCell = memo(function BoardCell({
       style={{ ...cellShape, zIndex }}
     >
       <div
-        onDoubleClick={() => openLightbox(cover)}
         className={cn(
           'size-full transition duration-200 ease-out',
           missing && 'opacity-50 grayscale',
@@ -228,34 +251,28 @@ export const BoardCell = memo(function BoardCell({
       <div
         className={cn(
           'pointer-events-none absolute inset-0 bg-linear-to-b from-foreground/25 to-foreground/5 opacity-0 transition-opacity duration-200 ease-out',
-          (mark === 'swap' || isDragging) && 'opacity-100'
+          (mark === 'swap' || mark === 'group' || isDragging) && 'opacity-100'
         )}
       />
       {mark === 'group' && (
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="rounded-md bg-primary p-1.5 text-primary-foreground shadow-md">
+          <m.span
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={settle}
+            className="rounded-md bg-primary p-1.5 text-primary-foreground shadow-md"
+          >
             <Layers aria-hidden className="size-5" />
-          </span>
+          </m.span>
         </span>
       )}
       <div className="pointer-events-none absolute bottom-1 left-1 flex gap-1">
-        {albumSize && (
-          <CellBadge icon={Layers} label={t('albumOf', { count: albumSize })}>
-            <span aria-hidden>{albumSize}</span>
-          </CellBadge>
-        )}
+        {albumSize && <AlbumButton id={id} size={albumSize} />}
         {locked && <CellBadge icon={Lock} />}
         {missing && <CellBadge icon={ImageOff} label={t('missingOriginal')} />}
       </div>
       {!mark && <SelectToggle id={id} selected={selected} />}
-      {!mark && (
-        <CellActions
-          id={id}
-          container={container}
-          locked={locked}
-          album={albumSize !== undefined}
-        />
-      )}
+      {!mark && <CellActions id={id} container={container} locked={locked} />}
     </m.div>
   )
 })

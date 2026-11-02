@@ -51,10 +51,10 @@ function fakeLocks() {
   } as unknown as LockManager
 }
 
-function tab(locks: LockManager | undefined) {
+function tab(locks: LockManager | undefined, patience = 0) {
   const onActive = vi.fn()
   const onElsewhere = vi.fn()
-  return { onActive, onElsewhere, hold: holdBoard({ onActive, onElsewhere }, locks) }
+  return { onActive, onElsewhere, hold: holdBoard({ onActive, onElsewhere, patience }, locks) }
 }
 
 describe('holdBoard', () => {
@@ -77,6 +77,28 @@ describe('holdBoard', () => {
     first.hold.release()
     await settled()
     expect(second.onActive).toHaveBeenCalledOnce()
+  })
+
+  it('says nothing of another tab when the old page lets go during a reload', async () => {
+    const locks = fakeLocks()
+    const before = tab(locks)
+    await settled()
+    const after = tab(locks, 50)
+    before.hold.release()
+    await new Promise((resolve) => setTimeout(resolve, 60))
+    expect(after.onActive).toHaveBeenCalledOnce()
+    expect(after.onElsewhere).not.toHaveBeenCalled()
+  })
+
+  it('says so once the lock has stayed out of reach for as long as it will wait', async () => {
+    const locks = fakeLocks()
+    tab(locks)
+    await settled()
+    const second = tab(locks, 10)
+    await settled()
+    expect(second.onElsewhere).not.toHaveBeenCalled()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(second.onElsewhere).toHaveBeenCalledOnce()
   })
 
   it('takes the board from a tab that is still open, which then waits its turn', async () => {

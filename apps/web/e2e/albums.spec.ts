@@ -187,15 +187,15 @@ test('the lightbox steps through an album before the next cell', async ({ page }
   await tray(page).first().dblclick()
   const lightbox = page.getByRole('dialog')
   await expect(lightbox.getByText('1 of 2', { exact: true })).toBeVisible()
-  await expect(lightbox.getByText('Album 1 of 2')).toBeVisible()
+  await expect(lightbox.getByText('Album, image 1 of 2')).toBeVisible()
 
   await page.keyboard.press('ArrowRight')
-  await expect(lightbox.getByText('Album 2 of 2')).toBeVisible()
+  await expect(lightbox.getByText('Album, image 2 of 2')).toBeVisible()
   await page.keyboard.press('ArrowRight')
   await expect(lightbox.getByText('2 of 2', { exact: true })).toBeVisible()
   await expect(lightbox.getByText(/^Album/)).toHaveCount(0)
   await page.keyboard.press('ArrowLeft')
-  await expect(lightbox.getByText('Album 2 of 2')).toBeVisible()
+  await expect(lightbox.getByText('Album, image 2 of 2')).toBeVisible()
 })
 
 test('an album drags as one cell, across and back', async ({ page }) => {
@@ -272,4 +272,91 @@ test('a locked cell is not grouped', async ({ page }) => {
   await bar(page).getByRole('button', { name: 'Group' }).click()
   await expect(page.getByText('Unlock a cell before grouping it.')).toBeVisible()
   await expect(grid(page)).toHaveCount(2)
+})
+
+test('an album cell opens its images full size from one button and its editor from another', async ({
+  page
+}) => {
+  await boardOf(page, 3)
+  await groupFirst(page, 2)
+  await tray(page).first().hover()
+  await tray(page).first().getByRole('button', { name: 'Open full size' }).click()
+  await expect(page.getByText('Album, image 1 of 2')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByText('Album, image 1 of 2')).toBeHidden()
+
+  await tray(page).first().getByRole('button', { name: 'Open album' }).click()
+  await expect(page.getByRole('dialog', { name: 'Album of 2 images' })).toBeVisible()
+})
+
+test('double-clicking anywhere on a cell opens it, even under its buttons', async ({ page }) => {
+  await boardOf(page, 2)
+  await tray(page)
+    .first()
+    .dblclick({ position: { x: 4, y: 4 } })
+  await expect(page.getByRole('dialog')).toBeVisible()
+})
+
+test('the album button keeps working after an album has gone while it was open', async ({
+  page
+}) => {
+  await boardOf(page, 5)
+  await groupFirst(page, 2)
+  await tray(page)
+    .nth(1)
+    .click({ modifiers: [modifier] })
+  await tray(page)
+    .nth(2)
+    .click({ modifiers: ['Shift'] })
+  await bar(page).getByRole('button', { name: 'Group' }).click()
+  await expect(tray(page)).toHaveCount(3)
+
+  await openAlbum(page)
+  await page.getByRole('button', { name: 'Ungroup' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(tray(page)).toHaveCount(4)
+
+  await tray(page).nth(2).hover()
+  await tray(page).nth(2).getByRole('button', { name: 'Open album' }).click()
+  await expect(page.getByRole('dialog', { name: 'Album of 2 images' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect(tray(page)).toHaveCount(3)
+  await openAlbum(page)
+  await expect(page.getByRole('dialog', { name: 'Album of 2 images' })).toBeVisible()
+})
+
+test('the lightbox shows the album an image belongs to and moves through it', async ({ page }) => {
+  await boardOf(page, 3)
+  await groupFirst(page, 3)
+  await tray(page).first().dblclick()
+  const strip = page.getByRole('group', { name: 'Images in this album' })
+  await expect(strip.getByRole('button')).toHaveCount(3)
+  await expect(strip.getByRole('button', { name: 'Image 1 of the album' })).toHaveAttribute(
+    'aria-current',
+    'true'
+  )
+
+  await strip.getByRole('button', { name: 'Image 3 of the album' }).click()
+  await expect(page.getByText('Album, image 3 of 3')).toBeVisible()
+})
+
+test('clicking beside the image closes the lightbox, and dragging it does not', async ({
+  page
+}) => {
+  await boardOf(page, 2)
+  await tray(page).first().dblclick()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+
+  await page.mouse.move(40, 400)
+  await page.mouse.down()
+  await page.mouse.move(70, 400, { steps: 4 })
+  await page.mouse.up()
+  await expect(dialog).toBeVisible()
+
+  await page.mouse.click(40, 400)
+  await expect(dialog).toHaveCount(0)
 })

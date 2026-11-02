@@ -45,6 +45,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-device: var(--device);
   --color-on-photo: var(--on-photo);
+  --color-photo-scrim: var(--photo-scrim);
   --color-control-hover: var(--control-hover);
   --color-muted: var(--muted);
   --color-input: var(--input);
@@ -152,6 +153,7 @@
 
 :root {
   --on-photo: #fff;
+  --photo-scrim: rgb(0 0 0 / 32%);
   --destructive-foreground: var(--color-red-700);
   --info: var(--color-blue-500);
   --info-foreground: var(--color-blue-700);

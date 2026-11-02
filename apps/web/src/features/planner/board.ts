@@ -145,6 +145,26 @@ export function cellsThatCrossed(before: Board, after: Board) {
   ]
 }
 
+/**
+ * Every cell that goes somewhere when a board changes: over to the other container, into an album,
+ * or out of one. `image` is the picture it carries on the way. An undo is a change like any other.
+ */
+export function flightsBetween(before: Board, after: Board) {
+  const placed = ({ tray, grid }: Board) => new Set([...tray, ...grid])
+  const was = placed(before)
+  const is = placed(after)
+  const carrying = (cell: string, to: string) => ({ from: cell, to, image: coverOf(before, cell) })
+  const crossed = cellsThatCrossed(before, after).map((cell) => carrying(cell, cell))
+  const gathered = [...was]
+    .filter((cell) => !is.has(cell))
+    .map((cell) => carrying(cell, cellOf(after, coverOf(before, cell))))
+    .filter(({ to }) => after.albums?.[to])
+  const dealt = [...is]
+    .filter((cell) => !was.has(cell) && was.has(cellOf(before, cell)))
+    .map((cell) => ({ from: cellOf(before, cell), to: cell, image: cell }))
+  return [...crossed, ...gathered, ...dealt]
+}
+
 export function moveAll(board: Board, from: Container): Board {
   return from === 'tray'
     ? { ...board, tray: [], grid: [...board.grid, ...board.tray] }

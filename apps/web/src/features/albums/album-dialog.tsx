@@ -2,7 +2,7 @@ import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, rectSortingStrategy, SortableContext, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Ungroup, X } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
@@ -41,6 +41,7 @@ function AlbumTile({ album, image, position, locked }: AlbumTileProps) {
     id: image,
     disabled: locked,
     data: { isCell: true },
+    animateLayoutChanges: () => true,
     attributes: { role: 'group', roleDescription: t('planner:cellRole') }
   })
   return (
@@ -81,7 +82,10 @@ export function AlbumDialog({ id }: { id: string }) {
   const { t } = useTranslation(['albums', 'planner'])
   const { t: planner } = useTranslation('planner')
   const { dialog, close } = useDialogPresence(closeAlbum)
-  const images = usePlanner(({ board }) => board.albums?.[id])
+  const album = usePlanner(({ board }) => board.albums?.[id])
+  // What goes on showing while it closes, because closing finishes only once its exit has played.
+  const [images, setImages] = useState(album)
+  if (album && album !== images) setImages(album)
   const locked = usePlanner(({ board }) => isLocked(board, id))
   const sensors = useCellSensors()
   const accessibility = useMemo(() => {
@@ -97,8 +101,8 @@ export function AlbumDialog({ id }: { id: string }) {
 
   // Taking out the last image but one leaves no album to edit.
   useEffect(() => {
-    if (!images) close()
-  }, [images, close])
+    if (!album) close()
+  }, [album, close])
   if (!images) return null
 
   const reorder = ({ active, over }: DragEndEvent) => {
