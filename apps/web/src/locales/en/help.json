@@ -1,0 +1,11 @@
+{
+  "title": "Help",
+  "introTitle": "Plan your feed before it goes live",
+  "introSteps": {
+    "add": "Add images to the tray, or drop them anywhere on the window.",
+    "arrange": "Drag them into the grid. Drop on a cell to swap, or near its edge to insert.",
+    "preview": "Use the phone button to see how the feed will look."
+  },
+  "introDismiss": "Dismiss the introduction",
+  "settings": "Settings"
+}

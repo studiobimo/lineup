@@ -1,0 +1,26 @@
+packages:
+  - apps/web
+  - packages/*
+
+# >>> template:vite
+# The supply chain. pnpm resolves no version younger than a week, the same cooldown
+# Dependabot keeps, and runs no dependency's install script unless allowBuilds names it:
+# true to run it, false to block it. An unreviewed one fails the install. Add the
+# project's own entries after the end marker; they are still inside allowBuilds. A
+# workspace's packages: key goes above the start marker.
+minimumReleaseAge: 10080
+
+# eslint-plugin-jsx-a11y works with ESLint 10 but has not said so since its last release.
+peerDependencyRules:
+  allowedVersions:
+    eslint-plugin-jsx-a11y>eslint: "10"
+
+allowBuilds:
+# <<< template:vite
+
+# >>> template:cloudflare
+  # Inside the vite block's allowBuilds. wrangler's runtime: workerd and esbuild each fetch
+  # or check their platform's binary when installed.
+  esbuild: true
+  workerd: true
+# <<< template:cloudflare

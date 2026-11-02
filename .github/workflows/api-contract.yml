@@ -1,0 +1,32 @@
+name: API contract
+
+# A version is a promise (docs/API.md): this fails a pull request that breaks `v1`. It needs the
+# base branch's history, which `make ci` does not have, so it is a job of its own.
+
+on:
+  pull_request:
+    paths:
+      - apps/web/public/api-docs/openapi.json
+
+permissions: {}
+
+jobs:
+  breaking-changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+        with:
+          version: 2026.10.0
+
+      - name: Compare with the base branch
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: make -C .devtools api-breaking BASE="$BASE"

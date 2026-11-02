@@ -1,0 +1,93 @@
+{
+  "title": "Settings",
+  "language": "Language",
+  "languages": {
+    "en": "English",
+    "es": "Español"
+  },
+  "profile": "Profile",
+  "handle": "Handle",
+  "handlePlaceholder": "your_username",
+  "name": "Name",
+  "namePlaceholder": "Your name",
+  "profileNote": "Shown in the phone preview. It stays in this browser.",
+  "theme": "Theme",
+  "themes": {
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "photos": "Photos",
+  "captureDates": "Read capture dates",
+  "locations": "Read locations",
+  "photosNote": "As you add a photo, Bands can use when it was taken and the city it was taken in to keep a shoot together. Lineup keeps the city, never the exact position, and neither leaves this browser. Photos already on the board are not read again. Turning a switch off does not remove what was already read.",
+  "storage": "Storage on this device",
+  "safariNote": "Safari can delete a site's data after seven days without a visit. Adding Lineup to your Home Screen or Dock protects your board. An installed app starts empty, so back up here and restore there.",
+  "backUp": "Back up",
+  "restore": "Restore",
+  "backupNote": "A backup is one file with your images and their order. Restoring replaces the board, and Undo brings the old one back.",
+  "backupFailed": "The backup could not be made. Try again.",
+  "restored": "Board restored. Undo brings back the one before.",
+  "restoreFailed": "That file could not be restored. It may not be a Lineup backup, or it may be incomplete.",
+  "storageUsed": "{{used}} of {{quota}} used",
+  "storageNote": "Your images are kept in this browser and never leave it until you schedule a post.",
+  "folderChoose": "Keep in a folder",
+  "folderChoosing": "Copying your board",
+  "folderNote": "Keeps your board and your full-size originals in a folder you choose, so a cleared browser cannot touch them. An empty folder takes a copy of this board. A folder that has a board opens it.",
+  "folderInUse": "Your board is in {{name}}.",
+  "folderInUseNote": "Your originals are there at full size. Lineup adds to that folder but never changes or deletes your photos.",
+  "folderLeave": "Stop using this folder",
+  "folderFailed": "That folder could not be used. Try again, or choose another one.",
+  "folderFull": "That drive is out of room. Free up some space, or choose another folder.",
+  "folderGate": {
+    "needs-permission": {
+      "title": "Open {{name}}",
+      "description": "Your board is in this folder, and your browser needs your permission to open it again."
+    },
+    "unreachable": {
+      "title": "{{name}} could not be found",
+      "description": "It may have been moved or renamed, or it may be on a drive that is not plugged in. Your board is safe in the folder."
+    },
+    "unreadable": {
+      "title": "{{name}} could not be read",
+      "description": "Lineup's own files in this folder are damaged. Your photos are not affected. To start a new board there, move the hidden .lineup folder out of it, and your photos will be offered again."
+    }
+  },
+  "folderAllow": "Open the folder",
+  "folderRetry": "Try again",
+  "folderLeaveForBrowser": "Use the board in this browser",
+  "newFiles_one": "1 new photo in your folder",
+  "newFiles_other": "{{count}} new photos in your folder",
+  "addNewFiles": "Add to tray",
+  "removedFiles_one": "1 photo you removed from the board is still in this folder.",
+  "removedFiles_other": "{{count}} photos you removed from the board are still in this folder.",
+  "offerRemoved": "Offer again",
+  "help": {
+    "description": "Everything here stays on this device.",
+    "shortcuts": "Keyboard shortcuts",
+    "showIntro": "Show the introduction",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "actions": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "focus": "Move between images",
+      "actions": "Open the focused image's actions",
+      "delete": "Delete the focused image",
+      "pickUp": "Pick up or drop the focused image",
+      "move": "Move the image you picked up",
+      "insert": "Insert instead of swap, while dragging",
+      "cancel": "Cancel a move"
+    },
+    "keys": {
+      "mod": "Ctrl",
+      "mod_apple": "⌘",
+      "shift": "Shift",
+      "z": "Z",
+      "delete": "Delete",
+      "space": "Space",
+      "enter": "Enter",
+      "arrows": "Arrow keys",
+      "escape": "Esc"
+    }
+  }
+}

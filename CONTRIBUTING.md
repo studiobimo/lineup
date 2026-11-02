@@ -16,6 +16,8 @@ Thanks for helping! This project follows a few strict conventions, and tooling e
 
 | Path | Purpose |
 | --- | --- |
+| `apps/web/` | The deployable: the React app and the Worker entry |
+| `packages/` | `api` (the Hono app) and `contract` (the schemas both sides share) |
 | `.devtools/` | Makefile, the shared hooks (`lefthook-base.yml`), guard and sync scripts |
 | `mise.toml`, `mise.lock` | Every tool the hooks and CI run, pinned with checksums |
 | `lefthook.yml` | This project's own hooks, on top of the shared ones |
@@ -41,7 +43,16 @@ a lowercase subject with no full stop, and at most 100 characters in the header 
 body line.
 
 PRs are **squash-merged**, so the **PR title** must also be a Conventional Commit.
-It becomes the commit on `main` that release-please reads.
+It becomes the commit on `develop` that semantic-release reads.
+
+### Issues: titled like the commit that closes them
+
+An issue's title follows the same format: `fix: the export drops the last row`,
+`feat(api): paginate the search results`, `docs: explain the release flow`. Every issue starts
+from a form (bug report, feature request or task), and each form starts the title with its type.
+The `issue-title` workflow lints the finished title with the same commitlint rules; while it
+fails, the issue carries the `needs-conventional-title` label and one comment saying what to
+change, and both go once the title is fixed.
 
 ### Pull requests: at most 20 files
 
@@ -65,7 +76,9 @@ Some files, and the regions of others between `>>> template:<name>` and `<<< tem
 markers, are kept in step with `studiobimo/project-template`. Change them there, not here; then
 `make -C .devtools sync` brings the change in. `make -C .devtools drift` shows what differs, and a
 weekly workflow opens an issue when something does. A deliberate difference goes in
-`.template-ignore`, with a comment saying why.
+`.template-ignore`, with a comment saying why. Entries the manifest marks `required` cannot be
+ignored, and a change to `.template-ignore` or `.template-profiles` needs the fleet's owners to
+review it.
 
 Projects only receive a change at a release, and release-please releases only `fix`, `feat` and
 breaking commits. A change to a managed file titled `chore`, `docs` or `ci` merges but never reaches
@@ -96,20 +109,42 @@ Each kind of information lives in exactly one place, so nothing has to be kept i
 - **Its body names the stories** it delivers (`ARR-5`) and how we will know it is done. Acceptance
   stays in the PRD, not in a copy on the issue.
 - **Open questions are issues too**, in the milestone that needs the answer.
-- **The PR says `Closes #123`**, which closes the issue and moves the milestone along.
+- **The PR says `Closes #123`**. A merge into `develop` closes nothing, so the pull request that
+  promotes `develop` lists every issue it ships, and they close and move the milestone along with it.
 
 Start with the milestone's open issues, oldest first; they are created in working order.
 
+## Environments
+
+PRs and stacks here go to `develop`, not `main` as the section above says for the org
+(`gh stack init --base develop feat/first-slice`). Their squashed commits reach `main` when
+`develop` is promoted, and that is where release-please reads them.
+
+| Branch | GitHub environment | Worker | Address |
+| --- | --- | --- | --- |
+| `develop` | `development` | `lineup-development` | `lineup-dev.bimo.dev` |
+| `main` | `production` | `lineup-production` | `lineup.bimo.dev` |
+
+`develop` reaches `main` through a pull request that the `promote` workflow opens on a push to
+`develop`, when the commits since the last release call for one: `chore(release): v0.2.0`, from a
+`release/v0.2.0` branch, with the release notes and the issues it closes. Merge it when you are
+ready to release, with a **merge commit**, not squashed: a squash would turn every Conventional
+Commit into one line of the release notes. It is the one merge commit `main` allows
+([ADR-0019](docs/adr/0019-develop-and-main.md), [ADR-0020](docs/adr/0020-semantic-release.md)).
+
 ## Releases
 
-[release-please](https://github.com/googleapis/release-please) maintains a release PR from the
-Conventional Commits on `main`. Merging it tags a SemVer release and cuts the GitHub Release.
-Never edit a version by hand. Until 1.0.0, breaking changes bump the minor version.
+[semantic-release](https://github.com/semantic-release/semantic-release) runs on every push to
+`main`, through `studiobimo/.github`'s `semantic-release.yml`: merging the promotion pull request
+above tags a SemVer release and cuts the GitHub Release, with its notes on the Release. There is no
+version file or changelog, so nothing is edited by hand: never create a tag or a version yourself.
+Before 1.0.0 a `feat` is a minor bump and a `fix` a patch; only a breaking change reaches 1.0.0.
 
 ## Repository settings (maintainers)
 
 `main` is protected by rulesets: PRs required, squash-only, linear history, and required checks
-`pr-checks` and `lint`. They and the other repository settings are defined in `studiobimo/.github`.
+`pr-checks` and `lint`. Promoting `develop` needs squash-only and linear history relaxed for that
+one pull request. They and the other repository settings are defined in `studiobimo/.github`.
 A private repository on the GitHub Free plan cannot use rulesets, so until this one is public or the
 plan changes, the hooks and the agent guard are what enforce these.
 `make -C .devtools github` applies them to this repository and needs `gh` signed in as an admin;

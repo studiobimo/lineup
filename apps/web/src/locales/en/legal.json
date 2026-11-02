@@ -1,0 +1,96 @@
+{
+  "updated": "Last updated 1 November 2026",
+  "privacy": {
+    "title": "Privacy policy",
+    "summary": "Lineup is a planner that runs in your browser. Your images stay on your device and there are no accounts. This page lists everything that is stored, and where.",
+    "sections": [
+      {
+        "heading": "Who runs Lineup",
+        "paragraphs": ["Lineup is made by studiobimo and served from lineup.bimo.dev."]
+      },
+      {
+        "heading": "On your device",
+        "paragraphs": [
+          "Your images and your plan are stored in this browser and never reach our servers. For each image, Lineup keeps a thumbnail, a JPEG copy up to 1440 px wide, its size, its main colours, the date you added it, the date it was taken if you turn on capture dates in Settings, the city it was taken in if you turn on locations in Settings (never its exact position) and its place on your board. It does not keep the file name, unless you keep your board in a folder: the originals and their names are then in that folder on your device, with everything above, and a backup still leaves the names out.",
+          "Lineup also remembers your theme, whether you have dismissed the introduction, and any handle and name you enter for the phone preview, and whether capture dates and locations are on. A backup you make is a file holding all of this, and it stays wherever you save it. City names come from GeoNames (geonames.org), under the CC BY 4.0 licence.",
+          "Nothing here is copied or backed up. You can delete images in the app, or clear this site's data in your browser to remove everything."
+        ]
+      },
+      {
+        "heading": "Your Zernio key",
+        "paragraphs": [
+          "Scheduling is optional. It uses Zernio, a separate service, with your own API key. The key is sealed and kept in a cookie in this browser that scripts on the page cannot read. It lasts 30 days at most, and you can remove it at any time.",
+          "No server stores your key. For each request our server unseals it in memory, calls Zernio and forgets it."
+        ]
+      },
+      {
+        "heading": "What goes to Zernio",
+        "paragraphs": [
+          "Nothing goes to Zernio until you schedule a post. When you do, your browser sends the JPEG copy of each image straight to Zernio. The caption and time you chose pass through our server on their way there, and are not kept.",
+          "Zernio then holds them and publishes them to Instagram. Zernio's own privacy policy and terms apply from that point, and Instagram's apply once a post is published."
+        ]
+      },
+      {
+        "heading": "On our servers",
+        "paragraphs": [
+          "We keep none of your images, plans or keys. We have no database and no accounts.",
+          "Lineup is hosted on Cloudflare, which handles your IP address and the pages you request, as any web host does, to serve the app and protect it. Requests to our API are also kept in Cloudflare's logs for up to seven days, to help us fix faults. Those logs do not include your images or your key.",
+          "There are no analytics, no advertising and no third-party scripts. Fonts are served from our own address."
+        ]
+      },
+      {
+        "heading": "Your choices",
+        "paragraphs": [
+          "We hold no account or profile for you, so there is nothing for us to look up, export or delete. What is on your device is yours to remove, and our logs expire on their own."
+        ]
+      },
+      {
+        "heading": "Changes",
+        "paragraphs": ["If any of this changes, we will update this page and the date on it."]
+      }
+    ]
+  },
+  "terms": {
+    "title": "Terms of use",
+    "summary": "By using Lineup you agree to these terms. If you do not agree, please do not use it.",
+    "sections": [
+      {
+        "heading": "Your content",
+        "paragraphs": [
+          "Your images stay yours, and Lineup takes no rights to them. You are responsible for having the right to use what you add, and for what you publish."
+        ]
+      },
+      {
+        "heading": "Zernio and Instagram",
+        "paragraphs": [
+          "Scheduling goes through Zernio with your own key, and posts are published on Instagram. Both are separate services with their own terms, which you agree to follow. We do not control whether a post is accepted, or published on time.",
+          "Lineup is not affiliated with or endorsed by Instagram or Meta."
+        ]
+      },
+      {
+        "heading": "Keep your originals",
+        "paragraphs": [
+          "Lineup is a planner, not a backup. Your board is stored only in this browser, and can be lost if the browser's data is cleared or the device fails. Keep your original files."
+        ]
+      },
+      {
+        "heading": "Fair use",
+        "paragraphs": [
+          "Do not try to break, overload or get around the security of Lineup, and do not use it to break the law or other people's rights."
+        ]
+      },
+      {
+        "heading": "No warranty",
+        "paragraphs": [
+          "Lineup is provided as it is, without warranty of any kind. As far as the law allows, studiobimo is not liable for any loss from using it, including lost images and posts that are missed or wrong. Nothing here limits rights you have by law."
+        ]
+      },
+      {
+        "heading": "Changes",
+        "paragraphs": [
+          "We may change or stop Lineup, and may change these terms. If we change them, we will update this page and the date on it."
+        ]
+      }
+    ]
+  }
+}

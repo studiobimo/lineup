@@ -1,0 +1,27 @@
+import { LazyMotion, MotionConfig } from 'motion/react'
+import type { ReactNode } from 'react'
+
+import { AnchoredToastProvider, ToastProvider } from '@/components/ui/toast'
+import { TooltipProvider } from '@/components/ui/tooltip'
+
+// Long enough that a pointer crossing a toolbar sets nothing off, and no longer. Once one tooltip
+// is open, the provider opens its neighbours at once.
+const TOOLTIP_DELAY_MS = 150
+
+// After first paint, because this is most of Motion's weight and nothing moves until then.
+const loadMotion = () => import('@/lib/motion-features').then(({ features }) => features)
+
+/** Everything the app needs around it, in one place. A new provider belongs here. */
+export function AppProviders({ children }: { children: ReactNode }) {
+  return (
+    <LazyMotion features={loadMotion} strict>
+      <MotionConfig reducedMotion="user">
+        <TooltipProvider delay={TOOLTIP_DELAY_MS}>
+          <ToastProvider>
+            <AnchoredToastProvider>{children}</AnchoredToastProvider>
+          </ToastProvider>
+        </TooltipProvider>
+      </MotionConfig>
+    </LazyMotion>
+  )
+}

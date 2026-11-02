@@ -1,0 +1,98 @@
+{
+  "updated": "Última actualización: 1 de noviembre de 2026",
+  "privacy": {
+    "title": "Política de privacidad",
+    "summary": "Lineup es un planificador que funciona en tu navegador. Tus imágenes se quedan en tu dispositivo y no hay cuentas. Esta página enumera todo lo que se almacena y dónde.",
+    "sections": [
+      {
+        "heading": "Quién gestiona Lineup",
+        "paragraphs": ["Lineup está hecho por studiobimo y se sirve desde lineup.bimo.dev."]
+      },
+      {
+        "heading": "En tu dispositivo",
+        "paragraphs": [
+          "Tus imágenes y tu plan se guardan en este navegador y nunca llegan a nuestros servidores. De cada imagen, Lineup guarda una miniatura, una copia JPEG de hasta 1440 px de ancho, su tamaño, sus colores principales, la fecha en que la añadiste, la fecha en que se tomó si activas las fechas de captura en Ajustes, la ciudad donde se tomó si activas las ubicaciones en Ajustes (nunca su posición exacta) y su lugar en tu tablero. No guarda el nombre del archivo, salvo que guardes tu tablero en una carpeta: entonces los originales y sus nombres están en esa carpeta de tu dispositivo, junto con todo lo anterior, y una copia de seguridad sigue sin incluir los nombres.",
+          "Lineup también recuerda tu tema, si has cerrado la introducción, el nombre de usuario y el nombre que escribas para la vista previa del teléfono, y si las fechas de captura y las ubicaciones están activadas. Una copia de seguridad que hagas es un archivo con todo esto, y se queda donde la guardes. Los nombres de ciudades proceden de GeoNames (geonames.org), con licencia CC BY 4.0.",
+          "Nada de esto se copia ni se respalda en otro lugar. Puedes eliminar imágenes en la app, o borrar los datos de este sitio en tu navegador para quitarlo todo."
+        ]
+      },
+      {
+        "heading": "Tu clave de Zernio",
+        "paragraphs": [
+          "Programar es opcional. Usa Zernio, un servicio aparte, con tu propia clave de API. La clave se sella y se guarda en una cookie de este navegador que los scripts de la página no pueden leer. Dura 30 días como máximo y puedes eliminarla en cualquier momento.",
+          "Ningún servidor guarda tu clave. En cada solicitud, nuestro servidor la abre en memoria, llama a Zernio y la olvida."
+        ]
+      },
+      {
+        "heading": "Qué llega a Zernio",
+        "paragraphs": [
+          "Nada llega a Zernio hasta que programas una publicación. Cuando lo haces, tu navegador envía la copia JPEG de cada imagen directamente a Zernio. El pie de foto y la hora que elegiste pasan por nuestro servidor de camino hasta allí, y no se guardan.",
+          "Zernio los conserva entonces y los publica en Instagram. A partir de ese momento se aplican la política de privacidad y los términos de Zernio, y los de Instagram una vez publicada la publicación."
+        ]
+      },
+      {
+        "heading": "En nuestros servidores",
+        "paragraphs": [
+          "No guardamos ninguna de tus imágenes, planes ni claves. No tenemos base de datos ni cuentas.",
+          "Lineup está alojado en Cloudflare, que trata tu dirección IP y las páginas que solicitas, como cualquier servicio de alojamiento web, para servir la app y protegerla. Las solicitudes a nuestra API también se guardan en los registros de Cloudflare hasta siete días, para ayudarnos a corregir fallos. Esos registros no incluyen tus imágenes ni tu clave.",
+          "No hay analítica, ni publicidad, ni scripts de terceros. Las fuentes se sirven desde nuestra propia dirección."
+        ]
+      },
+      {
+        "heading": "Tus opciones",
+        "paragraphs": [
+          "No guardamos ninguna cuenta ni perfil tuyo, así que no hay nada que podamos consultar, exportar o eliminar. Lo que hay en tu dispositivo es tuyo para quitarlo, y nuestros registros caducan solos."
+        ]
+      },
+      {
+        "heading": "Cambios",
+        "paragraphs": [
+          "Si algo de esto cambia, actualizaremos esta página y la fecha que aparece en ella."
+        ]
+      }
+    ]
+  },
+  "terms": {
+    "title": "Términos de uso",
+    "summary": "Al usar Lineup aceptas estos términos. Si no estás de acuerdo, por favor no lo uses.",
+    "sections": [
+      {
+        "heading": "Tu contenido",
+        "paragraphs": [
+          "Tus imágenes siguen siendo tuyas, y Lineup no adquiere ningún derecho sobre ellas. Eres responsable de tener derecho a usar lo que añades y de lo que publicas."
+        ]
+      },
+      {
+        "heading": "Zernio e Instagram",
+        "paragraphs": [
+          "Programar pasa por Zernio con tu propia clave, y las publicaciones se publican en Instagram. Ambos son servicios aparte con sus propios términos, que aceptas cumplir. No controlamos si una publicación es aceptada o se publica a tiempo.",
+          "Lineup no está afiliado a Instagram ni a Meta, ni cuenta con su respaldo."
+        ]
+      },
+      {
+        "heading": "Conserva tus originales",
+        "paragraphs": [
+          "Lineup es un planificador, no una copia de seguridad. Tu tablero se guarda solo en este navegador y se puede perder si se borran los datos del navegador o si el dispositivo falla. Conserva tus archivos originales."
+        ]
+      },
+      {
+        "heading": "Uso razonable",
+        "paragraphs": [
+          "No intentes romper, sobrecargar ni eludir la seguridad de Lineup, y no lo uses para infringir la ley ni los derechos de otras personas."
+        ]
+      },
+      {
+        "heading": "Sin garantía",
+        "paragraphs": [
+          "Lineup se ofrece tal cual, sin garantía de ningún tipo. Hasta donde la ley lo permita, studiobimo no es responsable de ninguna pérdida derivada de su uso, incluidas imágenes perdidas y publicaciones que no salgan o salgan mal. Nada de lo aquí dicho limita los derechos que tengas por ley."
+        ]
+      },
+      {
+        "heading": "Cambios",
+        "paragraphs": [
+          "Podemos cambiar o dejar de ofrecer Lineup, y podemos cambiar estos términos. Si los cambiamos, actualizaremos esta página y la fecha que aparece en ella."
+        ]
+      }
+    ]
+  }
+}

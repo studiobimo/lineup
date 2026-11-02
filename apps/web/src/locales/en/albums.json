@@ -1,0 +1,8 @@
+{
+  "image": "Album image {{position}}",
+  "cover": "Cover",
+  "help": "Drag to reorder. The first image is the cover. To add an image, hold it over this album on the board.",
+  "locked": "This album is locked in place. Unlock it to change it.",
+  "dragInstructions": "Press Space to pick up an image, move it with the arrow keys, and press Space to drop it.",
+  "takeOut": "Take out of the album"
+}

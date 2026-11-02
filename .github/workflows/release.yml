@@ -1,7 +1,7 @@
 name: Release
 
-#   push to main            -> release-please grooms a release pull request
-#   merge that pull request -> release-please tags it and cuts the GitHub Release
+#   push to main -> semantic-release reads the Conventional Commits since the last tag and,
+#                   if one is releasable, tags it and cuts the GitHub Release
 #
 # A job that builds or publishes what was released belongs in this same workflow,
 # gated on `needs.release.outputs.release-created == 'true'`. A tag created with
@@ -22,5 +22,4 @@ jobs:
   release:
     permissions:
       contents: write
-      pull-requests: write
-    uses: studiobimo/.github/.github/workflows/release-please.yml@v1
+    uses: studiobimo/.github/.github/workflows/semantic-release.yml@v1

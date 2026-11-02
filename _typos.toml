@@ -3,4 +3,8 @@ extend-exclude = [
   "*.lock",
   ".mise/",
   "*.png",
+  # City names, which are not English.
+  "cities.json",
+  # Spanish, which an English checker reads as typos.
+  "apps/web/src/locales/es/",
 ]

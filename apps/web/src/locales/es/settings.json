@@ -1,0 +1,93 @@
+{
+  "title": "Ajustes",
+  "language": "Idioma",
+  "languages": {
+    "en": "English",
+    "es": "Español"
+  },
+  "profile": "Perfil",
+  "handle": "Nombre de usuario",
+  "handlePlaceholder": "tu_usuario",
+  "name": "Nombre",
+  "namePlaceholder": "Tu nombre",
+  "profileNote": "Se muestra en la vista previa del teléfono. Se queda en este navegador.",
+  "theme": "Tema",
+  "themes": {
+    "light": "Claro",
+    "dark": "Oscuro"
+  },
+  "photos": "Fotos",
+  "captureDates": "Leer las fechas de captura",
+  "locations": "Leer las ubicaciones",
+  "photosNote": "Al añadir una foto, Bandas puede usar cuándo se tomó y la ciudad donde se tomó para mantener junta una sesión. Lineup guarda la ciudad, nunca la posición exacta, y ninguna de las dos sale de este navegador. Las fotos que ya están en el tablero no se vuelven a leer. Desactivar un interruptor no borra lo que ya se leyó.",
+  "storage": "Almacenamiento en este dispositivo",
+  "safariNote": "Safari puede borrar los datos de un sitio tras siete días sin visitarlo. Añadir Lineup a tu pantalla de inicio o al Dock protege tu tablero. Una app instalada empieza vacía, así que haz la copia de seguridad aquí y restáurala allí.",
+  "backUp": "Hacer copia de seguridad",
+  "restore": "Restaurar",
+  "backupNote": "Una copia de seguridad es un solo archivo con tus imágenes y su orden. Restaurar reemplaza el tablero, y Deshacer recupera el anterior.",
+  "backupFailed": "No se pudo hacer la copia de seguridad. Inténtalo de nuevo.",
+  "restored": "Tablero restaurado. Deshacer recupera el anterior.",
+  "restoreFailed": "No se pudo restaurar ese archivo. Puede que no sea una copia de seguridad de Lineup, o que esté incompleto.",
+  "storageUsed": "{{used}} de {{quota}} usados",
+  "storageNote": "Tus imágenes se guardan en este navegador y no salen de él hasta que programas una publicación.",
+  "folderChoose": "Guardar en una carpeta",
+  "folderChoosing": "Copiando tu tablero",
+  "folderNote": "Guarda tu tablero y tus originales a tamaño completo en una carpeta que elijas, para que borrar el navegador no los afecte. Una carpeta vacía recibe una copia de este tablero. Una carpeta que ya tiene un tablero lo abre.",
+  "folderInUse": "Tu tablero está en {{name}}.",
+  "folderInUseNote": "Tus originales están ahí a tamaño completo. Lineup añade cosas a esa carpeta, pero nunca cambia ni borra tus fotos.",
+  "folderLeave": "Dejar de usar esta carpeta",
+  "folderFailed": "No se pudo usar esa carpeta. Inténtalo de nuevo o elige otra.",
+  "folderFull": "Esa unidad no tiene espacio. Libera algo de espacio o elige otra carpeta.",
+  "folderGate": {
+    "needs-permission": {
+      "title": "Abrir {{name}}",
+      "description": "Tu tablero está en esta carpeta, y tu navegador necesita tu permiso para volver a abrirla."
+    },
+    "unreachable": {
+      "title": "No se encontró {{name}}",
+      "description": "Puede que se haya movido o renombrado, o que esté en una unidad que no está conectada. Tu tablero está a salvo en la carpeta."
+    },
+    "unreadable": {
+      "title": "No se pudo leer {{name}}",
+      "description": "Los archivos propios de Lineup en esta carpeta están dañados. Tus fotos no se ven afectadas. Para empezar un tablero nuevo ahí, saca de la carpeta la carpeta oculta .lineup y tus fotos se ofrecerán de nuevo."
+    }
+  },
+  "folderAllow": "Abrir la carpeta",
+  "folderRetry": "Intentar de nuevo",
+  "folderLeaveForBrowser": "Usar el tablero de este navegador",
+  "newFiles_one": "1 foto nueva en tu carpeta",
+  "newFiles_other": "{{count}} fotos nuevas en tu carpeta",
+  "addNewFiles": "Añadir a la bandeja",
+  "removedFiles_one": "1 foto que quitaste del tablero sigue en esta carpeta.",
+  "removedFiles_other": "{{count}} fotos que quitaste del tablero siguen en esta carpeta.",
+  "offerRemoved": "Ofrecer de nuevo",
+  "help": {
+    "description": "Todo lo de aquí se queda en este dispositivo.",
+    "shortcuts": "Atajos de teclado",
+    "showIntro": "Mostrar la introducción",
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "actions": {
+      "undo": "Deshacer",
+      "redo": "Rehacer",
+      "focus": "Moverte entre imágenes",
+      "actions": "Abrir las acciones de la imagen enfocada",
+      "delete": "Eliminar la imagen enfocada",
+      "pickUp": "Recoger o soltar la imagen enfocada",
+      "move": "Mover la imagen que recogiste",
+      "insert": "Insertar en lugar de intercambiar, mientras arrastras",
+      "cancel": "Cancelar un movimiento"
+    },
+    "keys": {
+      "mod": "Ctrl",
+      "mod_apple": "⌘",
+      "shift": "Mayús",
+      "z": "Z",
+      "delete": "Supr",
+      "space": "Espacio",
+      "enter": "Intro",
+      "arrows": "Teclas de flecha",
+      "escape": "Esc"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "lineup",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint --max-warnings=0 .",
+    "format": "prettier --write '**/*.{js,mjs,cjs,jsx,ts,tsx,css,html}'",
+    "gen": "node .devtools/scripts/gen.mjs",
+    "cf:bundle": "make -C .devtools build && pnpm --dir apps/web exec wrangler deploy --dry-run",
+    "cf:deploy:development": "make -C .devtools deploy ENV=development",
+    "cf:deploy:production": "make -C .devtools deploy ENV=production",
+    "cf:rotate-secret:development": ".devtools/scripts/rotate-provider-secret.sh development",
+    "cf:rotate-secret:production": ".devtools/scripts/rotate-provider-secret.sh production"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.65.0",
+    "@eslint/js": "^10.0.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/eslint-plugin-query": "^5.104.5",
+    "@tanstack/eslint-plugin-router": "^1.162.0",
+    "@tanstack/router-plugin": "^1.168.48",
+    "@types/node": "^24.19.2",
+    "@vitejs/plugin-react": "^6.1.2",
+    "eslint": "^10.13.0",
+    "eslint-plugin-i18next": "^6.1.5",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.13.0",
+    "jscpd": "^5.4.2",
+    "jsdom": "^30.1.3",
+    "knip": "^6.43.0",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5",
+    "wrangler": "^4.152.0"
+  }
+}

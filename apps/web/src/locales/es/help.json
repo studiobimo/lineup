@@ -1,0 +1,11 @@
+{
+  "title": "Ayuda",
+  "introTitle": "Planifica tu feed antes de publicarlo",
+  "introSteps": {
+    "add": "Añade imágenes a la bandeja o suéltalas en cualquier parte de la ventana.",
+    "arrange": "Arrástralas a la cuadrícula. Suelta sobre una celda para intercambiar, o cerca de su borde para insertar.",
+    "preview": "Usa el botón del teléfono para ver cómo quedará el feed."
+  },
+  "introDismiss": "Cerrar la introducción",
+  "settings": "Ajustes"
+}

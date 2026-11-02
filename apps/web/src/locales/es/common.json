@@ -1,0 +1,38 @@
+{
+  "home": {
+    "title": "Te damos la bienvenida a {{name}}",
+    "description": "Planifica tu feed de Instagram antes de publicarlo: ordénalo, clasifícalo por color, agrúpalo en álbumes y programa tus publicaciones."
+  },
+  "errors": {
+    "area": "Esta parte de la página ha tenido un problema. El resto sigue funcionando.",
+    "overlay": "No se pudo abrir «{{name}}». Recarga la página e inténtalo de nuevo.",
+    "routeTitle": "Esta página ha tenido un problema",
+    "routeDescription": "Tu tablero está a salvo en este dispositivo.",
+    "retry": "Intentar de nuevo"
+  },
+  "theme": {
+    "light": "Cambiar al tema claro",
+    "dark": "Cambiar al tema oscuro"
+  },
+  "close": "Cerrar",
+  "loading": "Cargando",
+  "specimen": {
+    "h2": "Ordénalo antes de publicarlo",
+    "h3": "Clasifica por color en una sola acción",
+    "h4": "Agrupa varias imágenes en un álbum",
+    "h5": "Mira lo que ya está publicado",
+    "h6": "Programa lo que viene después",
+    "paragraph": "Suelta un lote de imágenes, arrástralas a la cuadrícula y mira cómo quedará el perfil antes de publicar nada. Todos los cambios se pueden deshacer y el tablero se queda en tu navegador.",
+    "small": "No hay cuentas, y las imágenes se quedan en tu dispositivo hasta que las programas.",
+    "strong": "Todos los cambios se pueden deshacer.",
+    "link": "Volver arriba",
+    "quote": "Planifica primero el feed. Publícalo cuando se vea bien.",
+    "code": "lineup.bimo.dev",
+    "kbd": "Ctrl Z",
+    "primary": "Mover todo a la cuadrícula",
+    "secondary": "Mezclar",
+    "families": "Familias",
+    "weights": "Grosores",
+    "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 &!?"
+  }
+}

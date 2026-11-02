@@ -6,5 +6,5 @@ extends:
   - '@commitlint/config-conventional'
 
 rules:
-  # `main` is release-please's: it titles the release pull request `chore(main): ...`.
-  scope-enum: [2, always, [build, ci, docs, deps, devtools, main, planner, autosort, albums, provider, api, contract, ui]]
+  # `release` is promote-release's: it titles the release pull request `chore(release): v...`.
+  scope-enum: [2, always, [build, ci, docs, deps, devtools, release, planner, autosort, albums, provider, api, contract, ui]]

@@ -1,0 +1,5 @@
+# Generated, or vendored: shadcn/ui keeps its upstream formatting so updates diff cleanly.
+apps/web/src/routeTree.gen.ts
+apps/web/src/components/ui/
+pnpm-lock.yaml
+apps/web/public/api-docs/openapi.json

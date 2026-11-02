@@ -1,0 +1,38 @@
+{
+  "home": {
+    "title": "Welcome to {{name}}",
+    "description": "Plan your Instagram feed before it goes live: arrange, sort by colour, group into albums and schedule posts."
+  },
+  "errors": {
+    "area": "This part of the page ran into a problem. The rest of it still works.",
+    "overlay": "{{name}} could not be opened. Reload the page and try again.",
+    "routeTitle": "This page ran into a problem",
+    "routeDescription": "Your board is safe on this device.",
+    "retry": "Try again"
+  },
+  "theme": {
+    "light": "Switch to light theme",
+    "dark": "Switch to dark theme"
+  },
+  "close": "Close",
+  "loading": "Loading",
+  "specimen": {
+    "h2": "Arrange it before it goes live",
+    "h3": "Sort by colour in one action",
+    "h4": "Group several images into an album",
+    "h5": "See what is already published",
+    "h6": "Schedule what comes next",
+    "paragraph": "Drop in a batch of images, drag them into the grid and see how the profile will look before anything is posted. Every change can be undone, and the board stays in your browser.",
+    "small": "There are no accounts, and images stay on your device until you schedule them.",
+    "strong": "Every change can be undone.",
+    "link": "Back to the top",
+    "quote": "Plan the feed first. Post it when it looks right.",
+    "code": "lineup.bimo.dev",
+    "kbd": "Ctrl Z",
+    "primary": "Move all to grid",
+    "secondary": "Shuffle",
+    "families": "Families",
+    "weights": "Weights",
+    "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 &!?"
+  }
+}
