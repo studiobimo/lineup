@@ -32,7 +32,7 @@ test('a key is saved, its account chosen, and only its end is ever shown', async
   const provider = await mockProvider(page)
   const settings = await addKey(page)
   await expect(settings.getByText(/Key ending abcd, good until/)).toBeVisible()
-  await expect(settings.getByRole('combobox', { name: 'Instagram account' })).toHaveText(/@studio/)
+  await expect(settings.getByRole('combobox', { name: 'Account' })).toHaveText(/@studio/)
   await expect(settings.getByLabel('Zernio API key')).toHaveCount(0)
   expect(provider.requests).toContain('PUT /key')
 
@@ -78,28 +78,29 @@ test('several accounts wait to be chosen, and the choice is kept', async ({ page
     ]
   })
   const settings = await addKey(page)
-  await settings.getByRole('combobox', { name: 'Instagram account' }).click()
+  await settings.getByRole('combobox', { name: 'Account' }).click()
   await page.getByRole('option', { name: '@second' }).click()
 
   await page.reload()
   const again = page.getByRole('dialog', { name: 'Settings' })
   await page.getByRole('button', { name: 'Settings' }).click()
   await again.getByRole('tab', { name: 'Integrations' }).click()
-  await expect(again.getByRole('combobox', { name: 'Instagram account' })).toHaveText(/@second/)
+  await expect(again.getByRole('combobox', { name: 'Account' })).toHaveText(/@second/)
 })
 
 test('a key with no account offers to connect one', async ({ page }) => {
   await mockProvider(page, { accounts: [] })
   const settings = await addKey(page)
-  await expect(settings.getByText('This key has no Instagram account yet.')).toBeVisible()
-  await settings.getByRole('button', { name: 'Connect Instagram' }).click()
+  await expect(settings.getByText('This key has no connected account yet.')).toBeVisible()
+  await settings.getByRole('button', { name: 'Connect an account' }).click()
   await expect(page).toHaveURL(/\/connected$/)
 })
 
 test('forgetting the key clears it from this browser', async ({ page }) => {
   const provider = await mockProvider(page)
   const settings = await addKey(page)
-  await settings.getByRole('button', { name: 'Forget key' }).click()
+  await settings.getByRole('button', { name: 'Key options' }).click()
+  await page.getByRole('menuitem', { name: 'Forget key' }).click()
   await expect(settings.getByLabel('Zernio API key')).toBeVisible()
   expect(provider.requests).toContain('DELETE /key')
   const stored = await page.evaluate(() => localStorage.getItem('provider-connection'))
@@ -140,7 +141,7 @@ test('an account that cannot be loaded offers to try again', async ({ page }) =>
 
   provider.failures.clear()
   await settings.getByRole('button', { name: 'Try again' }).click()
-  await expect(settings.getByRole('combobox', { name: 'Instagram account' })).toHaveText(/@studio/)
+  await expect(settings.getByRole('combobox', { name: 'Account' })).toHaveText(/@studio/)
 })
 
 const PICTURE = 'https://media.zernio.com/one.png'
@@ -150,7 +151,7 @@ const publishedCells = (page: Page) => page.getByRole('img', { name: /^Published
 
 async function connect(page: Page) {
   const settings = await addKey(page)
-  await expect(settings.getByRole('combobox', { name: 'Instagram account' })).toBeVisible()
+  await expect(settings.getByRole('combobox', { name: 'Account' })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(settings).toBeHidden()
 }
@@ -277,7 +278,7 @@ test('a key with no account says what is missing, and sends nothing', async ({ p
   const provider = await mockProvider(page, { accounts: [] })
   await planOnGrid(page)
   const settings = await addKey(page)
-  await expect(settings.getByRole('button', { name: 'Connect Instagram' })).toBeVisible()
+  await expect(settings.getByRole('button', { name: 'Connect an account' })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(settings).toBeHidden()
 
@@ -308,7 +309,8 @@ test('a post on the board can be let go under a read-only key', async ({ page })
   const settings = page.getByRole('dialog', { name: 'Settings' })
   await settings.getByRole('tab', { name: 'Integrations' }).click()
   provider.readOnly = true
-  await settings.getByRole('button', { name: 'Replace key' }).click()
+  await settings.getByRole('button', { name: 'Key options' }).click()
+  await page.getByRole('menuitem', { name: 'Replace key' }).click()
   await settings.getByLabel('Zernio API key').fill(KEY)
   await settings.getByRole('button', { name: 'Save key' }).click()
   await expect(settings.getByText(/This key is read-only/)).toBeVisible()
@@ -584,7 +586,8 @@ test('without a key a post can still be let go, and the cell is never stuck', as
   await page.getByRole('button', { name: 'Settings' }).click()
   const settings = page.getByRole('dialog', { name: 'Settings' })
   await settings.getByRole('tab', { name: 'Integrations' }).click()
-  await settings.getByRole('button', { name: 'Forget key' }).click()
+  await settings.getByRole('button', { name: 'Key options' }).click()
+  await page.getByRole('menuitem', { name: 'Forget key' }).click()
   await expect(settings.getByLabel('Zernio API key')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(settings).toBeHidden()

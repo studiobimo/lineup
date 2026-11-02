@@ -1,12 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
+import { Ellipsis } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 
 import { ExternalLink } from '@/components/external-link'
+import { IconButton } from '@/components/icon-button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
 import { provider } from '@/config/provider'
-import { DialogNote, DialogSection } from '@/features/help/dialog-sections'
+import { DialogNote, DialogSection, DialogStack } from '@/features/help/dialog-sections'
 import { dateTimeFormat } from '@/i18n/format'
 
 import { AccountChoice } from './account-choice'
@@ -47,40 +49,44 @@ function ConnectedKey() {
 
   const expires = dateTimeFormat({ dateStyle: 'medium' }).format(new Date(expiresAt ?? 0))
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm">{t('key.connected', { last4, date: expires })}</p>
-      {canPost === false && <DialogNote>{t('key.readOnly')}</DialogNote>}
-      <AccountChoice />
-      {replacing ? (
-        <KeyForm onSaved={() => setReplacing(false)} />
-      ) : (
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setReplacing(true)}>
-            {t('key.replace')}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            loading={forget.isPending}
-            onClick={() => forget.mutate()}
-          >
-            {t('key.forget')}
-          </Button>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/32 py-2.5 ps-3.5 pe-2.5">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{provider.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {t('key.connected', { last4, date: expires })}
+          </p>
         </div>
+        <Menu>
+          <MenuTrigger
+            render={
+              <IconButton variant="ghost" size="icon-sm" label={t('key.options')}>
+                <Ellipsis />
+              </IconButton>
+            }
+          />
+          <MenuPopup align="end">
+            <MenuItem onClick={() => setReplacing(true)}>{t('key.replace')}</MenuItem>
+            <MenuItem
+              variant="destructive"
+              disabled={forget.isPending}
+              onClick={() => forget.mutate()}
+            >
+              {t('key.forget')}
+            </MenuItem>
+          </MenuPopup>
+        </Menu>
+      </div>
+      {canPost === false && <DialogNote>{t('key.readOnly')}</DialogNote>}
+      {replacing && (
+        <KeyForm onSaved={() => setReplacing(false)} onCancel={() => setReplacing(false)} />
       )}
       {forget.error && (
         <Alert variant="error">
           <AlertDescription>{problemText(forget.error)}</AlertDescription>
         </Alert>
       )}
-      <DialogNote>
-        <Trans
-          t={t}
-          i18nKey="key.revoke"
-          values={{ provider: provider.name }}
-          components={{ site: <ExternalLink href={provider.dashboardUrl} /> }}
-        />
-      </DialogNote>
+      {!replacing && <AccountChoice />}
     </div>
   )
 }
@@ -90,17 +96,35 @@ function ProviderConnection() {
   const connection = useConnection()
   const live = hasLiveKey(connection)
   return (
-    <DialogSection title={t('title')}>
-      {live ? (
-        <ConnectedKey />
-      ) : (
-        <>
-          {connection.expiresAt && <DialogNote>{t('key.expired')}</DialogNote>}
-          <KeyGuide />
-          <KeyForm />
-        </>
-      )}
-    </DialogSection>
+    <DialogStack>
+      <DialogSection
+        description={
+          !live && connection.expiresAt ? <p className="mb-2">{t('key.expired')}</p> : undefined
+        }
+      >
+        {live ? (
+          <ConnectedKey />
+        ) : (
+          <>
+            <KeyGuide />
+            <KeyForm />
+          </>
+        )}
+      </DialogSection>
+      <DialogSection>
+        {live && (
+          <DialogNote>
+            <Trans
+              t={t}
+              i18nKey="key.revoke"
+              values={{ provider: provider.name }}
+              components={{ site: <ExternalLink href={provider.dashboardUrl} /> }}
+            />
+          </DialogNote>
+        )}
+        <DialogNote>{t('disclaimer')}</DialogNote>
+      </DialogSection>
+    </DialogStack>
   )
 }
 

@@ -1,9 +1,8 @@
 {
-  "title": "Instagram",
   "tryAgain": "Intentar de nuevo",
   "guide": {
     "account": "Crea una cuenta gratuita en <site>{{provider}}</site>.",
-    "instagram": "Conecta ahí tu Instagram. Tiene que ser una cuenta profesional, y Instagram exige que sea pública.",
+    "instagram": "Conecta ahí la cuenta en la que publicas. Tiene que ser una cuenta profesional, y Instagram exige que sea pública.",
     "key": "Crea una clave de API limitada a un solo perfil y pégala aquí. Una clave de solo lectura basta para ver tus publicaciones, pero no puede programar."
   },
   "key": {
@@ -17,13 +16,15 @@
     "replace": "Sustituir clave",
     "forget": "Olvidar clave",
     "expired": "Tu clave ha caducado. Lo que planificaste y programaste está a salvo. Añade una clave para continuar.",
-    "revoke": "Olvidar una clave la elimina de este navegador. Para cancelarla en todas partes, usa tu <site>panel de {{provider}}</site>."
+    "revoke": "Olvidar una clave la elimina de este navegador. Para cancelarla en todas partes, usa tu <site>panel de {{provider}}</site>.",
+    "options": "Opciones de la clave",
+    "cancel": "Cancelar"
   },
   "account": {
-    "label": "Cuenta de Instagram",
+    "label": "Cuenta",
     "choose": "Elige una cuenta",
-    "none": "Esta clave aún no tiene ninguna cuenta de Instagram.",
-    "connect": "Conectar Instagram",
+    "none": "Esta clave aún no tiene ninguna cuenta conectada.",
+    "connect": "Conectar una cuenta",
     "reconnect": "Esta cuenta necesita volver a conectarse antes de poder programar nada."
   },
   "post": {
@@ -85,5 +86,6 @@
     "provider_refused": "Se rechazó esto.",
     "provider_busy": "Todavía se está procesando. Inténtalo de nuevo en un momento.",
     "provider_failed": "El servicio de programación no respondió. Inténtalo de nuevo en un momento."
-  }
+  },
+  "disclaimer": "Lineup es una aplicación independiente. No está afiliada a Instagram ni a Meta, ni cuenta con su respaldo o patrocinio, e Instagram es una marca de Meta Platforms, Inc."
 }
