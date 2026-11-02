@@ -25,30 +25,30 @@ It is written to be reusable. Once a second studio web app exists, it should mov
 
 ## Methods
 
-| Method | Use | Safe to retry |
-| --- | --- | --- |
-| `GET` | Read. Never changes anything | Yes |
-| `POST` | Create, or perform an action | Only with an idempotency key |
-| `PATCH` | Change some fields of one resource | Yes |
-| `PUT` | Replace one resource whole | Yes |
-| `DELETE` | Remove. Deleting something already gone is a 204, not an error | Yes |
+| Method   | Use                                                            | Safe to retry                |
+| -------- | -------------------------------------------------------------- | ---------------------------- |
+| `GET`    | Read. Never changes anything                                   | Yes                          |
+| `POST`   | Create, or perform an action                                   | Only with an idempotency key |
+| `PATCH`  | Change some fields of one resource                             | Yes                          |
+| `PUT`    | Replace one resource whole                                     | Yes                          |
+| `DELETE` | Remove. Deleting something already gone is a 204, not an error | Yes                          |
 
 ## Status codes
 
-| Code | Meaning here |
-| --- | --- |
-| 200 | Success with a body |
-| 201 | Created; the body is the new resource |
-| 204 | Success with no body |
-| 400 | The request is malformed or fails validation |
-| 401 | No valid provider key: missing, expired or altered |
-| 403 | Refused: a failed origin check, or the provider key does not allow this |
-| 404 | No such resource |
-| 409 | Conflict with current state, including a reused idempotency key with a different body |
-| 422 | Well-formed, but refused by a business rule |
-| 429 | Rate limited |
-| 500 | Our fault. The body carries a request id and nothing internal |
-| 502 | The upstream provider failed |
+| Code | Meaning here                                                                          |
+| ---- | ------------------------------------------------------------------------------------- |
+| 200  | Success with a body                                                                   |
+| 201  | Created; the body is the new resource                                                 |
+| 204  | Success with no body                                                                  |
+| 400  | The request is malformed or fails validation                                          |
+| 401  | No valid provider key: missing, expired or altered                                    |
+| 403  | Refused: a failed origin check, or the provider key does not allow this               |
+| 404  | No such resource                                                                      |
+| 409  | Conflict with current state, including a reused idempotency key with a different body |
+| 422  | Well-formed, but refused by a business rule                                           |
+| 429  | Rate limited                                                                          |
+| 500  | Our fault. The body carries a request id and nothing internal                         |
+| 502  | The upstream provider failed                                                          |
 
 ## Requests and responses
 
@@ -92,15 +92,18 @@ One shape for every error, following [RFC 9457](https://www.rfc-editor.org/rfc/r
 
 - A `POST` that creates something at the provider (scheduling a post) requires an
   `Idempotency-Key` header: a UUID the client generates once per attempt and reuses on retry.
-- Repeating a key with the same body returns the original result. Repeating it with a different
-  body is a 409.
+- Repeating a key returns the original result for 24 hours, whatever the body: the provider holds
+  the record, and Lineup keeps none. A repeat while the first request is still running is a 409
+  with `Retry-After`. Never reuse a key for a different post.
 
 ## The provider key
 
 There are no accounts, sessions or bearer tokens ([ADR-0008](adr/0008-sealed-provider-key.md)).
 
 - `PUT /api/v1/provider/key` takes the pasted key, narrows it where Zernio allows, and sets the sealed
-  cookie. It returns `{ "last4": "…", "expiresAt": "…" }`.
+  cookie. It returns `{ "last4": "…", "expiresAt": "…" }`. `last4` is from the key that was pasted,
+  the one a person can recognise. A key that sees several profiles gets a 409 with `code:
+"profile_required"` and the `profiles`; the client sends the key again with a `profileId`.
 - `GET /api/v1/provider/key` returns the same fields, or 404 if there is no valid key.
 - `DELETE /api/v1/provider/key` clears the cookie.
 - The cookie uses the `__Host-` prefix and is HttpOnly, Secure and `SameSite=Strict`, with a
@@ -109,20 +112,34 @@ There are no accounts, sessions or bearer tokens ([ADR-0008](adr/0008-sealed-pro
 - Provider routes are a fixed list. There is no generic proxy, and no route takes a URL to forward to.
 - Every state-changing request is origin-checked.
 
+## Provider routes
+
+All under `/api/v1/provider`, and the whole list. Each needs the sealed cookie except `PUT key`.
+
+| Route                              | Purpose                                                           |
+| ---------------------------------- | ----------------------------------------------------------------- |
+| `GET /accounts`                    | The Instagram accounts this key can reach                         |
+| `GET /connect-url`                 | Where to connect an account, for a key with none                  |
+| `GET /accounts/{id}/posts`         | What is already live, newest first                                |
+| `POST /uploads`                    | An upload URL. The browser sends the image straight to it         |
+| `GET /scheduled-posts?accountId=…` | Posts made through Lineup, with their status                      |
+| `POST /scheduled-posts`            | Schedule. Needs `Idempotency-Key`, and refuses a time in the past |
+| `PATCH /scheduled-posts/{id}`      | Change the time or the caption until it is published              |
+| `DELETE /scheduled-posts/{id}`     | Cancel. Refused once it is published                              |
+
 ## Rate limiting
 
 - A limited request gets a 429 with a `Retry-After` header in seconds.
-- Limited routes send `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`.
 - Setting a provider key is limited, so the route cannot be used to test stolen keys in bulk.
 
 ## Headers
 
-| Header | Direction | Purpose |
-| --- | --- | --- |
-| `X-Request-Id` | Response | Correlates a response with the server log |
-| `Idempotency-Key` | Request | See Idempotency |
-| `Cache-Control` | Response | `no-store` on everything under `/api/` unless a route says otherwise |
-| `Retry-After`, `RateLimit-*` | Response | See Rate limiting |
+| Header            | Direction | Purpose                                                              |
+| ----------------- | --------- | -------------------------------------------------------------------- |
+| `X-Request-Id`    | Response  | Correlates a response with the server log                            |
+| `Idempotency-Key` | Request   | See Idempotency                                                      |
+| `Cache-Control`   | Response  | `no-store` on everything under `/api/` unless a route says otherwise |
+| `Retry-After`     | Response  | See Rate limiting                                                    |
 
 ## Logging
 
