@@ -1,6 +1,6 @@
 import { Redo2, Undo2 } from 'lucide-react'
 import { m } from 'motion/react'
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { Suspense, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { AreaBoundary } from '@/components/area-boundary'
@@ -19,10 +19,10 @@ import { Group } from '@/components/ui/group'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toastManager } from '@/components/ui/toast'
 import { closeAlbum, useOpenAlbumId } from '@/features/albums/album-store'
-import { loadAlbumStrings } from '@/features/albums/albums-strings'
 import { Intro } from '@/features/help/intro'
-import { loadSettingsStrings } from '@/features/help/settings-strings'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { loadStrings } from '@/i18n/load-strings'
+import { lazyComponent } from '@/lib/lazy-component'
 import { cn } from '@/lib/utils'
 
 import type { Container } from './board'
@@ -46,18 +46,15 @@ import { usePlannerShortcuts } from './use-planner-shortcuts'
 
 const SKELETON_CELLS = 6
 
-const Lightbox = lazy(() => import('./lightbox').then(({ Lightbox }) => ({ default: Lightbox })))
-const AlbumDialog = lazy(async () => {
-  const [{ AlbumDialog }] = await Promise.all([
-    import('@/features/albums/album-dialog'),
-    loadAlbumStrings()
-  ])
-  return { default: AlbumDialog }
-})
-const FolderGate = lazy(async () => {
-  const [{ FolderGate }] = await Promise.all([import('./folder-gate'), loadSettingsStrings()])
-  return { default: FolderGate }
-})
+const Lightbox = lazyComponent(() => import('./lightbox').then(({ Lightbox }) => Lightbox))
+const AlbumDialog = lazyComponent(
+  () => import('@/features/albums/album-dialog').then(({ AlbumDialog }) => AlbumDialog),
+  () => loadStrings('albums')
+)
+const FolderGate = lazyComponent(
+  () => import('./folder-gate').then(({ FolderGate }) => FolderGate),
+  () => loadStrings('settings')
+)
 
 function Cells({ container, className }: { container: Container; className?: string }) {
   const { t } = useTranslation('planner')

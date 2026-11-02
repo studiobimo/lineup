@@ -9,7 +9,7 @@ type Catalog = Record<string, unknown>
 // is a new file and nothing here changes. They are small enough to bundle: no loading state.
 // Cast rather than glob<Catalog>(: Vitest only knows not to cache a file whose glob results
 // can change when it finds the text import.meta.glob( in it.
-// The two this leaves out arrive with what shows them, through add-catalogs.ts.
+// The ones this leaves out arrive with what shows them, through load-strings.ts.
 const catalogs = import.meta.glob(
   [
     '../locales/*/*.json',

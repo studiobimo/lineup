@@ -5,7 +5,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { boardStore, plannerStore } from './planner'
 import { PlannerPage } from './planner-page'
 import type { ProcessedImage } from './process-image'
-import { loadPlannerStrings } from './planner-strings'
+import { loadStrings } from '@/i18n/load-strings'
 
 const processed = {
   width: 10,
@@ -15,7 +15,7 @@ const processed = {
 } as unknown as ProcessedImage
 
 // The route loads these before it renders the page.
-beforeAll(loadPlannerStrings)
+beforeAll(() => loadStrings('planner'))
 
 describe('PlannerPage', () => {
   beforeEach(async () => {

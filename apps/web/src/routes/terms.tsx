@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { LegalPage } from '@/features/legal/legal-page'
-import { loadLegalStrings } from '@/features/legal/legal-strings'
+import { loadStrings } from '@/i18n/load-strings'
 
 export const Route = createFileRoute('/terms')({
-  loader: loadLegalStrings,
+  loader: () => loadStrings('legal'),
   component: () => <LegalPage name="terms" />
 })

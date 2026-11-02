@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { PlannerPage } from '@/features/planner/planner-page'
-import { loadPlannerStrings } from '@/features/planner/planner-strings'
+import { loadStrings } from '@/i18n/load-strings'
 
 export const Route = createFileRoute('/')({
-  loader: loadPlannerStrings,
+  loader: () => loadStrings('planner'),
   component: PlannerPage
 })

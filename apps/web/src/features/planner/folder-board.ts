@@ -3,7 +3,7 @@ import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 
 import { toastManager } from '@/components/ui/toast'
-import { loadSettingsStrings } from '@/features/help/settings-strings'
+import { loadStrings } from '@/i18n/load-strings'
 import i18n from '@/i18n/config'
 
 import { copyBoard, createFolderBoardStore, type FolderBoardStore } from './folder-board-store'
@@ -74,7 +74,7 @@ let standingOffer: string | undefined
 export async function offerNewFiles() {
   const files = (await openFolder?.newFiles())?.filter(isImage) ?? []
   if (files.length === 0) return
-  await loadSettingsStrings()
+  await loadStrings('settings')
   // It would be out of date, and two offers would add the same files twice.
   if (standingOffer) toastManager.close(standingOffer)
   const offer = toastManager.add({

@@ -7,7 +7,7 @@ import { fromFiles } from './import-source'
 import { runImport } from './import-store'
 import { plannerStore } from './planner'
 import type { ProcessedImage } from './process-image'
-import { loadPlannerStrings } from './planner-strings'
+import { loadStrings } from '@/i18n/load-strings'
 
 vi.mock('./import-images', () => ({ importImages: vi.fn() }))
 
@@ -15,7 +15,7 @@ const photo = () => new File(['pixels'], 'photo.jpg', { type: 'image/jpeg' })
 const processed = { width: 1, height: 1 } as unknown as ProcessedImage
 
 // The route loads these before it renders the page.
-beforeAll(loadPlannerStrings)
+beforeAll(() => loadStrings('planner'))
 
 describe('runImport', () => {
   beforeEach(() => {

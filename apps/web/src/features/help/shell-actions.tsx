@@ -1,23 +1,21 @@
 import { CircleHelp, Settings } from 'lucide-react'
-import { lazy, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
 import { LazyOverlay } from '@/components/lazy-overlay'
+import { loadStrings } from '@/i18n/load-strings'
+import { lazyComponent } from '@/lib/lazy-component'
 
-import { loadSettingsStrings } from './settings-strings'
-
-const HelpDialog = lazy(async () => {
-  const [{ HelpDialog }] = await Promise.all([import('./help-dialog'), loadSettingsStrings()])
-  return { default: HelpDialog }
-})
-const SettingsDialog = lazy(async () => {
-  const [{ SettingsDialog }] = await Promise.all([
-    import('./settings-dialog'),
-    loadSettingsStrings()
-  ])
-  return { default: SettingsDialog }
-})
+const settingsStrings = () => loadStrings('settings')
+const HelpDialog = lazyComponent(
+  () => import('./help-dialog').then(({ HelpDialog }) => HelpDialog),
+  settingsStrings
+)
+const SettingsDialog = lazyComponent(
+  () => import('./settings-dialog').then(({ SettingsDialog }) => SettingsDialog),
+  settingsStrings
+)
 
 export function ShellActions() {
   const { t } = useTranslation('help')
