@@ -16,10 +16,13 @@ import {
   moveAll,
   moveCells,
   remove,
+  reorderAlbum,
   sameBoard,
   shuffle,
   swap,
+  takeFromAlbum,
   toggleLock,
+  ungroup,
   withKnownImages
 } from './board'
 import type { Backup } from './backup'
@@ -51,6 +54,9 @@ export interface PlannerState {
   moveCells(ids: string[], to: Container): void
   /** The album's id, or nothing if `groupProblem` has a reason to refuse. */
   group(cells: string[]): string | undefined
+  ungroup(album: string): void
+  reorderAlbum(album: string, images: string[]): void
+  takeFromAlbum(album: string, image: string): void
   shuffle(container: Container): void
   sortByColour(container: Container, strategy: SortStrategy): Promise<void>
   /** Not a change to the board, so it is no part of undo. */
@@ -214,6 +220,10 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
         commit(group(board, cells, album))
         return album
       },
+
+      ungroup: (album) => commit(ungroup(get().board, album)),
+      reorderAlbum: (album, images) => commit(reorderAlbum(get().board, album, images)),
+      takeFromAlbum: (album, image) => commit(takeFromAlbum(get().board, album, image)),
 
       shuffle: (container) => commit(shuffle(get().board, container)),
       toggleLock: (id) => commit(toggleLock(get().board, id)),

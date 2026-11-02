@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next'
 import { IconButton } from '@/components/icon-button'
 import { cn } from '@/lib/utils'
 
+import { openAlbum } from './album-store'
 import { type Container, coverOf, isLocked } from './board'
 import { cellTooltip } from './cell-tooltip'
 import { useAirborne, useDropMark } from './drag-target'
@@ -44,8 +45,9 @@ interface BoardCellProps {
 const CellActions = memo(function CellActions({
   id,
   container,
-  locked
-}: Pick<BoardCellProps, 'id' | 'container'> & { locked: boolean }) {
+  locked,
+  album
+}: Pick<BoardCellProps, 'id' | 'container'> & { locked: boolean; album: boolean }) {
   const { t } = useTranslation('planner')
   const toTray = container === 'grid'
   const LockToggle = locked ? LockOpen : Lock
@@ -56,10 +58,10 @@ const CellActions = memo(function CellActions({
         size="icon-xs"
         tabIndex={-1}
         tooltip={cellTooltip}
-        label={t('openImage')}
-        onClick={() => openLightbox(id)}
+        label={t(album ? 'openAlbum' : 'openImage')}
+        onClick={() => (album ? openAlbum(id) : openLightbox(id))}
       >
-        <Maximize2 />
+        {album ? <Layers /> : <Maximize2 />}
       </IconButton>
       {toTray && (
         <IconButton
@@ -246,7 +248,14 @@ export const BoardCell = memo(function BoardCell({
         {missing && <CellBadge icon={ImageOff} label={t('missingOriginal')} />}
       </div>
       {!mark && <SelectToggle id={id} selected={selected} />}
-      {!mark && <CellActions id={id} container={container} locked={locked} />}
+      {!mark && (
+        <CellActions
+          id={id}
+          container={container}
+          locked={locked}
+          album={albumSize !== undefined}
+        />
+      )}
     </m.div>
   )
 })

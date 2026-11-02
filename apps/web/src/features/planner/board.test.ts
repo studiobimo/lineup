@@ -17,10 +17,13 @@ import {
   moveAll,
   moveCells,
   remove,
+  reorderAlbum,
   sameBoard,
   shuffle,
   swap,
+  takeFromAlbum,
   toggleLock,
+  ungroup,
   withKnownImages
 } from './board'
 import type { Board } from './board-store'
@@ -237,5 +240,40 @@ describe('grouping', () => {
     expect(groupProblem(full, ['a', 'locked'])).toBe('locked')
     expect(groupProblem(full, ['album', 'a'])).toBeNull()
     expect(groupProblem(full, ['album', 'a', 'b'])).toBe('tooMany')
+  })
+})
+
+describe('editing an album', () => {
+  const board: Board = { tray: ['x', 'album', 'y'], grid: [], albums: { album: ['a', 'b', 'c'] } }
+
+  it('reorders it, which changes the cover', () => {
+    const next = reorderAlbum(board, 'album', ['c', 'a', 'b'])
+    expect(coverOf(next, 'album')).toBe('c')
+    expect(next.tray).toEqual(board.tray)
+  })
+
+  it('puts an image taken out beside the album', () => {
+    expect(takeFromAlbum(board, 'album', 'b')).toEqual({
+      tray: ['x', 'album', 'b', 'y'],
+      grid: [],
+      albums: { album: ['a', 'c'] }
+    })
+  })
+
+  it('dissolves when the last image but one comes out', () => {
+    const pair: Board = { tray: ['x', 'album'], grid: [], albums: { album: ['a', 'b'] } }
+    expect(takeFromAlbum(pair, 'album', 'a')).toEqual({
+      tray: ['x', 'b', 'a'],
+      grid: [],
+      albums: {}
+    })
+  })
+
+  it('ungroups into cells at its position, in order', () => {
+    expect(ungroup(board, 'album')).toEqual({
+      tray: ['x', 'a', 'b', 'c', 'y'],
+      grid: [],
+      albums: {}
+    })
   })
 })

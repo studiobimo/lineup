@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
 
-import { addImages, image, reloadWhenSaved, watchErrors } from './fixtures'
+import { addImages, image, reloadWhenSaved, savedBoard, watchErrors } from './fixtures'
 
 const tray = (page: Page) => page.locator('aside').getByRole('group', { name: /^Image \d+$/ })
 const grid = (page: Page) => page.locator('section').getByRole('group', { name: /^Image \d+$/ })
@@ -32,6 +32,14 @@ async function dragOnto(page: Page, from: number, to: number, holdFor: number) {
   await page.mouse.down()
   await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, { steps: 8 })
   await page.waitForTimeout(holdFor)
+}
+
+const albumOnBoard = async (page: Page) =>
+  Object.values((await savedBoard(page)).albums ?? {})[0] ?? []
+
+async function openAlbum(page: Page) {
+  await tray(page).first().hover()
+  await tray(page).first().getByRole('button', { name: 'Open album' }).click()
 }
 
 test('a selection becomes one cell, marked as an album, and undo takes it back', async ({
@@ -92,6 +100,83 @@ test('a cell cannot join an album that is full', async ({ page }) => {
   await page.mouse.up()
   await expect(tray(page)).toHaveCount(2)
   await expect(page.getByText('Album of 20 images')).toBeAttached()
+})
+
+test('an album opens, reorders from the keyboard, and undo puts it back', async ({ page }) => {
+  const errors = watchErrors(page)
+  await boardOf(page, 3)
+  await groupFirst(page, 3)
+  await expect.poll(async () => albumOnBoard(page)).toHaveLength(3)
+  const before = await albumOnBoard(page)
+
+  await openAlbum(page)
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('group', { name: /^Album image/ })).toHaveCount(3)
+  await expect(dialog.getByText('Cover', { exact: true })).toBeVisible()
+
+  await dialog.getByRole('group', { name: 'Album image 1', exact: true }).focus()
+  await page.keyboard.press('Space')
+  await expect(page.getByText('Picked up Album image 1.')).toBeAttached()
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByText('Over Album image 2.')).toBeAttached()
+  await page.keyboard.press('Space')
+  await expect.poll(() => albumOnBoard(page)).toEqual([before[1], before[0], before[2]])
+
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect.poll(() => albumOnBoard(page)).toEqual(before)
+  expect(errors).toEqual([])
+})
+
+test('taking images out ends at two cells, not an album of one', async ({ page }) => {
+  await boardOf(page, 3)
+  await groupFirst(page, 3)
+  await expect(tray(page)).toHaveCount(1)
+  await openAlbum(page)
+  const dialog = page.getByRole('dialog')
+  const takeOut = () =>
+    dialog.getByRole('button', { name: 'Take out of the album' }).first().click({ force: true })
+
+  await takeOut()
+  await expect(dialog.getByRole('group', { name: /^Album image/ })).toHaveCount(2)
+  await takeOut()
+  await expect(dialog).toHaveCount(0)
+  await expect(tray(page)).toHaveCount(3)
+  await expect(page.getByText(/^Album of/)).toHaveCount(0)
+})
+
+test('ungrouping puts the images back where the album was', async ({ page }) => {
+  await boardOf(page, 4)
+  await tray(page)
+    .nth(1)
+    .click({ modifiers: [modifier] })
+  await tray(page)
+    .nth(2)
+    .click({ modifiers: ['Shift'] })
+  await bar(page).getByRole('button', { name: 'Group' }).click()
+  await expect(tray(page)).toHaveCount(3)
+  await tray(page).nth(1).hover()
+  await tray(page).nth(1).getByRole('button', { name: 'Open album' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Ungroup' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(tray(page)).toHaveCount(4)
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect(tray(page)).toHaveCount(3)
+})
+
+test('a locked album cannot be changed until it is unlocked', async ({ page }) => {
+  await boardOf(page, 2)
+  await groupFirst(page, 2)
+  await page.getByRole('button', { name: 'Move all to the grid' }).click()
+  await expect(grid(page)).toHaveCount(1)
+  await grid(page).first().hover()
+  await grid(page).first().getByRole('button', { name: 'Lock in place' }).click()
+  await grid(page).first().getByRole('button', { name: 'Open album' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByText('Unlock it to change it')).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Ungroup' })).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: 'Take out of the album' })).toHaveCount(0)
 })
 
 test('a locked cell is not grouped', async ({ page }) => {

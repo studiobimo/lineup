@@ -1,9 +1,19 @@
-import { ArrowRightLeft, Check, Lock, LockOpen, Maximize2, Trash2 } from 'lucide-react'
+import {
+  ArrowRightLeft,
+  Check,
+  Layers,
+  Lock,
+  LockOpen,
+  Maximize2,
+  Trash2,
+  Ungroup
+} from 'lucide-react'
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Menu, MenuItem, MenuPopup } from '@/components/ui/menu'
 
+import { openAlbum } from './album-store'
 import { containerOf, isLocked } from './board'
 import { closeCellMenu, useCellMenu } from './cell-menu-store'
 import { openLightbox } from './lightbox-store'
@@ -23,6 +33,7 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
   const { board } = plannerStore.getState()
   const toTray = containerOf(board, id) === 'grid'
   const locked = isLocked(board, id)
+  const album = board.albums?.[id] !== undefined
   const LockToggle = locked ? LockOpen : Lock
   const leave = (action: () => void) => {
     returnTo.current = neighbourOf(cell)
@@ -35,6 +46,12 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
           <Maximize2 />
           {t('openImage')}
         </MenuItem>
+        {album && (
+          <MenuItem onClick={() => openAlbum(id)}>
+            <Layers />
+            {t('openAlbum')}
+          </MenuItem>
+        )}
         <MenuItem onClick={() => toggleSelected(id)}>
           <Check />
           {t(selectedCells().includes(id) ? 'deselect' : 'select')}
@@ -47,6 +64,12 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
         )}
         {!locked && (
           <>
+            {album && (
+              <MenuItem onClick={() => leave(() => plannerStore.getState().ungroup(id))}>
+                <Ungroup />
+                {t('ungroup')}
+              </MenuItem>
+            )}
             <MenuItem
               onClick={() =>
                 leave(() => plannerStore.getState().move(id, toTray ? 'tray' : 'grid'))

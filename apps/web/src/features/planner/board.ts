@@ -83,6 +83,34 @@ export function group(board: Board, cells: string[], album: string): Board {
   }
 }
 
+function replaceCell(board: Board, cell: string, cells: string[]) {
+  const { container, index } = locate(board, cell)
+  const next = [...board[container]]
+  next.splice(index, 1, ...cells)
+  return { ...board, [container]: next }
+}
+
+function withoutAlbum(board: Board, album: string) {
+  const albums = Object.entries(board.albums ?? {}).filter(([id]) => id !== album)
+  return { ...board, albums: Object.fromEntries(albums) }
+}
+
+/** The images go back as cells in the album's place, in order. */
+export function ungroup(board: Board, album: string) {
+  return replaceCell(withoutAlbum(board, album), album, imagesOf(board, album))
+}
+
+export function reorderAlbum(board: Board, album: string, images: string[]): Board {
+  return { ...board, albums: { ...board.albums, [album]: images } }
+}
+
+/** The image goes beside the album, as a cell. An album left with one image stops being one. */
+export function takeFromAlbum(board: Board, album: string, image: string) {
+  const rest = imagesOf(board, album).filter((id) => id !== image)
+  if (rest.length === 1) return replaceCell(withoutAlbum(board, album), album, [...rest, image])
+  return reorderAlbum(replaceCell(board, album, [album, image]), album, rest)
+}
+
 /** The cells in the order they sit on the board, tray first, however they were chosen. */
 export function inBoardOrder(board: Board, cells: string[]) {
   const chosen = new Set(cells)

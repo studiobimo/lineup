@@ -23,6 +23,7 @@ import { loadSettingsStrings } from '@/features/help/settings-strings'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 
+import { closeAlbum, useOpenAlbumId } from './album-store'
 import type { Container } from './board'
 import { ClearBoard, ContainerActions, PreviewOnPhone } from './board-actions'
 import { BoardCell } from './board-cell'
@@ -45,6 +46,9 @@ import { usePlannerShortcuts } from './use-planner-shortcuts'
 const SKELETON_CELLS = 6
 
 const Lightbox = lazy(() => import('./lightbox').then(({ Lightbox }) => ({ default: Lightbox })))
+const AlbumDialog = lazy(() =>
+  import('./album-dialog').then(({ AlbumDialog }) => ({ default: AlbumDialog }))
+)
 const FolderGate = lazy(async () => {
   const [{ FolderGate }] = await Promise.all([import('./folder-gate'), loadSettingsStrings()])
   return { default: FolderGate }
@@ -159,6 +163,17 @@ function MobileTray() {
         </DrawerPanel>
       </DrawerPopup>
     </Drawer>
+  )
+}
+
+function OpenAlbum() {
+  const { t } = useTranslation('planner')
+  const id = useOpenAlbumId()
+  if (!id) return null
+  return (
+    <LazyOverlay name={t('albumName')} onClose={closeAlbum}>
+      <AlbumDialog id={id} />
+    </LazyOverlay>
   )
 }
 
@@ -293,6 +308,7 @@ export function PlannerPage() {
         <SaveFailure />
         <SharedTooltip handle={cellTooltip} />
         <OpenImage />
+        <OpenAlbum />
         <CellMenu />
         <SelectionBar />
         {desktop && <TrayPanel />}
