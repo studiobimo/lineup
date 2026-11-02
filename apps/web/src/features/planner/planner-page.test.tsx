@@ -1,10 +1,11 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { boardStore, plannerStore } from './planner'
 import { PlannerPage } from './planner-page'
 import type { ProcessedImage } from './process-image'
+import { loadPlannerStrings } from './planner-strings'
 
 const processed = {
   width: 10,
@@ -12,6 +13,9 @@ const processed = {
   thumbnail: new Uint8Array([1]),
   publish: new Uint8Array([2])
 } as unknown as ProcessedImage
+
+// The route loads these before it renders the page.
+beforeAll(loadPlannerStrings)
 
 describe('PlannerPage', () => {
   beforeEach(async () => {

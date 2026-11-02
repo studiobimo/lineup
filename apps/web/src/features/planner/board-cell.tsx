@@ -15,8 +15,8 @@ import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
 import { cn } from '@/lib/utils'
+import { openAlbum } from '@/features/albums/album-store'
 
-import { openAlbum } from './album-store'
 import { type Container, coverOf, isLocked } from './board'
 import { cellTooltip } from './cell-tooltip'
 import { useAirborne, useDropMark } from './drag-target'

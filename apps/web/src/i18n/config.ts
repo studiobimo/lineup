@@ -11,7 +11,13 @@ type Catalog = Record<string, unknown>
 // can change when it finds the text import.meta.glob( in it.
 // The two this leaves out arrive with what shows them, through add-catalogs.ts.
 const catalogs = import.meta.glob(
-  ['../locales/*/*.json', '!../locales/*/legal.json', '!../locales/*/settings.json'],
+  [
+    '../locales/*/*.json',
+    '!../locales/*/albums.json',
+    '!../locales/*/legal.json',
+    '!../locales/*/planner.json',
+    '!../locales/*/settings.json'
+  ],
   { eager: true, import: 'default' }
 ) as Record<string, Catalog>
 

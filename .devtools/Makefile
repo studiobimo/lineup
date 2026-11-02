@@ -1,7 +1,8 @@
 APP_DIR := apps/web
 
 # Everything the app ships, lazy chunks and CSS included, so a stray dependency cannot slip by. The
-# PRD's limit is a different number: 200 kB of JavaScript before any lazy route, 199 kB today.
+# PRD's limit is a different number: 200 kB of JavaScript before any lazy route, 198.8 kB today:
+# the planner's strings and the album editor load with their routes.
 # Motion's features are 19 KiB of this and load after first paint. AppProviders put Motion's core
 # and toasts in the entry chunk, which split one more chunk off. M1 ended at 319.5 KiB. M2's colour
 # code has to ship in the image worker as well as the app, and sorting, backups and offline support

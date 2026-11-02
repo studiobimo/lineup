@@ -19,13 +19,14 @@ import {
 import { useDialogPresence } from '@/hooks/use-dialog-presence'
 import { cn } from '@/lib/utils'
 
+import { isLocked } from '@/features/planner/board'
+import { dragAnnouncements } from '@/features/planner/drag-announcements'
+import { cellShape } from '@/features/planner/network-profile'
+import { plannerStore, usePlanner } from '@/features/planner/planner'
+import { Thumbnail } from '@/features/planner/thumbnail'
+import { useCellSensors } from '@/features/planner/use-cell-sensors'
+
 import { closeAlbum } from './album-store'
-import { isLocked } from './board'
-import { dragAnnouncements } from './drag-announcements'
-import { cellShape } from './network-profile'
-import { plannerStore, usePlanner } from './planner'
-import { Thumbnail } from './thumbnail'
-import { useCellSensors } from './use-cell-sensors'
 
 interface AlbumTileProps {
   album: string
@@ -35,19 +36,19 @@ interface AlbumTileProps {
 }
 
 function AlbumTile({ album, image, position, locked }: AlbumTileProps) {
-  const { t } = useTranslation('planner')
+  const { t } = useTranslation(['albums', 'planner'])
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: image,
     disabled: locked,
     data: { isCell: true },
-    attributes: { role: 'group', roleDescription: t('cellRole') }
+    attributes: { role: 'group', roleDescription: t('planner:cellRole') }
   })
   return (
     <div
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      aria-label={t('albumImage', { position })}
+      aria-label={t('image', { position })}
       className={cn(
         'group relative touch-manipulation overflow-hidden rounded-sm bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary',
         !locked && 'cursor-grab active:cursor-grabbing',
@@ -55,10 +56,10 @@ function AlbumTile({ album, image, position, locked }: AlbumTileProps) {
       )}
       style={{ ...cellShape, transform: CSS.Translate.toString(transform), transition }}
     >
-      <Thumbnail id={image} label={t('albumImage', { position })} />
+      <Thumbnail id={image} label={t('image', { position })} />
       {position === 1 && (
         <span className="pointer-events-none absolute bottom-1 left-1 rounded-sm bg-background px-1 py-0.5 text-xs/3 text-foreground shadow-xs">
-          {t('albumCover')}
+          {t('cover')}
         </span>
       )}
       {!locked && (
@@ -66,7 +67,7 @@ function AlbumTile({ album, image, position, locked }: AlbumTileProps) {
           variant="outline"
           size="icon-xs"
           className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
-          label={t('takeFromAlbum')}
+          label={t('takeOut')}
           onClick={() => plannerStore.getState().takeFromAlbum(album, image)}
         >
           <X />
@@ -77,7 +78,8 @@ function AlbumTile({ album, image, position, locked }: AlbumTileProps) {
 }
 
 export function AlbumDialog({ id }: { id: string }) {
-  const { t } = useTranslation('planner')
+  const { t } = useTranslation(['albums', 'planner'])
+  const { t: planner } = useTranslation('planner')
   const { dialog, close } = useDialogPresence(closeAlbum)
   const images = usePlanner(({ board }) => board.albums?.[id])
   const locked = usePlanner(({ board }) => isLocked(board, id))
@@ -85,13 +87,13 @@ export function AlbumDialog({ id }: { id: string }) {
   const accessibility = useMemo(() => {
     const place = (image: string) => {
       const position = (plannerStore.getState().board.albums?.[id] ?? []).indexOf(image) + 1
-      return t('albumImage', { position })
+      return t('image', { position })
     }
     return {
-      announcements: dragAnnouncements(t, place),
-      screenReaderInstructions: { draggable: t('albumDragInstructions') }
+      announcements: dragAnnouncements(planner, place),
+      screenReaderInstructions: { draggable: t('dragInstructions') }
     }
-  }, [id, t])
+  }, [id, t, planner])
 
   // Taking out the last image but one leaves no album to edit.
   useEffect(() => {
@@ -111,8 +113,8 @@ export function AlbumDialog({ id }: { id: string }) {
       {/* It keeps arrow keys inside, and a keyboard drag listens for them on the document. */}
       <DialogPopup onKeyDown={(event) => event.preventBaseUIHandler()}>
         <DialogHeader>
-          <DialogTitle>{t('albumOf', { count: images.length })}</DialogTitle>
-          <DialogDescription>{t(locked ? 'albumLocked' : 'albumHelp')}</DialogDescription>
+          <DialogTitle>{t('planner:albumOf', { count: images.length })}</DialogTitle>
+          <DialogDescription>{t(locked ? 'locked' : 'help')}</DialogDescription>
         </DialogHeader>
         <DialogPanel>
           <DndContext
@@ -140,7 +142,7 @@ export function AlbumDialog({ id }: { id: string }) {
           <DialogFooter>
             <Button variant="outline" onClick={() => plannerStore.getState().ungroup(id)}>
               <Ungroup />
-              {t('ungroup')}
+              {t('planner:ungroup')}
             </Button>
           </DialogFooter>
         )}

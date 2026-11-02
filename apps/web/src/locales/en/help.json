@@ -1,10 +1,5 @@
 {
-  "privacy": "Privacy",
-  "terms": "Terms",
   "title": "Help",
-  "description": "Everything here stays on this device.",
-  "shortcuts": "Keyboard shortcuts",
-  "showIntro": "Show the introduction",
   "introTitle": "Plan your feed before it goes live",
   "introSteps": {
     "add": "Add images to the tray, or drop them anywhere on the window.",
@@ -12,27 +7,5 @@
     "preview": "Use the phone button to see how the feed will look."
   },
   "introDismiss": "Dismiss the introduction",
-  "actions": {
-    "undo": "Undo",
-    "redo": "Redo",
-    "focus": "Move between images",
-    "actions": "Open the focused image's actions",
-    "delete": "Delete the focused image",
-    "pickUp": "Pick up or drop the focused image",
-    "move": "Move the image you picked up",
-    "insert": "Insert instead of swap, while dragging",
-    "cancel": "Cancel a move"
-  },
-  "keys": {
-    "mod": "Ctrl",
-    "mod_apple": "⌘",
-    "shift": "Shift",
-    "z": "Z",
-    "delete": "Delete",
-    "space": "Space",
-    "enter": "Enter",
-    "arrows": "Arrow keys",
-    "escape": "Esc"
-  },
   "settings": "Settings"
 }

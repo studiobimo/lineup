@@ -7,9 +7,10 @@ import { LazyOverlay } from '@/components/lazy-overlay'
 
 import { loadSettingsStrings } from './settings-strings'
 
-const HelpDialog = lazy(() =>
-  import('./help-dialog').then(({ HelpDialog }) => ({ default: HelpDialog }))
-)
+const HelpDialog = lazy(async () => {
+  const [{ HelpDialog }] = await Promise.all([import('./help-dialog'), loadSettingsStrings()])
+  return { default: HelpDialog }
+})
 const SettingsDialog = lazy(async () => {
   const [{ SettingsDialog }] = await Promise.all([
     import('./settings-dialog'),

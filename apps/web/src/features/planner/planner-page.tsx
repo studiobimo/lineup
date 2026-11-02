@@ -18,12 +18,13 @@ import {
 import { Group } from '@/components/ui/group'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toastManager } from '@/components/ui/toast'
+import { closeAlbum, useOpenAlbumId } from '@/features/albums/album-store'
+import { loadAlbumStrings } from '@/features/albums/albums-strings'
 import { Intro } from '@/features/help/intro'
 import { loadSettingsStrings } from '@/features/help/settings-strings'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 
-import { closeAlbum, useOpenAlbumId } from './album-store'
 import type { Container } from './board'
 import { ClearBoard, ContainerActions, PreviewOnPhone } from './board-actions'
 import { BoardCell } from './board-cell'
@@ -46,9 +47,13 @@ import { usePlannerShortcuts } from './use-planner-shortcuts'
 const SKELETON_CELLS = 6
 
 const Lightbox = lazy(() => import('./lightbox').then(({ Lightbox }) => ({ default: Lightbox })))
-const AlbumDialog = lazy(() =>
-  import('./album-dialog').then(({ AlbumDialog }) => ({ default: AlbumDialog }))
-)
+const AlbumDialog = lazy(async () => {
+  const [{ AlbumDialog }] = await Promise.all([
+    import('@/features/albums/album-dialog'),
+    loadAlbumStrings()
+  ])
+  return { default: AlbumDialog }
+})
 const FolderGate = lazy(async () => {
   const [{ FolderGate }] = await Promise.all([import('./folder-gate'), loadSettingsStrings()])
   return { default: FolderGate }

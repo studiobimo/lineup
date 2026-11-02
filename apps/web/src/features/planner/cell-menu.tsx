@@ -12,8 +12,8 @@ import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Menu, MenuItem, MenuPopup } from '@/components/ui/menu'
+import { openAlbum } from '@/features/albums/album-store'
 
-import { openAlbum } from './album-store'
 import { containerOf, coverOf, isLocked } from './board'
 import { closeCellMenu, useCellMenu } from './cell-menu-store'
 import { openLightbox } from './lightbox-store'
