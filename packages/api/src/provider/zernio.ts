@@ -94,6 +94,7 @@ const accountsSchema = z.object({
       username: z.string().optional(),
       displayName: z.string().optional(),
       profilePicture: z.string().nullish(),
+      followersCount: z.number().nullish(),
       isActive: z.boolean(),
       needsReconnection: z.boolean().optional()
     })
@@ -178,12 +179,13 @@ export function zernio(key: string): Provider {
       const { accounts } = await call(`/accounts?${query}`, accountsSchema)
       return accounts
         .filter(({ platform, isActive }) => platform === PLATFORM && isActive)
-        .map(({ _id, username, displayName, profilePicture, needsReconnection }) => ({
-          id: _id,
-          username: username ?? displayName ?? _id,
-          displayName,
-          avatarUrl: profilePicture ?? undefined,
-          needsReconnection: needsReconnection ?? false
+        .map((account) => ({
+          id: account._id,
+          username: account.username ?? account.displayName ?? account._id,
+          displayName: account.displayName,
+          avatarUrl: account.profilePicture ?? undefined,
+          followers: account.followersCount ?? undefined,
+          needsReconnection: account.needsReconnection ?? false
         }))
     },
 

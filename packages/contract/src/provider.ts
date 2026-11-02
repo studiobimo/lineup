@@ -20,6 +20,8 @@ export const accountSchema = z.object({
   username: z.string(),
   displayName: z.string().optional(),
   avatarUrl: z.url().optional(),
+  /** Only where the provider's plan includes it. */
+  followers: z.number().optional(),
   needsReconnection: z.boolean()
 })
 export type Account = z.infer<typeof accountSchema>

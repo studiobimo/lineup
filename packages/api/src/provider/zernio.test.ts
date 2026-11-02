@@ -55,14 +55,21 @@ describe('zernio', () => {
     stub.mockResolvedValue(
       respond({
         accounts: [
-          { _id: 'a', platform: 'instagram', username: 'me', isActive: true, profilePicture: null },
+          {
+            _id: 'a',
+            platform: 'instagram',
+            username: 'me',
+            isActive: true,
+            profilePicture: null,
+            followersCount: 12
+          },
           { _id: 'b', platform: 'twitter', username: 'x', isActive: true },
           { _id: 'c', platform: 'instagram', username: 'old', isActive: false }
         ]
       })
     )
     expect(await provider.accounts('profile')).toEqual([
-      { id: 'a', username: 'me', needsReconnection: false }
+      { id: 'a', username: 'me', followers: 12, needsReconnection: false }
     ])
     expect(sent().url).toContain('profileId=profile')
   })
