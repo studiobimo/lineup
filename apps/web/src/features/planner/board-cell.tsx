@@ -91,8 +91,8 @@ export const BoardCell = memo(function BoardCell({
       onLayoutAnimationStart={() => zIndex.set(GLIDING_Z)}
       onLayoutAnimationComplete={() => zIndex.set(0)}
       className={cn(
-        'group relative cursor-pointer touch-manipulation overflow-hidden bg-muted select-none [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary',
-        selected && 'outline-2 -outline-offset-2 outline-primary',
+        'group relative cursor-pointer touch-manipulation overflow-hidden bg-muted select-none [-webkit-touch-callout:none] focus-visible:photo-outline',
+        selected && 'photo-outline',
         isDragging && 'opacity-30',
         airborne && 'opacity-0'
       )}

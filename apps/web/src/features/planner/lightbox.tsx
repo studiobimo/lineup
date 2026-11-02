@@ -41,7 +41,7 @@ export function Lightbox({ id }: { id: string }) {
   const next = images[stepIndex + 1]
   const album = board.albums?.[cell]
 
-  const { zoom, zoomed, canZoomIn, motion, reach, zoomIn, zoomOut, reset, wheel } = useZoom()
+  const { zoom, zoomed, canZoomIn, motion, reach, zoomIn, zoomOut, reset, wheel, pan } = useZoom()
   const popup = useRef<HTMLDivElement>(null)
   const dragged = useRef(false)
 
@@ -52,6 +52,8 @@ export function Lightbox({ id }: { id: string }) {
   }
 
   const keydown = ({ key }: KeyboardEvent) => {
+    // As with a drag, a zoomed picture is looked around and not left.
+    if (zoomed) return pan(key)
     if (key === 'ArrowLeft') step(previous)
     if (key === 'ArrowRight') step(next)
   }
@@ -83,6 +85,7 @@ export function Lightbox({ id }: { id: string }) {
           ref={popup}
           aria-label={t('cell', { position: index + 1 })}
           data-outside
+          initialFocus={popup}
           className="fixed inset-0 z-50 flex flex-col transition-opacity duration-200 outline-none data-ending-style:opacity-0 data-starting-style:opacity-0"
           onKeyDown={keydown}
           onPointerDownCapture={() => (dragged.current = false)}

@@ -286,8 +286,9 @@
   pre {
     font-family: var(--font-mono);
   }
+  /* Past the header and the bottom bar, which float over the page and would hide what has focus. */
   html {
-    @apply font-sans;
+    @apply scroll-pt-16 scroll-pb-16 font-sans;
     color-scheme: light;
   }
   html.dark {
@@ -303,5 +304,20 @@
   }
   [data-slot='switch'][data-unchecked] {
     background-color: var(--field-border);
+  }
+}
+
+/* A mark on a photo. One colour vanishes on a photo of that tone, so another runs inside it. */
+@utility photo-outline {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border: 2px solid var(--background);
+    border-radius: inherit;
+    pointer-events: none;
   }
 }
