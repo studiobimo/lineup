@@ -32,11 +32,22 @@
   "folderInUseNote": "Your originals are there at full size. Lineup adds to that folder but never changes or deletes your photos.",
   "folderLeave": "Stop using this folder",
   "folderFailed": "That folder could not be used. Try again, or choose another one.",
-  "folderLockedTitle": "Open {{name}}",
-  "folderLockedDescription": "Your board is in this folder, and your browser needs your permission to open it again.",
+  "folderFull": "That drive is out of room. Free up some space, or choose another folder.",
+  "folderGate": {
+    "needs-permission": {
+      "title": "Open {{name}}",
+      "description": "Your board is in this folder, and your browser needs your permission to open it again."
+    },
+    "unreachable": {
+      "title": "{{name}} could not be found",
+      "description": "It may have been moved or renamed, or it may be on a drive that is not plugged in. Your board is safe in the folder."
+    },
+    "unreadable": {
+      "title": "{{name}} could not be read",
+      "description": "Lineup's own files in this folder are damaged. Your photos are not affected. To start a new board there, move the hidden .lineup folder out of it, and your photos will be offered again."
+    }
+  },
   "folderAllow": "Open the folder",
-  "folderGoneTitle": "{{name}} could not be found",
-  "folderGoneDescription": "It may have been moved or renamed, or it may be on a drive that is not plugged in. Your board is safe in the folder.",
   "folderRetry": "Try again",
   "folderLeaveForBrowser": "Use the board in this browser",
   "newFiles_one": "1 new photo in your folder",

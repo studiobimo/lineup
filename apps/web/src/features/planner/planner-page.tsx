@@ -276,9 +276,11 @@ export function PlannerPage() {
 
   if (session === 'folder') {
     return (
-      <Suspense>
-        <FolderGate />
-      </Suspense>
+      <AreaBoundary>
+        <Suspense>
+          <FolderGate />
+        </Suspense>
+      </AreaBoundary>
     )
   }
 

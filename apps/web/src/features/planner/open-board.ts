@@ -7,16 +7,21 @@ export const supportsFolders = () => 'showDirectoryPicker' in window
 
 /** What every way into a board comes down to, so that the folder is settled before it is read. */
 export async function openBoard() {
+  let folders: typeof import('./folder-board') | undefined
   try {
-    const folders = supportsFolders() ? await import('./folder-board') : undefined
-    if (folders && !(await folders.reopenFolder())) {
-      plannerStore.setState({ session: 'folder' })
-      return
+    if (supportsFolders()) {
+      folders = await import('./folder-board')
+      if (!(await folders.reopenFolder())) {
+        plannerStore.setState({ session: 'folder' })
+        return
+      }
     }
-    await plannerStore.getState().load()
-    await backfillColours()
-    await folders?.offerNewFiles()
   } catch {
     plannerStore.setState({ loadFailed: true })
+    return
   }
+  await plannerStore.getState().load()
+  if (plannerStore.getState().loadFailed) return
+  // Neither is needed to use the board, and both have another go at the next load.
+  await Promise.allSettled([backfillColours(), folders?.offerNewFiles()])
 }

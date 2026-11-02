@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ZodError } from 'zod'
 
 import type { StoredImage } from './board-store'
 import { fakeDirectory } from './fake-directory'
@@ -69,6 +70,18 @@ describe('a folder board', () => {
     expect(await store.loadHistory()).toEqual({ past: [], future: [] })
     expect(await store.listImages()).toEqual([])
     expect(await store.getThumbnail('nothing')).toBeUndefined()
+  })
+
+  it('refuses to open on a file of its own that it cannot trust', async () => {
+    const { handle } = fakeDirectory()
+    const store = await createFolderBoardStore(handle)
+    await store.saveBoard({ tray: [], grid: [] })
+    const data = await handle.getDirectoryHandle('.lineup')
+
+    await writeTo(data, 'board.json', 'not json')
+    await expect(createFolderBoardStore(handle)).rejects.toThrow(SyntaxError)
+    await writeTo(data, 'board.json', '{"tray":"not a list"}')
+    await expect(createFolderBoardStore(handle)).rejects.toThrow(ZodError)
   })
 
   it('says when an original has gone, and when it comes back', async () => {
@@ -167,9 +180,9 @@ describe('a folder board', () => {
   })
 })
 
-async function writeTo(directory: FileSystemDirectoryHandle, name: string) {
+async function writeTo(directory: FileSystemDirectoryHandle, name: string, bytes = 'bytes') {
   const handle = await directory.getFileHandle(name, { create: true })
   const writable = await handle.createWritable()
-  await writable.write('bytes')
+  await writable.write(bytes)
   await writable.close()
 }

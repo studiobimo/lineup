@@ -59,7 +59,7 @@ const importStore = createStore<ImportState>((set, get) => ({
   }
 }))
 
-const isStorageFull = (error: unknown) =>
+export const isStorageFull = (error: unknown) =>
   error instanceof DOMException && error.name === 'QuotaExceededError'
 
 export const runImport = (source: ImportSource) => importStore.getState().run(source)

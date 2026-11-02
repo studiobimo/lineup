@@ -1,29 +1,15 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
-import { toastManager } from '@/components/ui/toast'
 import { chooseFolder, leaveFolder, useFolder } from '@/features/planner/folder-board'
 import { supportsFolders } from '@/features/planner/open-board'
-
-const isCancelled = (error: unknown) => error instanceof DOMException && error.name === 'AbortError'
+import { useFolderAction } from '@/features/planner/use-folder-action'
 
 export function FolderSettings() {
   const { t } = useTranslation('settings')
   const folder = useFolder()
-  const [busy, setBusy] = useState(false)
+  const { busy, run } = useFolderAction()
   if (!supportsFolders()) return null
-
-  const run = async (action: () => Promise<void>) => {
-    setBusy(true)
-    try {
-      await action()
-    } catch (error) {
-      if (!isCancelled(error)) toastManager.add({ type: 'error', title: t('folderFailed') })
-    } finally {
-      setBusy(false)
-    }
-  }
 
   return (
     <div className="mt-3">

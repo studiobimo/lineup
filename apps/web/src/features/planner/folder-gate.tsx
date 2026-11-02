@@ -5,23 +5,27 @@ import { Button } from '@/components/ui/button'
 import { BoardGate } from './board-gate'
 import { askForFolder, leaveFolder, useFolder } from './folder-board'
 import { openBoard } from './open-board'
+import { useFolderAction } from './use-folder-action'
 
-/** A folder board that cannot open yet. The folder is safe, so nothing here sounds like an error. */
+/** A folder board that cannot open yet. The photos are safe, so nothing here reads as an error. */
 export function FolderGate() {
   const { t } = useTranslation('settings')
   const folder = useFolder()
-  if (folder.status === 'none') return null
-  const { name } = folder
-  const unreachable = folder.status === 'unreachable'
+  const { busy, run } = useFolderAction()
+  if (folder.status === 'none' || folder.status === 'open') return null
+  const { name, status } = folder
   return (
     <BoardGate
-      title={t(unreachable ? 'folderGoneTitle' : 'folderLockedTitle', { name })}
-      description={t(unreachable ? 'folderGoneDescription' : 'folderLockedDescription', { name })}
+      title={t(`folderGate.${status}.title`, { name })}
+      description={t(`folderGate.${status}.description`, { name })}
     >
-      <Button onClick={() => void (unreachable ? openBoard() : askForFolder())}>
-        {t(unreachable ? 'folderRetry' : 'folderAllow')}
+      <Button
+        disabled={busy}
+        onClick={() => void run(status === 'needs-permission' ? askForFolder : openBoard)}
+      >
+        {t(status === 'needs-permission' ? 'folderAllow' : 'folderRetry')}
       </Button>
-      <Button variant="outline" onClick={() => void leaveFolder()}>
+      <Button variant="outline" disabled={busy} onClick={() => void run(leaveFolder)}>
         {t('folderLeaveForBrowser')}
       </Button>
     </BoardGate>

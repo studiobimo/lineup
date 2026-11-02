@@ -1,7 +1,7 @@
 # ADR-0016: A board survives a tab closing mid-write
 
 - **Status:** Accepted
-- **Date:** 2026-11-02
+- **Date:** 2026-11-01
 
 ## Context
 
@@ -28,6 +28,10 @@ folder board that also marked their originals as removed, so they were never off
 - A failed save keeps its journal, and is retried every five seconds and on the next change, so a
   full disk or a drive plugged back in recovers without a reload.
 - An import that fails part of the way keeps the images that were stored.
+- A failed save in a folder board checks the folder. If it has gone, or permission has, the board
+  gives way to a screen that says so, and opening it again replays the journal.
+- A folder's own files are validated when it opens, so damage is found before anything uses it,
+  and stops the board with a way back, rather than being read as an empty board.
 
 No prompt asks people to stay on the page. The journal makes the wait unnecessary.
 

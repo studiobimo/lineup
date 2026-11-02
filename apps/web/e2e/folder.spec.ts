@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { expect, type Page, test } from '@playwright/test'
+import { chromium, expect, type Page, test } from '@playwright/test'
 
 import { addImages, savedBoard, type SavedBoard, watchErrors } from './fixtures'
 
@@ -256,6 +256,115 @@ test('a file deleted outside the app is a missing cell, and comes back', async (
   await expect(page.getByRole('img')).toHaveCount(1)
   await expect(page.getByText('Original not in the folder')).toHaveCount(0)
   expect(errors).toEqual([])
+})
+
+test('a step whose write never finished comes back, and can be undone', async ({ page }) => {
+  await replacePicker(page)
+  await page.goto('/')
+  await useFolder(page)
+  await addImages(page, [photo('01.jpg')])
+  await expect(page.locator('aside').getByRole('img')).toHaveCount(1)
+  await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
+
+  // As a tab that closes mid-write leaves things: the change made, and the file never swapped in.
+  await page.evaluate(() => {
+    FileSystemFileHandle.prototype.createWritable = () => new Promise(() => {})
+  })
+  await page.getByRole('button', { name: 'Move all to the grid' }).click()
+  await expect(page.locator('section').getByRole('img')).toHaveCount(1)
+  expect((await folderBoard(page))?.grid).toEqual([])
+
+  await page.reload()
+  await expect(page.locator('section').getByRole('img')).toHaveCount(1)
+  await expect.poll(async () => (await folderBoard(page))?.grid.length).toBe(1)
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect(page.locator('aside').getByRole('img')).toHaveCount(1)
+})
+
+test('a folder that goes while it is open stops the board, and nothing is lost', async ({
+  page
+}) => {
+  await replacePicker(page)
+  await page.goto('/')
+  await useFolder(page)
+  await addImages(page, [photo('01.jpg')])
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
+
+  await page.evaluate(async () => {
+    const root = await navigator.storage.getDirectory()
+    await root.removeEntry('photos', { recursive: true })
+  })
+  await page.getByRole('button', { name: 'Move all to the grid' }).click()
+  await expect(page.getByRole('heading', { name: 'photos could not be found' })).toBeVisible()
+  await page.getByRole('button', { name: 'Use the board in this browser' }).click()
+  await expect(page.getByRole('button', { name: 'Add images' })).toBeVisible()
+})
+
+test('permission lost while a folder is open comes back with the change', async ({ page }) => {
+  await replacePicker(page)
+  await page.addInitScript(() => {
+    const permission = () => localStorage.getItem('permission') ?? 'granted'
+    const access = FileSystemHandle.prototype
+    const write = FileSystemFileHandle.prototype.createWritable
+    access.queryPermission = async () => permission() as FolderAccess
+    access.requestPermission = async () => {
+      localStorage.setItem('permission', 'granted')
+      return 'granted'
+    }
+    FileSystemFileHandle.prototype.createWritable = function (...options) {
+      if (permission() === 'granted') return write.apply(this, options)
+      return Promise.reject(new DOMException('Revoked', 'NotAllowedError'))
+    }
+  })
+  await page.goto('/')
+  await useFolder(page)
+  await addImages(page, [photo('01.jpg')])
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
+
+  await page.evaluate(() => localStorage.setItem('permission', 'prompt'))
+  await page.getByRole('button', { name: 'Move all to the grid' }).click()
+  await page.getByRole('button', { name: 'Open the folder' }).click()
+  await expect(page.locator('section').getByRole('img')).toHaveCount(1)
+  await expect.poll(async () => (await folderBoard(page))?.grid.length).toBe(1)
+})
+
+test('a damaged folder says so, and the way out leaves it alone', async ({ page }) => {
+  await replacePicker(page)
+  await page.goto('/')
+  await useFolder(page)
+  await addImages(page, [photo('01.jpg')])
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
+
+  await addToFolder(page, '.lineup/images.json', Buffer.from('not what it wrote'))
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'photos could not be read' })).toBeVisible()
+  await page.getByRole('button', { name: 'Use the board in this browser' }).click()
+  await expect(page.getByRole('button', { name: 'Add images' })).toBeVisible()
+  expect(await folderFiles(page)).toHaveProperty(['01.jpg'])
+})
+
+test('a folder board survives a browser restart', async ({ baseURL }) => {
+  const profile = test.info().outputPath('profile')
+  const launch = () => chromium.launchPersistentContext(profile, { baseURL })
+
+  const first = await launch()
+  const page = first.pages()[0] ?? (await first.newPage())
+  await replacePicker(page)
+  await page.goto('/')
+  await useFolder(page)
+  await addImages(page, [photo('01.jpg')])
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
+  await first.close()
+
+  const second = await launch()
+  const reopened = second.pages()[0] ?? (await second.newPage())
+  await reopened.goto('/')
+  await expect(reopened.getByRole('img')).toHaveCount(1)
+  await second.close()
 })
 
 test('the option is absent where the browser has no folders', async ({ page }) => {

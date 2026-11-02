@@ -10,12 +10,13 @@ import { copyBoard, createFolderBoardStore, type FolderBoardStore } from './fold
 import { fromFiles, isImage } from './import-source'
 import { runImport } from './import-store'
 import { openBoard } from './open-board'
-import { boardStore, setFolderStore } from './planner'
+import { boardStore, plannerStore, setFolderStore } from './planner'
 
 const ACCESS = { mode: 'readwrite' } as const
 
-type FolderState =
-  { status: 'none' } | { status: 'open' | 'needs-permission' | 'unreachable'; name: string }
+type FolderProblem = 'needs-permission' | 'unreachable' | 'unreadable'
+
+type FolderState = { status: 'none' } | { status: 'open' | FolderProblem; name: string }
 
 const folderState = createStore<FolderState>(() => ({ status: 'none' }))
 
@@ -28,31 +29,44 @@ const handles = () =>
 const readHandle = async (): Promise<FileSystemDirectoryHandle | undefined> =>
   (await handles()).get('handle', 'current')
 
+/** The folder's store, or nothing, having said in `folderState` which it is and why. */
+async function connect(handle: FileSystemDirectoryHandle) {
+  const { name } = handle
+  const say = (status: 'open' | FolderProblem) => folderState.setState({ status, name }, true)
+  if ((await handle.queryPermission(ACCESS)) !== 'granted') {
+    say('needs-permission')
+    return undefined
+  }
+  try {
+    const store = await createFolderBoardStore(handle)
+    say('open')
+    return store
+  } catch (error) {
+    // The file system's own errors mean the folder. Anything else means what was found in it.
+    say(error instanceof DOMException ? 'unreachable' : 'unreadable')
+    return undefined
+  }
+}
+
 /** Settles which store the board is in. False if the folder has to be dealt with first. */
 export async function reopenFolder() {
   const handle = await readHandle()
-  openFolder = undefined
-  if (!handle) {
-    setFolderStore(undefined)
-    folderState.setState({ status: 'none' }, true)
-    return true
-  }
-  const { name } = handle
-  if ((await handle.queryPermission(ACCESS)) !== 'granted') {
-    folderState.setState({ status: 'needs-permission', name }, true)
-    return false
-  }
-  try {
-    openFolder = await createFolderBoardStore(handle)
-    setFolderStore(openFolder)
-  } catch {
-    // Most likely moved, renamed or on a drive that is not plugged in.
-    folderState.setState({ status: 'unreachable', name }, true)
-    return false
-  }
-  folderState.setState({ status: 'open', name }, true)
-  return true
+  if (!handle) folderState.setState({ status: 'none' }, true)
+  openFolder = handle && (await connect(handle))
+  setFolderStore(openFolder)
+  return !handle || openFolder !== undefined
 }
+
+/** A write failing may mean the folder has gone, which a retry would never get past. */
+async function checkFolder() {
+  const handle = openFolder && (await readHandle())
+  if (handle && !(await connect(handle))) plannerStore.setState({ session: 'folder' })
+}
+
+plannerStore.subscribe(({ saveFailed }, { saveFailed: failedBefore }) => {
+  // If this fails too, the failed save still shows, and the retries go on.
+  if (saveFailed && !failedBefore) checkFolder().catch(() => undefined)
+})
 
 /** Stays up until it is answered, because the photos will still be there if it is not. */
 export async function offerNewFiles() {

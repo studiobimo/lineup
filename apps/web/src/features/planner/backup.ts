@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { boardSchema, imageRecordSchema } from './board-schema'
 import type { Board, BoardStore, ImageRecord, StoredImage } from './board-store'
 
 // The file format is in ADR-0013. A signature, the manifest's length and the manifest come first,
@@ -9,37 +10,12 @@ const HEADER_BYTES = SIGNATURE.length + Uint32Array.BYTES_PER_ELEMENT
 const FORMAT_VERSION = 1
 const IMAGE_TYPE = 'image/jpeg'
 
-const oklch = z.object({ lightness: z.number(), chroma: z.number(), hue: z.number() })
-
 const span = z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()])
 
 const manifestSchema = z.object({
   version: z.literal(FORMAT_VERSION),
-  board: z.object({
-    tray: z.array(z.string()),
-    grid: z.array(z.string()),
-    locked: z.array(z.string()).optional()
-  }),
-  images: z.array(
-    z.object({
-      id: z.string(),
-      width: z.number().int().positive(),
-      height: z.number().int().positive(),
-      createdAt: z.string(),
-      colour: z
-        .object({
-          dominant: oklch,
-          palette: z.array(oklch),
-          tone: z.number(),
-          vivid: z.number()
-        })
-        .optional(),
-      takenAt: z.string().optional(),
-      place: z.string().optional(),
-      thumbnail: span,
-      publish: span
-    })
-  )
+  board: boardSchema,
+  images: z.array(imageRecordSchema.extend({ thumbnail: span, publish: span }))
 })
 
 type Manifest = z.infer<typeof manifestSchema>

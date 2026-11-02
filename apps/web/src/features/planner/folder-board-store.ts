@@ -1,3 +1,6 @@
+import { z } from 'zod'
+
+import { boardSchema, historySchema, imageRecordSchema } from './board-schema'
 import {
   type Board,
   type BoardStore,
@@ -20,6 +23,8 @@ export interface FolderBoardStore extends BoardStore {
   newFiles(): Promise<File[]>
 }
 
+const storedRecordSchema = imageRecordSchema.extend({ fileName: z.string().optional() })
+
 const isMissing = (error: unknown) =>
   error instanceof DOMException && error.name === 'NotFoundError'
 
@@ -40,8 +45,12 @@ async function writeFile(handle: FileSystemFileHandle, bytes: Blob | string) {
 }
 
 /** One JSON file. Writes that pile up while one runs become the latest, so a burst costs one. */
-function jsonFile<Value>(directory: FileSystemDirectoryHandle, name: string, empty: Value) {
-  let latest = empty
+function jsonFile<Value>(
+  directory: FileSystemDirectoryHandle,
+  name: string,
+  schema: z.ZodType<Value>
+) {
+  let latest: Value
   let dirty = false
   let writing: Promise<void> | undefined
 
@@ -58,10 +67,11 @@ function jsonFile<Value>(directory: FileSystemDirectoryHandle, name: string, emp
   }
 
   return {
+    /** Nothing if the file was never written. Throws if it is not what this wrote. */
     async read() {
       const handle = await orUndefined(directory.getFileHandle(name))
-      if (!handle) return empty
-      return JSON.parse(await (await handle.getFile()).text()) as Value
+      if (!handle) return undefined
+      return schema.parse(JSON.parse(await (await handle.getFile()).text()))
     },
     write(value: Value) {
       latest = value
@@ -100,13 +110,20 @@ export async function createFolderBoardStore(
   const data = await folder.getDirectoryHandle(DATA_FOLDER, { create: true })
   const thumbnails = await data.getDirectoryHandle('thumbnails', { create: true })
   const publishCopies = await data.getDirectoryHandle('publish', { create: true })
-  const boardFile = jsonFile<Board>(data, 'board.json', emptyBoard)
-  const historyFile = jsonFile<History>(data, 'history.json', emptyHistory)
-  const imagesFile = jsonFile<ImageRecord[]>(data, 'images.json', [])
-  const forgottenFile = jsonFile<string[]>(data, 'forgotten.json', [])
+  const boardFile = jsonFile<Board>(data, 'board.json', boardSchema)
+  const historyFile = jsonFile<History>(data, 'history.json', historySchema)
+  const imagesFile = jsonFile<ImageRecord[]>(data, 'images.json', z.array(storedRecordSchema))
+  const forgottenFile = jsonFile<string[]>(data, 'forgotten.json', z.array(z.string()))
 
-  const records = new Map((await imagesFile.read()).map((record) => [record.id, record]))
-  const forgotten = new Set(await forgottenFile.read())
+  // All of them now, so that a damaged folder is found before anything has started to use it.
+  const [, , savedRecords, savedForgotten] = await Promise.all([
+    boardFile.read(),
+    historyFile.read(),
+    imagesFile.read(),
+    forgottenFile.read()
+  ])
+  const records = new Map(savedRecords?.map((record) => [record.id, record]))
+  const forgotten = new Set(savedForgotten)
   // What newFiles handed out, so a file already here is recorded where it is and not copied.
   const alreadyHere = new WeakMap<Blob, string>()
   // One at a time, so that two images with one name cannot both find it free.
@@ -150,9 +167,9 @@ export async function createFolderBoardStore(
       return (await orUndefined(data.getFileHandle('board.json'))) !== undefined
     },
 
-    loadBoard: () => boardFile.read(),
+    loadBoard: async () => (await boardFile.read()) ?? emptyBoard,
     saveBoard: (board) => boardFile.write(board),
-    loadHistory: () => historyFile.read(),
+    loadHistory: async () => (await historyFile.read()) ?? emptyHistory,
     saveHistory: (history) => historyFile.write(history),
 
     async listImages() {
