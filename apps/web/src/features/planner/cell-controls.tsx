@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
 import { openAlbum } from '@/features/albums/album-store'
-import { liveAccount, useConnection } from '@/features/provider/connection'
+import { hasLiveKey, useConnection } from '@/features/provider/connection'
 import { openPost } from '@/features/provider/post-store'
 import { cn } from '@/lib/utils'
 
@@ -63,7 +63,7 @@ export const CellActions = memo(function CellActions({
   const { t } = useTranslation('planner')
   const toTray = container === 'grid'
   const LockToggle = locked ? LockOpen : Lock
-  const connected = liveAccount(useConnection()) !== undefined
+  const hasKey = hasLiveKey(useConnection())
   return (
     <div className="absolute inset-x-0 top-0 flex flex-wrap justify-end gap-1 p-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
       <CellButton
@@ -72,7 +72,7 @@ export const CellActions = memo(function CellActions({
       >
         <Maximize2 />
       </CellButton>
-      {toTray && connected && !posted && (
+      {toTray && hasKey && !posted && (
         <CellButton label={t('schedule')} onClick={() => openPost(id)}>
           <CalendarClock />
         </CellButton>

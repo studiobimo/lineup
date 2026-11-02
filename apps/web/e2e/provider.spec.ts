@@ -269,6 +269,20 @@ test('no key, no way to schedule', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Schedule', exact: true })).toHaveCount(0)
 })
 
+test('a key with no account says what is missing, and sends nothing', async ({ page }) => {
+  const provider = await mockProvider(page, { accounts: [] })
+  await planOnGrid(page)
+  const settings = await addKey(page)
+  await expect(settings.getByRole('button', { name: 'Connect Instagram' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(settings).toBeHidden()
+
+  const dialog = await openSchedule(page)
+  await expect(dialog.getByText(/Connect an Instagram account in Settings/)).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Schedule', exact: true })).toHaveCount(0)
+  expect(provider.requests).not.toContain('POST /uploads')
+})
+
 test('a planned image is sent, scheduled and held in place', async ({ page }) => {
   const errors = watchErrors(page)
   const provider = await mockProvider(page)

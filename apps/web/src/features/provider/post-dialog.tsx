@@ -13,7 +13,7 @@ import { usePlanner } from '@/features/planner/planner'
 import { CellThumbnail } from '@/features/planner/thumbnail'
 import { useDialogPresence } from '@/hooks/use-dialog-presence'
 
-import { liveAccount, useConnection } from './connection'
+import { hasLiveKey, liveAccount, useConnection } from './connection'
 import { NewPost } from './new-post'
 import { PostDetails } from './post-details'
 import { closePost } from './post-store'
@@ -25,7 +25,8 @@ export function PostDialog({ cell }: { cell: string }) {
   const { close, dialog } = useDialogPresence(closePost)
   const images = usePlanner(({ board }) => board.albums?.[cell]?.length ?? 1)
   const post = usePlanner(({ board }) => board.posts?.[cell])
-  const accountId = liveAccount(useConnection())
+  const connection = useConnection()
+  const accountId = liveAccount(connection)
   return (
     <Dialog {...dialog}>
       <DialogPopup>
@@ -47,7 +48,9 @@ export function PostDialog({ cell }: { cell: string }) {
             ) : accountId ? (
               <NewPost cell={cell} accountId={accountId} onDone={close} />
             ) : (
-              <p className="text-sm text-muted-foreground">{t('post.noKey')}</p>
+              <p className="text-sm text-muted-foreground">
+                {t(hasLiveKey(connection) ? 'post.noAccount' : 'post.noKey')}
+              </p>
             )}
           </ProviderQueries>
         </DialogPanel>

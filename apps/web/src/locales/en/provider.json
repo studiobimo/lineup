@@ -46,6 +46,7 @@
     "outOfOrder": "With this time, posts will not go out in the order of your grid.",
     "notice": "When you schedule, the images and caption are sent to {{provider}} and Instagram. Nothing else leaves this device.",
     "noKey": "Add your key in Settings to schedule this.",
+    "noAccount": "Connect an Instagram account in Settings to schedule this. Instagram only allows it for a professional account.",
     "saveChanges": "Save changes",
     "cancel": "Cancel post",
     "cancelTitle": "Cancel this post?",
