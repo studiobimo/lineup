@@ -131,6 +131,8 @@ refuses to run from any branch but its own:
 pnpm cf:bundle             # the Worker's size, with no login; it does not fail on a size
 pnpm cf:deploy:development  # from develop, to lineup-dev.bimo.dev
 pnpm cf:deploy:production   # from main, to lineup.bimo.dev
+pnpm cf:rotate-secret:development  # add the next sealing secret, keeping the old one
+pnpm cf:rotate-secret:production   # the same; on a new Worker, this sets V1
 ```
 
 ## Conventions
