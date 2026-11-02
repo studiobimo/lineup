@@ -1,1 +1,1 @@
-export { createApi } from './app'
+export { type ApiRoutes, createApi } from './app'

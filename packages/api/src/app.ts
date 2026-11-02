@@ -4,11 +4,24 @@ import { routePath } from 'hono/route'
 import { secureHeaders } from 'hono/secure-headers'
 
 import { type ApiEnv, problem, ProblemError } from './problem'
+import { ProviderError, type ProviderFailure, type ProviderFor } from './provider/provider'
+import { providerRoutes } from './provider/routes'
+import { zernio } from './provider/zernio'
 
 // JSON loads nothing, so this asks for less than the app's own policy in public/_headers.
 const contentSecurityPolicy = { defaultSrc: ["'none'"], frameAncestors: ["'none'"] }
 
-export function createApi() {
+const providerProblems = {
+  key: { status: 401, code: 'key_rejected', title: 'The provider refused this key' },
+  forbidden: { status: 403, code: 'key_not_allowed', title: 'This key is not allowed to do that' },
+  missing: { status: 404, code: 'not_found', title: 'The provider has no such thing' },
+  limited: { status: 429, code: 'rate_limited', title: 'The provider asked to slow down' },
+  refused: { status: 422, code: 'provider_refused', title: 'The provider refused this' },
+  busy: { status: 409, code: 'provider_busy', title: 'The provider is still on this' },
+  down: { status: 502, code: 'provider_failed', title: 'The provider did not answer' }
+} as const satisfies Record<ProviderFailure, object>
+
+export function createApi(providerFor: ProviderFor = zernio) {
   const api = new Hono<ApiEnv>().basePath('/api')
 
   // Generated here and never read from the request, so a log line cannot be forged.
@@ -40,6 +53,11 @@ export function createApi() {
 
   api.onError((error, c) => {
     if (error instanceof ProblemError) return problem(c, error.fields)
+    if (error instanceof ProviderError) {
+      const { detail, retryAfter } = error.details
+      const shown = error.failure === 'refused' ? detail : undefined
+      return problem(c, { ...providerProblems[error.failure], detail: shown, retryAfter })
+    }
     if (error instanceof HTTPException && error.status === 400) {
       return problem(c, { status: 400, code: 'validation', title: 'The request is not valid' })
     }
@@ -48,5 +66,7 @@ export function createApi() {
     return problem(c, { status: 500, code: 'internal', title: 'Something went wrong' })
   })
 
-  return api
+  return api.route('/v1/provider', providerRoutes(providerFor))
 }
+
+export type ApiRoutes = ReturnType<typeof createApi>

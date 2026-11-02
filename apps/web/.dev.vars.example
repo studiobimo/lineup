@@ -1,3 +1,6 @@
 # The Worker's secrets, by name: copy this to .dev.vars, which git ignores, and fill it in
 # for vite dev and the tests. make -C .devtools types reads the names from here for the Env
 # type. A deployed environment's values: pnpm exec wrangler secret put <NAME> --env <env>.
+# Seals each user's provider key (ADR-0008): openssl rand -base64 32. The number is its version: a
+# new one is added beside the old, which stays for 30 days, so nobody loses their key.
+PROVIDER_KEY_SECRET_V1=

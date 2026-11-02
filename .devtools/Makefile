@@ -11,8 +11,9 @@ APP_DIR := apps/web
 # are 82 KiB of this, and load only for someone who turns on capture dates or locations.
 BUNDLE_TOTAL_KIB := 480
 
-# Set from the M0 scaffold, 16.9 KiB, with room for the API (ADR-0005). Raising it needs a reason.
-WORKER_GZIP_KIB := 32
+# M4's provider routes took it from 18.5 to 61.8 KiB, nearly all of it zod, which the contract shares
+# with the app (ADR-0005). That is 2% of Cloudflare's limit. Raising it needs a reason.
+WORKER_GZIP_KIB := 80
 
 include base.mk
 include vite.mk
