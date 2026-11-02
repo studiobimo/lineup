@@ -49,6 +49,8 @@ export interface PlannerState {
   /** A write failed. The board is safe in the journal, and `retrySave` writes it again. */
   saveFailed: boolean
   load(): Promise<void>
+  /** Whether the board opened in this tab, for what can arrive first: a drop as the page loads. */
+  opened(): Promise<boolean>
   retrySave(): void
   suspend(): void
   addImages(images: ProcessedImage[]): Promise<void>
@@ -84,7 +86,7 @@ export interface PlannerState {
 const placedIn = (boards: Board[]) => new Set(boards.flatMap(imagesOn))
 
 export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal = boardJournal) {
-  return createStore<PlannerState>((set, get) => {
+  return createStore<PlannerState>((set, get, store) => {
     // A later load, or another tab taking over, makes what an earlier load read out of date.
     let latestLoad = 0
     let savesUnderWay = 0
@@ -188,6 +190,20 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
         purge()
       },
 
+      opened() {
+        const settled = ({ session, loadFailed }: PlannerState) =>
+          session !== 'starting' || loadFailed
+        const isActive = ({ session }: PlannerState) => session === 'active'
+        if (settled(get())) return Promise.resolve(isActive(get()))
+        return new Promise((resolve) => {
+          const stop = store.subscribe((state) => {
+            if (!settled(state)) return
+            stop()
+            resolve(isActive(state))
+          })
+        })
+      },
+
       retrySave() {
         if (get().session === 'active') save()
       },
@@ -198,7 +214,7 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
       },
 
       async addImages(added) {
-        if (get().session !== 'active') return
+        if (!(await get().opened())) throw new Error('This board is not open here')
         const createdAt = new Date().toISOString()
         const stored = added.map((image) => ({ ...image, id: crypto.randomUUID(), createdAt }))
         const puts = await Promise.allSettled(stored.map((image) => boardStore.putImage(image)))

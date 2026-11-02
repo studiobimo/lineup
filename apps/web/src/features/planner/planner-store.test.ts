@@ -609,6 +609,36 @@ describe('the planner store', () => {
     expect(state().saveFailed).toBe(true)
   })
 
+  describe('images that arrive before the board has opened', () => {
+    const opening = () => {
+      const boardStore = fakeBoardStore(start, ['a', 'b', 'c', 'd', 'e'])
+      return { boardStore, store: createPlannerStore(boardStore) }
+    }
+
+    it('are added once it has', async () => {
+      const { store } = opening()
+      const adding = store.getState().addImages([processed])
+      await store.getState().load()
+      await adding
+      expect(store.getState().board.tray).toHaveLength(start.tray.length + 1)
+    })
+
+    it('are refused out loud if the board opened in another tab', async () => {
+      const { store } = opening()
+      const adding = store.getState().addImages([processed])
+      store.getState().suspend()
+      await expect(adding).rejects.toThrow('not open')
+    })
+
+    it('are refused out loud if the board could not be read', async () => {
+      const { boardStore, store } = opening()
+      boardStore.loadBoard.mockRejectedValueOnce(new Error('unreadable'))
+      const adding = store.getState().addImages([processed])
+      await store.getState().load()
+      await expect(adding).rejects.toThrow('not open')
+    })
+  })
+
   it('keeps the images that were stored when others could not be', async () => {
     const { boardStore, state } = await loaded()
     boardStore.putImage.mockRejectedValueOnce(new Error('the disk is full'))
@@ -646,7 +676,7 @@ describe('the planner store', () => {
     state().redo()
     state().undo()
     state().remove(['a'])
-    await state().addImages([processed])
+    await expect(state().addImages([processed])).rejects.toThrow('not open')
 
     expect(state().board).toEqual(start)
     expect(boardStore.saveBoard).not.toHaveBeenCalled()

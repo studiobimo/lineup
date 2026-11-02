@@ -239,7 +239,6 @@ const fieldTime = (date: Date) =>
 
 async function planOnGrid(page: Page, count = 1) {
   await page.goto('/')
-  await expect(page.getByText('Move images here to plan your feed.')).toBeVisible()
   await addImages(
     page,
     Array.from({ length: count }, (_, index) => image(`${index}.png`))

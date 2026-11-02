@@ -22,6 +22,7 @@ describe('runImport', () => {
     vi.restoreAllMocks()
     vi.spyOn(toastManager, 'add').mockReturnValue('toast')
     vi.mocked(importImages).mockResolvedValue({ images: [processed], failed: 0 })
+    vi.spyOn(plannerStore.getState(), 'opened').mockResolvedValue(true)
     vi.spyOn(plannerStore.getState(), 'addImages').mockResolvedValue()
   })
 

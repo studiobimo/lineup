@@ -20,8 +20,10 @@ const importStore = createStore<ImportState>((set, get) => ({
   async run(source) {
     if (get().progress) return
     try {
-      const { board } = plannerStore.getState()
-      const plan = planImport(await source.files(), imagesOn(board).length)
+      // Files first: a drop's are only there for as long as the event is.
+      const files = await source.files()
+      await plannerStore.getState().opened()
+      const plan = planImport(files, imagesOn(plannerStore.getState().board).length)
       let failed = 0
       if (plan.accepted.length > 0) {
         set({ progress: { done: 0, total: plan.accepted.length } })
