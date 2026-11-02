@@ -1,30 +1,19 @@
-import {
-  ArrowRightLeft,
-  Check,
-  ImageOff,
-  Layers,
-  Lock,
-  LockOpen,
-  type LucideIcon,
-  Maximize2,
-  Trash2
-} from 'lucide-react'
+import { ImageOff, Layers, Lock, type LucideIcon } from 'lucide-react'
 import { m, useMotionValue } from 'motion/react'
 import { memo, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@/components/icon-button'
+import { onButton } from '@/lib/dom'
 import { cn } from '@/lib/utils'
-import { openAlbum } from '@/features/albums/album-store'
 
 import { type Container, coverOf, isLocked } from './board'
-import { cellTooltip } from './cell-tooltip'
+import { AlbumButton, CellActions, SelectToggle } from './cell-controls'
 import { useAirborne, useDropMark } from './drag-target'
 import { openLightbox } from './lightbox-store'
 import { GLIDING_Z, settle } from './motion'
 import { cellShape } from './network-profile'
-import { plannerStore, usePlanner } from './planner'
-import { clickCell, toggleSelected, useIsSelected } from './selection-store'
+import { usePlanner } from './planner'
+import { clickCell, useIsSelected } from './selection-store'
 import { setTabStop } from './tab-stop'
 import { CellThumbnail } from './thumbnail'
 import { useCellDrag } from './use-board-drag'
@@ -37,122 +26,6 @@ interface BoardCellProps {
   /** Whether Tab lands here. A container is one stop however many cells it has. */
   tabStop: boolean
 }
-
-/**
- * Memoised, because every cell renders when one moves and these do not depend on position. For the
- * mouse: the keyboard has Enter on the cell, or these would be three more tab stops per image.
- */
-const CellActions = memo(function CellActions({
-  id,
-  container,
-  locked
-}: Pick<BoardCellProps, 'id' | 'container'> & { locked: boolean }) {
-  const { t } = useTranslation('planner')
-  const toTray = container === 'grid'
-  const LockToggle = locked ? LockOpen : Lock
-  return (
-    <div className="absolute inset-x-0 top-0 flex justify-end gap-1 p-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
-      <IconButton
-        variant="outline"
-        size="icon-xs"
-        tabIndex={-1}
-        tooltip={cellTooltip}
-        label={t('openImage')}
-        onClick={() => openLightbox(coverOf(plannerStore.getState().board, id))}
-      >
-        <Maximize2 />
-      </IconButton>
-      {toTray && (
-        <IconButton
-          variant="outline"
-          size="icon-xs"
-          tabIndex={-1}
-          tooltip={cellTooltip}
-          label={t(locked ? 'unlock' : 'lock')}
-          onClick={() => plannerStore.getState().toggleLock(id)}
-        >
-          <LockToggle />
-        </IconButton>
-      )}
-      {!locked && (
-        <>
-          <IconButton
-            variant="outline"
-            size="icon-xs"
-            tabIndex={-1}
-            tooltip={cellTooltip}
-            label={t(toTray ? 'moveToTray' : 'moveToGrid')}
-            onClick={() => plannerStore.getState().move(id, toTray ? 'tray' : 'grid')}
-          >
-            <ArrowRightLeft />
-          </IconButton>
-          <IconButton
-            variant="outline"
-            size="icon-xs"
-            tabIndex={-1}
-            tooltip={cellTooltip}
-            label={t('remove')}
-            onClick={() => plannerStore.getState().remove([id])}
-          >
-            <Trash2 />
-          </IconButton>
-        </>
-      )}
-    </div>
-  )
-})
-
-/** Always in view, unlike the actions: it says what the cell is, and opens what it says. */
-const AlbumButton = memo(function AlbumButton({ id, size }: { id: string; size: number }) {
-  const { t } = useTranslation('planner')
-  return (
-    <>
-      <IconButton
-        variant="outline"
-        size="xs"
-        tabIndex={-1}
-        tooltip={cellTooltip}
-        label={t('openAlbum')}
-        className="pointer-events-auto gap-0.5 px-1 tabular-nums"
-        onClick={() => openAlbum(id)}
-      >
-        <Layers />
-        {size}
-      </IconButton>
-      <span className="sr-only">{t('albumOf', { count: size })}</span>
-    </>
-  )
-})
-
-/** In its own corner, because a narrow cell's actions already fill its top edge. */
-const SelectToggle = memo(function SelectToggle({
-  id,
-  selected
-}: {
-  id: string
-  selected: boolean
-}) {
-  const { t } = useTranslation('planner')
-  return (
-    <IconButton
-      variant="ghost"
-      size="icon-xs"
-      tabIndex={-1}
-      tooltip={cellTooltip}
-      label={t(selected ? 'deselect' : 'select')}
-      aria-pressed={selected}
-      className={cn(
-        'absolute right-1 bottom-1 rounded-full border-2 opacity-0 transition-[background-color,border-color,color,opacity,scale] duration-150 ease-out group-hover:opacity-100 focus-visible:opacity-100 active:scale-90 pointer-coarse:opacity-100',
-        selected
-          ? 'border-primary bg-primary text-primary-foreground opacity-100 hover:border-primary/90 hover:bg-primary/90'
-          : 'border-on-photo bg-photo-scrim text-transparent shadow-xs hover:bg-photo-scrim hover:text-on-photo'
-      )}
-      onClick={() => toggleSelected(id)}
-    >
-      <Check strokeWidth={3} className="opacity-100" />
-    </IconButton>
-  )
-})
 
 interface CellBadgeProps {
   icon: LucideIcon
@@ -216,10 +89,10 @@ export const BoardCell = memo(function BoardCell({
       tabIndex={tabStop ? 0 : -1}
       onFocus={() => setTabStop(container, id)}
       onClick={(event) => {
-        if (!(event.target as HTMLElement).closest('button')) clickCell(id, event)
+        if (!onButton(event.target)) clickCell(id, event)
       }}
       onDoubleClick={(event) => {
-        if (!(event.target as HTMLElement).closest('button')) openLightbox(cover)
+        if (!onButton(event.target)) openLightbox(cover)
       }}
       aria-label={t('cell', { position })}
       {...dropArea}

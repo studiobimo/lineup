@@ -1,25 +1,6 @@
-import {
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  ImageOff,
-  Layers,
-  MapPin,
-  X,
-  ZoomIn,
-  ZoomOut
-} from 'lucide-react'
-import { animate, AnimatePresence, m, type PanInfo, useMotionValue } from 'motion/react'
-import {
-  type KeyboardEvent,
-  type MouseEvent,
-  type ReactNode,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type WheelEvent
-} from 'react'
+import { ChevronLeft, ChevronRight, Layers, X, ZoomIn, ZoomOut } from 'lucide-react'
+import { AnimatePresence, m, type PanInfo } from 'motion/react'
+import { type KeyboardEvent, type MouseEvent, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
@@ -32,118 +13,17 @@ import {
 } from '@/components/ui/dialog'
 import { Group } from '@/components/ui/group'
 import { useDialogPresence } from '@/hooks/use-dialog-presence'
-import { cn } from '@/lib/utils'
 
+import { AlbumStrip } from './album-strip'
 import { cellOf, containerOf, imagesOf } from './board'
+import { ImageDetails, Pill } from './lightbox-details'
 import { closeLightbox, openLightbox } from './lightbox-store'
-import { rise, settle } from './motion'
-import { cellShape } from './network-profile'
 import { usePlanner } from './planner'
-import { FullSizeImage, Thumbnail } from './thumbnail'
+import { FullSizeImage } from './thumbnail'
+import { useZoom } from './use-zoom'
 
-const MIN_ZOOM = 1
-const MAX_ZOOM = 4
-const ZOOM_STEP = 1
-const WHEEL_SPEED = 0.002
 // How far a drag at normal size has to go to count as a swipe to the next image, in pixels.
 const SWIPE_DISTANCE = 80
-
-const clampZoom = (zoom: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
-
-function Pill({ className, children }: { className?: string; children: ReactNode }) {
-  return (
-    <p
-      className={cn(
-        'flex items-center gap-1.5 rounded-md bg-popover px-2 py-1 text-sm text-popover-foreground',
-        className
-      )}
-    >
-      {children}
-    </p>
-  )
-}
-
-interface AlbumStripProps {
-  images: string[]
-  current: string
-  onPick: (image: string) => void
-}
-
-/** The whole album in view, which says more than a count that an image belongs to one. */
-function AlbumStrip({ images, current, onPick }: AlbumStripProps) {
-  const { t } = useTranslation('planner')
-  return (
-    <m.div
-      {...rise}
-      role="group"
-      aria-label={t('lightboxAlbumImages')}
-      layoutScroll
-      className="absolute bottom-4 flex max-w-[calc(100%-2rem)] gap-1 overflow-x-auto rounded-lg bg-popover p-1 shadow-md"
-    >
-      {images.map((image, index) => (
-        <button
-          key={image}
-          type="button"
-          aria-label={t('lightboxAlbumImage', { position: index + 1 })}
-          aria-current={image === current || undefined}
-          className="group/thumbnail relative w-10 shrink-0 cursor-pointer rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          style={cellShape}
-          onClick={() => onPick(image)}
-        >
-          <span
-            className={cn(
-              'block size-full overflow-hidden rounded-sm opacity-60 transition-opacity duration-150 ease-out group-hover/thumbnail:opacity-100',
-              image === current && 'opacity-100'
-            )}
-          >
-            <Thumbnail id={image} label="" />
-          </span>
-          {/* Beside the clipped picture, not in it, or it is cut off on its way between two. */}
-          {image === current && (
-            <m.span
-              layoutId="album-strip-current"
-              transition={settle}
-              className="pointer-events-none absolute inset-0 z-10 rounded-sm ring-2 ring-primary ring-inset"
-            />
-          )}
-        </button>
-      ))}
-    </m.div>
-  )
-}
-
-/** When and where the photo was taken, for an image that says. Most say nothing. */
-function ImageDetails({ id }: { id: string }) {
-  const { t, i18n } = useTranslation('planner')
-  const takenAt = usePlanner(({ images }) => images[id]?.takenAt)
-  const place = usePlanner(({ images }) => images[id]?.place)
-  const missing = usePlanner(({ images }) => images[id]?.missing)
-  if (!takenAt && !place && !missing) return null
-  const date = (iso: string) =>
-    new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(iso))
-  return (
-    <Pill className="gap-3">
-      {takenAt && (
-        <span className="flex items-center gap-1.5">
-          <Calendar aria-hidden className="size-3.5 text-muted-foreground" />
-          {t('takenOn', { date: date(takenAt) })}
-        </span>
-      )}
-      {place && (
-        <span className="flex items-center gap-1.5">
-          <MapPin aria-hidden className="size-3.5 text-muted-foreground" />
-          {t('takenIn', { place })}
-        </span>
-      )}
-      {missing && (
-        <span className="flex items-center gap-1.5">
-          <ImageOff aria-hidden className="size-3.5 text-muted-foreground" />
-          {t('missingOriginal')}
-        </span>
-      )}
-    </Pill>
-  )
-}
 
 export function Lightbox({ id }: { id: string }) {
   const { t } = useTranslation('planner')
@@ -161,25 +41,13 @@ export function Lightbox({ id }: { id: string }) {
   const next = images[stepIndex + 1]
   const album = board.albums?.[cell]
 
-  const [zoom, setZoom] = useState(MIN_ZOOM)
-  const zoomed = zoom > MIN_ZOOM
-  const x = useMotionValue(0)
-  const y = useMotionValue(0)
-  const scale = useMotionValue(MIN_ZOOM)
+  const { zoom, zoomed, canZoomIn, motion, reach, zoomIn, zoomOut, reset, wheel } = useZoom()
   const popup = useRef<HTMLDivElement>(null)
   const dragged = useRef(false)
 
-  useEffect(() => {
-    animate(scale, zoom, settle)
-    if (zoom === MIN_ZOOM) {
-      animate(x, 0, settle)
-      animate(y, 0, settle)
-    }
-  }, [scale, x, y, zoom])
-
   const step = (cell: string | undefined) => {
     if (!cell) return
-    setZoom(MIN_ZOOM)
+    reset()
     openLightbox(cell)
   }
 
@@ -199,11 +67,6 @@ export function Lightbox({ id }: { id: string }) {
     if (!dragged.current && 'outside' in (target as HTMLElement).dataset) close()
   }
 
-  const wheel = ({ deltaY }: WheelEvent) => {
-    setZoom((current) => clampZoom(current * (1 - deltaY * WHEEL_SPEED)))
-  }
-
-  // The wrapper fills the screen, so this is how far past each side it reaches once it is scaled.
   // A button disabled under focus takes the keyboard with it, and these keys are handled up here.
   useEffect(() => {
     const focused = document.activeElement
@@ -211,9 +74,6 @@ export function Lightbox({ id }: { id: string }) {
       popup.current?.focus()
     }
   }, [zoom, id])
-
-  const overhang = (zoom - MIN_ZOOM) / 2
-  const reach = { x: window.innerWidth * overhang, y: window.innerHeight * overhang }
 
   return (
     <Dialog {...dialog}>
@@ -249,15 +109,15 @@ export function Lightbox({ id }: { id: string }) {
                   variant="outline"
                   label={t('zoomOut')}
                   disabled={!zoomed}
-                  onClick={() => setZoom(clampZoom(zoom - ZOOM_STEP))}
+                  onClick={zoomOut}
                 >
                   <ZoomOut />
                 </IconButton>
                 <IconButton
                   variant="outline"
                   label={t('zoomIn')}
-                  disabled={zoom >= MAX_ZOOM}
-                  onClick={() => setZoom(clampZoom(zoom + ZOOM_STEP))}
+                  disabled={!canZoomIn}
+                  onClick={zoomIn}
                 >
                   <ZoomIn />
                 </IconButton>
@@ -287,7 +147,7 @@ export function Lightbox({ id }: { id: string }) {
               }}
               onDragStart={() => (dragged.current = true)}
               onDragEnd={swipe}
-              style={{ x, y, scale }}
+              style={motion}
               data-zoom={zoom}
             >
               <FullSizeImage
