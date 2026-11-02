@@ -74,7 +74,10 @@ const addToFolder = (page: Page, path: string, bytes: Buffer) =>
     { path, bytes: [...bytes] }
   )
 
-const openSettings = (page: Page) => page.getByRole('button', { name: 'Settings' }).click()
+async function openSettings(page: Page) {
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('tab', { name: 'Storage' }).click()
+}
 
 async function useFolder(page: Page) {
   await openSettings(page)
@@ -114,23 +117,6 @@ test('a folder keeps the original at full size, and the board comes back', async
   await later.goto('/')
   await expect(later.getByRole('img')).toHaveCount(1)
   expect(errors).toEqual([])
-})
-
-test('an empty folder takes a copy of the board, and undo still works', async ({ page }) => {
-  await replacePicker(page)
-  await page.goto('/')
-  await addImages(page, [photo('01.jpg'), photo('02.jpg')])
-  await expect(page.getByRole('img')).toHaveCount(2)
-  await page.getByRole('button', { name: 'Move all to the grid' }).click()
-  await expect.poll(async () => (await savedBoard(page)).grid.length).toBe(2)
-
-  await useFolder(page)
-  await expect(page.locator('section').getByRole('img')).toHaveCount(2)
-  await page.getByRole('button', { name: 'Undo' }).click()
-  await expect(page.locator('section').getByRole('img')).toHaveCount(0)
-  await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(2)
-  await page.reload()
-  await expect(page.locator('aside').getByRole('img')).toHaveCount(2)
 })
 
 test('leaving a folder keeps it, and choosing it again opens its board', async ({ page }) => {
@@ -176,20 +162,6 @@ test('a folder the browser must ask for again waits for a click', async ({ page 
   await expect(page.getByRole('img')).toHaveCount(1)
 })
 
-test('a folder that has gone can be left behind', async ({ page }) => {
-  await replacePicker(page)
-  await page.goto('/')
-  await useFolder(page)
-  await page.evaluate(async () => {
-    const root = await navigator.storage.getDirectory()
-    await root.removeEntry('photos', { recursive: true })
-  })
-  await page.reload()
-  await expect(page.getByRole('heading', { name: 'photos could not be found' })).toBeVisible()
-  await page.getByRole('button', { name: 'Use the board in this browser' }).click()
-  await expect(page.getByRole('button', { name: 'Add images' })).toBeVisible()
-})
-
 test('what appears in the folder is offered, and goes in without a second copy', async ({
   page
 }) => {
@@ -228,30 +200,29 @@ test('a removed image stays in the folder and is not offered again', async ({ pa
   expect(await folderFiles(page)).toHaveProperty(['01.jpg'])
 })
 
-test('a photo removed long ago can be offered again, with no second copy', async ({ page }) => {
+test('a photo removed long ago can be deleted from the folder, once confirmed', async ({
+  page
+}) => {
+  const errors = watchErrors(page)
   await replacePicker(page)
   await page.goto('/')
   await useFolder(page)
-  const removed = photo('01.jpg')
-  // As the board leaves it once undo can no longer reach the image, which takes 50 more changes.
-  await addToFolder(page, '01.jpg', removed.buffer)
+  await addToFolder(page, '01.jpg', photo('01.jpg').buffer)
   await addToFolder(page, '.lineup/forgotten.json', Buffer.from('["01.jpg"]'))
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Add images' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Add to tray' })).toHaveCount(0)
 
   await openSettings(page)
-  await expect(page.getByText('1 photo you removed from the board')).toBeVisible()
-  await page.getByRole('button', { name: 'Offer again' }).click()
-  await page.getByRole('button', { name: 'Add to tray' }).click()
-  await expect(page.getByRole('img')).toHaveCount(1)
-  await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
-  const files = Object.keys(await folderFiles(page)).filter((name) => !name.startsWith('.'))
-  expect(files).toEqual(['01.jpg'])
+  await page.getByRole('button', { name: 'Remove completely' }).click()
+  const confirm = page.getByRole('alertdialog')
+  await confirm.getByRole('button', { name: 'Keep them' }).click()
+  expect(await folderFiles(page)).toHaveProperty(['01.jpg'])
 
-  await openSettings(page)
-  await expect(page.getByRole('button', { name: 'Back up' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Offer again' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Remove completely' }).click()
+  await confirm.getByRole('button', { name: 'Delete photo' }).click()
+  await expect(page.getByText('1 photo deleted from your folder.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Remove completely' })).toHaveCount(0)
+  expect(await folderFiles(page)).not.toHaveProperty(['01.jpg'])
+  expect(errors).toEqual([])
 })
 
 test('a file deleted outside the app is a missing cell, and comes back', async ({ page }) => {

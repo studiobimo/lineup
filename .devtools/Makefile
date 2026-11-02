@@ -39,9 +39,7 @@ deploy-branch:
 	@branch=$$(git branch --show-current); [ "$$branch" = "$(DEPLOY_BRANCH_$(ENV))" ] || { \
 		echo "$(GLYPH_FAIL) $(ENV) ships from $(DEPLOY_BRANCH_$(ENV)), and this is $$branch" >&2; exit 1; }
 
-# GitHub's runners set CI, and have the browser's system libraries to install.
-e2e: build ## Playwright, against the built app
-	$(APP_PNPM) exec playwright install $(if $(CI),--with-deps) chromium
+e2e: build playwright-install ## Playwright, against the built app
 	$(APP_PNPM) exec playwright test
 
 first-load: build ## Fail if the script a first visit downloads passes the PRD's limit

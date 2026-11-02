@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { SettingsNote } from '@/features/help/settings-section'
+import { DialogNote } from '@/features/help/dialog-sections'
 
 import { answer, providerApi } from './api'
 import { saveConnection, useConnection } from './connection'
@@ -26,7 +26,7 @@ function ConnectAccount() {
   })
   return (
     <div className="flex flex-col gap-2">
-      <SettingsNote>{t('account.none')}</SettingsNote>
+      <DialogNote>{t('account.none')}</DialogNote>
       {connect.error && (
         <Alert variant="error">
           <AlertDescription>{problemText(connect.error)}</AlertDescription>
@@ -92,7 +92,7 @@ export function AccountChoice() {
           ))}
         </SelectPopup>
       </Select>
-      {chosen?.needsReconnection && <SettingsNote>{t('account.reconnect')}</SettingsNote>}
+      {chosen?.needsReconnection && <DialogNote>{t('account.reconnect')}</DialogNote>}
     </div>
   )
 }

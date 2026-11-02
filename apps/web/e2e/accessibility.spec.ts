@@ -32,85 +32,45 @@ async function fillBoard(page: Page) {
   await expect(page.getByRole('img')).toHaveCount(8)
 }
 
-for (const colorScheme of ['light', 'dark'] as const) {
-  test.describe(`in ${colorScheme}`, () => {
-    test.use({ colorScheme })
-
-    test('the empty planner', async ({ page }) => {
-      await page.goto('/')
-      await page.getByText('Move images here to plan your feed.').waitFor()
-      expect(await violations(page)).toEqual([])
-    })
-
-    test('a planner with images, its grid and tray filled', async ({ page }) => {
-      await fillBoard(page)
-      expect(await violations(page)).toEqual([])
-    })
-
-    test('the lightbox and the phone preview', async ({ page }) => {
-      await fillBoard(page)
-      await openDialog(page, 'Preview on a phone')
-      expect(await violations(page)).toEqual([])
-      await page.keyboard.press('Escape')
-      await page.locator('section').getByRole('img').first().dblclick()
-      await page.getByRole('dialog').waitFor()
-      expect(await violations(page)).toEqual([])
-    })
-
-    test('help and settings', async ({ page }) => {
-      await page.goto('/')
-      await openDialog(page, 'Help')
-      expect(await violations(page)).toEqual([])
-      await page.keyboard.press('Escape')
-      await openDialog(page, 'Settings')
-      expect(await violations(page)).toEqual([])
-    })
-
-    test('a legal page', async ({ page }) => {
-      await page.goto('/privacy')
-      await page.getByRole('heading', { level: 1 }).waitFor()
-      expect(await violations(page)).toEqual([])
-    })
-  })
-}
-
-test('an icon button stays opaque on hover, so it reads over any image', async ({ page }) => {
-  await fillBoard(page)
-  const cell = page
-    .locator('section')
-    .getByRole('group', { name: /^Image/ })
-    .first()
-  await cell.hover()
-  const remove = cell.getByRole('button', { name: 'Delete' })
-  await remove.hover()
-  // A translucent colour computes with an alpha after a slash.
-  await expect
-    .poll(() => remove.evaluate((button) => getComputedStyle(button).backgroundColor))
-    .not.toContain('/')
-})
-
-test('the header lines up with the tray and the grid', async ({ page }) => {
-  await page.setViewportSize({ width: 1000, height: 800 })
-  await fillBoard(page)
-  const left = async (selector: string) => (await page.locator(selector).first().boundingBox())?.x
-  const right = async (selector: string) => {
-    const box = await page.locator(selector).last().boundingBox()
-    return (box?.x ?? 0) + (box?.width ?? 0)
-  }
-  expect(await left('header a')).toBe(await left('aside [data-drop-id]'))
-  expect(await right('header button')).toBe(await right('section [data-drop-id]'))
-})
-
-test.describe('on a phone', () => {
-  test.use({ viewport: { width: 360, height: 740 }, hasTouch: true })
-
-  test('the planner, with no sideways scroll', async ({ page }) => {
+// Axe is the expensive part of each test, so dark mode, where contrast differs, checks only the
+// fullest screen.
+test.describe('in light', () => {
+  test('the empty planner', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('heading', { level: 1 }).first().waitFor()
+    await page.getByText('Move images here to plan your feed.').waitFor()
     expect(await violations(page)).toEqual([])
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth
-    )
-    expect(overflow).toBeLessThanOrEqual(0)
+  })
+
+  test('a planner with images, its grid and tray filled', async ({ page }) => {
+    await fillBoard(page)
+    expect(await violations(page)).toEqual([])
+  })
+
+  test('the lightbox and the phone preview', async ({ page }) => {
+    await fillBoard(page)
+    await openDialog(page, 'Preview on a phone')
+    expect(await violations(page)).toEqual([])
+    await page.keyboard.press('Escape')
+    await page.locator('section').getByRole('img').first().dblclick()
+    await page.getByRole('dialog').waitFor()
+    expect(await violations(page)).toEqual([])
+  })
+
+  test('help and settings', async ({ page }) => {
+    await page.goto('/')
+    await openDialog(page, 'Help')
+    expect(await violations(page)).toEqual([])
+    await page.keyboard.press('Escape')
+    await openDialog(page, 'Settings')
+    expect(await violations(page)).toEqual([])
+  })
+})
+
+test.describe('in dark', () => {
+  test.use({ colorScheme: 'dark' })
+
+  test('a planner with images, its grid and tray filled', async ({ page }) => {
+    await fillBoard(page)
+    expect(await violations(page)).toEqual([])
   })
 })

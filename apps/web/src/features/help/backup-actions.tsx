@@ -39,7 +39,7 @@ export function BackupActions({ onRestored }: { onRestored: () => void }) {
   }
 
   return (
-    <Group className="mt-3">
+    <Group>
       <Button variant="outline" onClick={() => void backUp()}>
         {t('backUp')}
       </Button>

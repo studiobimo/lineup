@@ -99,6 +99,9 @@ export async function offerRemovedFiles() {
   await offerNewFiles()
 }
 
+/** Deletes from the person's disk the photos they removed from the board, once they have said so. */
+export const deleteRemovedFiles = async () => (await openFolder?.deleteForgotten()) ?? 0
+
 /** Only from a click: the browser will not ask otherwise. */
 export async function askForFolder() {
   const handle = await readHandle()

@@ -16,7 +16,12 @@
     "light": "Light",
     "dark": "Dark"
   },
-  "photos": "Photos",
+  "tabs": {
+    "general": "General",
+    "photos": "Photos",
+    "storage": "Storage",
+    "integrations": "Integrations"
+  },
   "captureDates": "Read capture dates",
   "locations": "Read locations",
   "photosNote": "As you add a photo, Bands can use when it was taken and the city it was taken in to keep a shoot together. Lineup keeps the city, never the exact position, and neither leaves this browser. Photos already on the board are not read again. Turning a switch off does not remove what was already read.",
@@ -33,8 +38,8 @@
   "folderChoose": "Keep in a folder",
   "folderChoosing": "Copying your board",
   "folderNote": "Keeps your board and your full-size originals in a folder you choose, so a cleared browser cannot touch them. An empty folder takes a copy of this board. A folder that has a board opens it.",
-  "folderInUse": "Your board is in {{name}}.",
-  "folderInUseNote": "Your originals are there at full size. Lineup adds to that folder but never changes or deletes your photos.",
+  "folderInUse": "Your board is in <name>{{name}}</name>.",
+  "folderInUseNote": "Your originals are there at full size. Lineup adds to that folder and never changes your photos. It deletes one only if you ask it to.",
   "folderLeave": "Stop using this folder",
   "folderFailed": "That folder could not be used. Try again, or choose another one.",
   "folderFull": "That drive is out of room. Free up some space, or choose another folder.",
@@ -88,6 +93,32 @@
       "enter": "Enter",
       "arrows": "Arrow keys",
       "escape": "Esc"
-    }
-  }
+    },
+    "tabs": {
+      "shortcuts": "Shortcuts",
+      "guide": "Getting started",
+      "legal": "Legal"
+    },
+    "groups": {
+      "history": "History",
+      "board": "Board",
+      "moving": "Moving images"
+    },
+    "guideTitle": "How it works",
+    "legalTitle": "Your data and the rules"
+  },
+  "appearance": "Appearance",
+  "backupTitle": "Backup",
+  "folderTitle": "Folder",
+  "removedTitle": "Removed photos",
+  "deleteRemoved": "Remove completely",
+  "deleteRemovedTitle_one": "Delete this photo from your folder?",
+  "deleteRemovedTitle_other": "Delete these {{count}} photos from your folder?",
+  "deleteRemovedNote_one": "It is deleted from {{name}} on your device, not moved to the bin. This cannot be undone.",
+  "deleteRemovedNote_other": "They are deleted from {{name}} on your device, not moved to the bin. This cannot be undone.",
+  "deleteRemovedKeep": "Keep them",
+  "deleteRemovedConfirm_one": "Delete photo",
+  "deleteRemovedConfirm_other": "Delete {{count}} photos",
+  "removedDone_one": "1 photo deleted from your folder.",
+  "removedDone_other": "{{count}} photos deleted from your folder."
 }
