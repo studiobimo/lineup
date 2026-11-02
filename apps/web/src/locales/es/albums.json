@@ -1,0 +1,8 @@
+{
+  "image": "Imagen {{position}} del álbum",
+  "cover": "Portada",
+  "help": "Arrastra para reordenar. La primera imagen es la portada. Para añadir una imagen, mantenla sobre este álbum en el tablero.",
+  "locked": "Este álbum está bloqueado. Desbloquéalo para cambiarlo.",
+  "dragInstructions": "Pulsa Espacio para recoger una imagen, muévela con las teclas de flecha y pulsa Espacio para soltarla.",
+  "takeOut": "Sacar del álbum"
+}

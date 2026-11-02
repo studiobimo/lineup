@@ -14,6 +14,8 @@
     "light": "Switch to light theme",
     "dark": "Switch to dark theme"
   },
+  "close": "Close",
+  "loading": "Loading",
   "specimen": {
     "h2": "Arrange it before it goes live",
     "h3": "Sort by colour in one action",
