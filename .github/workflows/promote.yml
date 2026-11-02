@@ -4,6 +4,14 @@ name: Promote
 #                      opens chore(release): vX.Y.Z from release/vX.Y.Z into main
 #   merge that pull request, with a merge commit -> release.yml tags it and cuts the Release
 #
+# The release pull request comes from a short-lived release/v<version> branch, because
+# "Automatically delete head branches" would delete develop if it were the head. Every push to
+# develop keeps one such pull request current: an open release branch is fast-forwarded to
+# develop, the reusable opens a pull request when the version changes, and a pull request for a
+# superseded version is closed. Without that, a pull request stays at the commit it was opened
+# at and ships only what was on develop then. A person reviews it and merges it with a merge
+# commit; the deploy to production is still run by hand (ADR-0019).
+#
 # Without the release app the pull request is made with GITHUB_TOKEN, which triggers no
 # workflow, so its required checks never run. RELEASE_APP_CLIENT_ID is a repository variable
 # and RELEASE_APP_PRIVATE_KEY a repository secret: a private repository on the Free plan gets
@@ -12,6 +20,7 @@ name: Promote
 on:
   push:
     branches: [develop]
+  workflow_dispatch:
 
 permissions: {}
 
@@ -20,12 +29,78 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  fast-forward-open-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Move open release branches to the develop tip
+        run: |
+          set -euo pipefail
+          develop_sha=$(gh api "repos/${REPO}/git/ref/heads/develop" --jq .object.sha)
+          gh pr list --repo "$REPO" --base main --state open --json headRefName \
+            --jq '.[].headRefName | select(startswith("release/v"))' |
+            while read -r release_branch; do
+              if gh api --method PATCH "repos/${REPO}/git/refs/heads/${release_branch}" \
+                -f "sha=${develop_sha}" -F force=false --silent; then
+                echo "Fast-forwarded ${release_branch} to ${develop_sha}" >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "::warning::${release_branch} has commits develop lacks; left as is."
+              fi
+            done
+
   promote:
+    needs: fast-forward-open-release
     permissions:
       contents: write
       pull-requests: write
     uses: studiobimo/.github/.github/workflows/promote-release.yml@v1
     with:
+      source-branch: develop
+      target-branch: main
       app-client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
     secrets:
       app-private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+  close-superseded-releases:
+    needs: promote
+    if: needs.promote.outputs.branch != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      CURRENT_RELEASE_BRANCH: ${{ needs.promote.outputs.branch }}
+      CURRENT_RELEASE_PR: ${{ needs.promote.outputs.pr-url }}
+      RELEASE_ASSIGNEE: davidmoralesz
+      RELEASE_LABEL: release
+    steps:
+      - name: Assign and label the current release PR
+        if: env.CURRENT_RELEASE_PR != ''
+        run: |
+          set -euo pipefail
+          gh label create "$RELEASE_LABEL" --repo "$REPO" --color 0E8A16 \
+            --description "Production release promotion" --force
+          gh pr edit "$CURRENT_RELEASE_PR" --repo "$REPO" \
+            --add-assignee "$RELEASE_ASSIGNEE" --add-label "$RELEASE_LABEL"
+
+      - name: Close release PRs for an outdated version
+        run: |
+          set -euo pipefail
+          gh pr list --repo "$REPO" --base main --state open --json number,headRefName \
+            --jq '.[] | select(.headRefName | startswith("release/v")) | "\(.number) \(.headRefName)"' |
+            while read -r pr_number release_branch; do
+              [ "$release_branch" = "$CURRENT_RELEASE_BRANCH" ] && continue
+              gh pr close "$pr_number" --repo "$REPO" --delete-branch \
+                --comment "Superseded by ${CURRENT_RELEASE_PR}."
+              echo "Closed #${pr_number} (${release_branch})" >> "$GITHUB_STEP_SUMMARY"
+            done
