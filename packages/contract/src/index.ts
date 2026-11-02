@@ -1,2 +1,1 @@
-// The Zod schemas both sides share. The first arrive with the first route, in M4.
-export {}
+export { type Problem, type ProblemCode, problemCodes, problemSchema } from './problem'

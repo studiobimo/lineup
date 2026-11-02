@@ -17,6 +17,6 @@ describe('worker', () => {
   it('answers an unknown /api path with a JSON 404', async () => {
     const response = await app.request('/api/nothing-here', {}, platform.env)
     expect(response.status).toBe(404)
-    expect(await response.json()).toEqual({ error: 'Not found' })
+    expect(await response.json()).toMatchObject({ code: 'not_found', status: 404 })
   })
 })
