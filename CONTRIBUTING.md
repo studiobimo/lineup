@@ -131,9 +131,12 @@ of the release notes. It is the one merge commit `main` allows ([ADR-0019](docs/
 
 ## Releases
 
-[release-please](https://github.com/googleapis/release-please) maintains a release PR from the
-Conventional Commits on `main`. Merging it tags a SemVer release and cuts the GitHub Release.
-Never edit a version by hand. Until 1.0.0, breaking changes bump the minor version.
+[semantic-release](https://github.com/semantic-release/semantic-release) runs on every push to
+`main`, through `studiobimo/.github`'s `semantic-release.yml`. It reads the Conventional Commits
+since the last tag and, if one is a `feat`, a `fix` or breaking, tags a SemVer release and cuts the
+GitHub Release, with its notes on the Release. There is no release pull request, version file or
+changelog, so nothing is edited by hand: never create a tag or a version yourself
+([ADR-0020](docs/adr/0020-semantic-release.md)).
 
 ## Repository settings (maintainers)
 
