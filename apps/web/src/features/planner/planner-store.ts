@@ -36,6 +36,13 @@ import type { ProcessedImage } from './process-image'
 
 const HISTORY_LIMIT = 50
 
+export interface ImageImport {
+  /** Stores a batch. The images reach the board only at `finish`, so the import is one undo step. */
+  add(images: ProcessedImage[]): Promise<void>
+  /** Puts everything that was stored in the tray, and throws the first error that stopped any. */
+  finish(): void
+}
+
 export interface PlannerState {
   board: Board
   images: Record<string, ImageRecord>
@@ -54,6 +61,8 @@ export interface PlannerState {
   retrySave(): void
   suspend(): void
   addImages(images: ProcessedImage[]): Promise<void>
+  /** For an import too large to hold at once: store batches as they come, then `finish` once. */
+  beginImport(): ImageImport
   move(id: string, to: Container, index?: number): void
   swap(first: string, second: string): void
   moveAll(from: Container): void
@@ -90,6 +99,8 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
     // A later load, or another tab taking over, makes what an earlier load read out of date.
     let latestLoad = 0
     let savesUnderWay = 0
+    // Stored by an import that has not finished, so on no board yet, but not to be purged.
+    const staged = new Set<string>()
 
     const report = (write: Promise<unknown>) => write.catch(() => set({ saveFailed: true }))
 
@@ -97,10 +108,11 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
     const purge = () => {
       const { board, past, future, images } = get()
       const reachable = placedIn([board, ...past, ...future])
-      const gone = Object.keys(images).filter((id) => !reachable.has(id))
+      const gone = Object.keys(images).filter((id) => !reachable.has(id) && !staged.has(id))
       if (gone.length === 0) return
+      const removed = new Set(gone)
       set({
-        images: Object.fromEntries(Object.entries(images).filter(([id]) => reachable.has(id)))
+        images: Object.fromEntries(Object.entries(images).filter(([id]) => !removed.has(id)))
       })
       void report(boardStore.deleteImages(gone))
     }
@@ -213,26 +225,52 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
         set({ session: 'elsewhere' })
       },
 
+      beginImport() {
+        const stored: string[] = []
+        let failure: { reason: unknown } | undefined
+
+        return {
+          async add(added) {
+            if (!(await get().opened())) throw new Error('This board is not open here')
+            const createdAt = new Date().toISOString()
+            const batch = added.map((image) => ({ ...image, id: crypto.randomUUID(), createdAt }))
+            for (const { id } of batch) staged.add(id)
+            const puts = await Promise.allSettled(batch.map((image) => boardStore.putImage(image)))
+            const records = batch
+              .filter((_, index) => puts[index].status === 'fulfilled')
+              .map(toRecord)
+            batch.forEach(({ id }, index) => {
+              if (puts[index].status === 'rejected') staged.delete(id)
+            })
+            set(({ images }) => ({
+              images: { ...images, ...Object.fromEntries(records.map((r) => [r.id, r])) }
+            }))
+            stored.push(...records.map(({ id }) => id))
+            const rejected = puts.find(
+              (put): put is PromiseRejectedResult => put.status === 'rejected'
+            )
+            if (!rejected) return
+            failure ??= { reason: rejected.reason }
+            // Stops the import here, since a full disk will fail the rest the same way.
+            throw rejected.reason
+          },
+
+          finish() {
+            for (const id of stored) staged.delete(id)
+            commit(addToTray(get().board, stored))
+            // After the board, so that the images that made it are kept whatever stopped the rest.
+            if (failure) throw failure.reason
+          }
+        }
+      },
+
       async addImages(added) {
-        if (!(await get().opened())) throw new Error('This board is not open here')
-        const createdAt = new Date().toISOString()
-        const stored = added.map((image) => ({ ...image, id: crypto.randomUUID(), createdAt }))
-        const puts = await Promise.allSettled(stored.map((image) => boardStore.putImage(image)))
-        const records = stored
-          .filter((_, index) => puts[index].status === 'fulfilled')
-          .map(toRecord)
-        set(({ images }) => ({
-          images: { ...images, ...Object.fromEntries(records.map((r) => [r.id, r])) }
-        }))
-        commit(
-          addToTray(
-            get().board,
-            records.map(({ id }) => id)
-          )
-        )
-        // After the board, so that the images that made it are kept whatever stopped the rest.
-        const failed = puts.find(({ status }) => status === 'rejected')
-        if (failed) throw (failed as PromiseRejectedResult).reason
+        const adding = get().beginImport()
+        try {
+          await adding.add(added)
+        } finally {
+          adding.finish()
+        }
       },
 
       move: (id, to, index) => commit(move(get().board, id, to, index)),

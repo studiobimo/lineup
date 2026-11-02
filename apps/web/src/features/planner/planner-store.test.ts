@@ -281,6 +281,64 @@ describe('the planner store', () => {
     expect(boardStore.putImage).toHaveBeenCalledOnce()
   })
 
+  describe('an import in batches', () => {
+    it('is one undo step however many batches there are, and redo brings it all back', async () => {
+      const { state } = await loaded()
+      const importing = state().beginImport()
+      await importing.add([processed, processed])
+      await importing.add([processed])
+      // Not on the board until it is finished, so nothing half-imported can be undone to.
+      expect(state().board).toEqual(start)
+      importing.finish()
+
+      expect(state().board.tray).toHaveLength(start.tray.length + 3)
+      expect(state().past).toHaveLength(1)
+      const imported = state().board
+      state().undo()
+      expect(state().board).toEqual(start)
+      state().redo()
+      expect(state().board).toEqual(imported)
+    })
+
+    it('is not purged by a change to the board while it is under way', async () => {
+      const { boardStore, state } = await loaded()
+      const importing = state().beginImport()
+      await importing.add([processed])
+      const [staged] = Object.keys(state().images).filter(
+        (id) => ![...start.tray, ...start.grid].includes(id)
+      )
+
+      state().move('a', 'grid')
+      state().remove(['b'])
+      expect(boardStore.deleteImages).not.toHaveBeenCalledWith(expect.arrayContaining([staged]))
+      expect(state().images[staged]).toBeDefined()
+
+      importing.finish()
+      expect(state().board.tray).toContain(staged)
+    })
+
+    it('stops at a batch that cannot be stored, keeps the earlier ones, and says why', async () => {
+      const { boardStore, state } = await loaded()
+      const importing = state().beginImport()
+      await importing.add([processed])
+      boardStore.putImage.mockRejectedValueOnce(new Error('the disk is full'))
+      await expect(importing.add([processed, processed])).rejects.toThrow('the disk is full')
+
+      expect(() => importing.finish()).toThrow('the disk is full')
+      // The first batch and the image of the second that was stored.
+      expect(state().board.tray).toHaveLength(start.tray.length + 2)
+    })
+
+    it('adds nothing, and leaves no stray image, if it is never finished with a board', async () => {
+      const { state } = await loaded()
+      const importing = state().beginImport()
+      await importing.add([processed])
+      state().suspend()
+      expect(() => importing.finish()).not.toThrow()
+      expect(state().board).toEqual(start)
+    })
+  })
+
   it('keeps a deleted image until no step can bring it back', async () => {
     const { boardStore, state } = await loaded({ tray: ['a', 'b'], grid: [] })
     state().remove(['a'])
