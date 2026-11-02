@@ -114,6 +114,7 @@ make -C .devtools setup   # once: pinned tools + git hooks
 make -C .devtools check   # everything CI runs
 make -C .devtools e2e     # Playwright, against the built app
 make -C .devtools worker-budget  # fail if the Worker outgrows its gzip budget
+make -C .devtools memory-budget  # fail if a 300-image board passes the PRD's memory limit (Linux)
 make -C .devtools openapi # regenerate the API reference from the routes
 make -C .devtools lint    # the pre-commit hook, on every file
 make -C .devtools lock    # after changing a pinned version
@@ -161,9 +162,10 @@ pnpm cf:rotate-secret:production   # the same; on a new Worker, this sets V1
   assets, not Worker responses. A feature adds what it needs and no more, and assets are never
   inlined, because the policy allows no `data:` URIs. The Playwright smoke test fails on a violation.
 - **Images stay out of memory.** Cells show thumbnails, off-screen cells hold no decoded image,
-  and image bytes never enter application state. A cell draws an `ImageBitmap` to a canvas and
-  frees it, because Chromium keeps what an `<img>` loaded from a `blob:` URL even after both are
-  gone. All persistence goes through `BoardStore` (ADR-0002).
+  and image bytes never enter application state. A cell draws an `ImageBitmap` to a canvas, at
+  the size the cell is shown, and frees it, because Chromium keeps what an `<img>` loaded from a
+  `blob:` URL even after both are gone. `make -C .devtools memory-budget` holds a 300-image board
+  to the PRD's limit. All persistence goes through `BoardStore` (ADR-0002).
 - **Network numbers live in one profile.** Columns, cell ratio and carousel limit are never
   repeated outside the network profile, and provider code outside the Zernio implementation uses
   neutral names, so a second network stays cheap.
