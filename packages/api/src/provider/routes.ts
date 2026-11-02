@@ -1,17 +1,25 @@
 import { Hono } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { createMiddleware } from 'hono/factory'
-import { validator } from 'hono/validator'
+import { validator } from 'hono-openapi'
 import {
+  accountSchema,
+  connectUrlSchema,
   keyInputSchema,
+  keyStatusSchema,
+  listOf,
   newPostSchema,
   postChangesSchema,
   type Problem,
-  uploadRequestSchema
+  publishedPostSchema,
+  scheduledPostSchema,
+  uploadRequestSchema,
+  uploadSchema
 } from 'lineup-contract'
-import type { z } from 'zod'
+import { z } from 'zod'
 
 import { type ApiEnv, ProblemError } from '../problem'
+import { documented } from '../route-docs'
 import type { Provider, ProviderFor } from './provider'
 import { seal, type SealedKey, type SecretEnv, unseal } from './sealed-key'
 
@@ -42,13 +50,19 @@ interface ProviderEnv extends ApiEnv {
 const invalid = (errors: Problem['errors']) =>
   new ProblemError({ status: 400, code: 'validation', title: 'The request is not valid', errors })
 
-const json = <Schema extends z.ZodType>(schema: Schema) =>
-  validator('json', (value): z.output<Schema> => {
-    const parsed = schema.safeParse(value)
-    if (parsed.success) return parsed.data
-    throw invalid(
-      parsed.error.issues.map(({ path, message }) => ({ path: path.join('.'), message }))
-    )
+type Segment = PropertyKey | { key: PropertyKey }
+
+const pathOf = (path: readonly Segment[] = []) =>
+  path.map((part) => String(typeof part === 'object' ? part.key : part)).join('.')
+
+/** Its schema goes in the reference too, and what it refuses stays a problem document. */
+const valid = <Target extends 'json' | 'query', Schema extends z.ZodType>(
+  target: Target,
+  schema: Schema
+) =>
+  validator(target, schema, (result) => {
+    if (result.success) return
+    throw invalid(result.error.map(({ path, message }) => ({ path: pathOf(path), message })))
   })
 
 function notInThePast(scheduledFor: string) {
@@ -88,92 +102,188 @@ export function providerRoutes(providerFor: ProviderFor) {
 
   return new Hono<ProviderEnv>()
     .use(sameOrigin)
-    .put('/key', json(keyInputSchema), async (c) => {
-      const { key, profileId } = c.req.valid('json')
-      // By address, so that this route cannot be used to try stolen keys in bulk.
-      const caller = c.req.header('cf-connecting-ip') ?? 'unknown'
-      if (!(await c.env.KEY_RATE_LIMIT.limit({ key: caller })).success) {
-        throw new ProblemError({
-          status: 429,
-          code: 'rate_limited',
-          title: 'Too many tries. Wait a minute',
-          retryAfter: LIMIT_PERIOD_SECONDS
-        })
-      }
+    .put(
+      '/key',
+      documented({
+        description: 'Check a key with the provider, narrow it and seal it in a cookie',
+        answer: keyStatusSchema,
+        refuses: [400, 401, 403, 409, 429, 502],
+        needsKey: false
+      }),
+      valid('json', keyInputSchema),
+      async (c) => {
+        const { key, profileId } = c.req.valid('json')
+        // By address, so that this route cannot be used to try stolen keys in bulk.
+        const caller = c.req.header('cf-connecting-ip') ?? 'unknown'
+        if (!(await c.env.KEY_RATE_LIMIT.limit({ key: caller })).success) {
+          throw new ProblemError({
+            status: 429,
+            code: 'rate_limited',
+            title: 'Too many tries. Wait a minute',
+            retryAfter: LIMIT_PERIOD_SECONDS
+          })
+        }
 
-      const provider = providerFor(key)
-      const profiles = await provider.profiles()
-      const profile = profileId
-        ? profiles.find(({ id }) => id === profileId)
-        : profiles.length === 1
-          ? profiles[0]
-          : undefined
-      if (!profile) {
-        throw new ProblemError({
-          status: 409,
-          code: 'profile_required',
-          title: 'Choose a profile for this key',
-          profiles
-        })
-      }
+        const provider = providerFor(key)
+        const profiles = await provider.profiles()
+        const profile = profileId
+          ? profiles.find(({ id }) => id === profileId)
+          : profiles.length === 1
+            ? profiles[0]
+            : undefined
+        if (!profile) {
+          throw new ProblemError({
+            status: 409,
+            code: 'profile_required',
+            title: 'Choose a profile for this key',
+            profiles
+          })
+        }
 
-      const narrowed = await provider.narrowed(profile.id, KEY_DAYS)
-      const maxAge = KEY_DAYS * DAY_SECONDS
-      const expiresAt = new Date(Date.now() + maxAge * 1000).toISOString()
-      const last4 = key.slice(-4)
-      const sealed = { key: narrowed ?? key, last4, expiresAt, profileId: profile.id }
-      setCookie(c, COOKIE, await seal(sealed, c.env), { ...cookieOptions, maxAge })
-      return c.json({ last4, expiresAt })
-    })
-    .get('/key', async (c) => {
-      const sealed = await sealedKey(getCookie(c, COOKIE, 'host'), c.env)
-      if (!sealed) {
-        throw new ProblemError({ status: 404, code: 'not_found', title: 'There is no key here' })
+        const narrowed = await provider.narrowed(profile.id, KEY_DAYS)
+        const maxAge = KEY_DAYS * DAY_SECONDS
+        const expiresAt = new Date(Date.now() + maxAge * 1000).toISOString()
+        const last4 = key.slice(-4)
+        const sealed = { key: narrowed ?? key, last4, expiresAt, profileId: profile.id }
+        setCookie(c, COOKIE, await seal(sealed, c.env), { ...cookieOptions, maxAge })
+        return c.json({ last4, expiresAt })
       }
-      return c.json({ last4: sealed.last4, expiresAt: sealed.expiresAt })
-    })
-    .delete('/key', (c) => {
-      deleteCookie(c, COOKIE, cookieOptions)
-      return c.body(null, 204)
-    })
-    .get('/accounts', withKey, async (c) =>
-      c.json({ items: await c.var.provider.accounts(c.var.sealed.profileId) })
     )
-    .get('/connect-url', withKey, async (c) => {
-      const returnTo = `${new URL(c.req.url).origin}/`
-      return c.json({ url: await c.var.provider.connectUrl(c.var.sealed.profileId, returnTo) })
-    })
-    .get('/accounts/:id/posts', withKey, async (c) =>
-      c.json({ items: await c.var.provider.publishedPosts(c.req.param('id')) })
-    )
-    .post('/uploads', withKey, json(uploadRequestSchema), async (c) =>
-      c.json(await c.var.provider.upload(c.req.valid('json')), 201)
-    )
-    .get('/scheduled-posts', withKey, async (c) => {
-      const accountId = c.req.query('accountId')
-      if (!accountId) throw invalid([{ path: 'accountId', message: 'Required' }])
-      return c.json({ items: await c.var.provider.scheduledPosts(accountId) })
-    })
-    .post('/scheduled-posts', withKey, json(newPostSchema), async (c) => {
-      const idempotencyKey = c.req.header('Idempotency-Key')
-      if (!idempotencyKey) {
-        throw new ProblemError({
-          status: 400,
-          code: 'idempotency_required',
-          title: 'A schedule request needs an Idempotency-Key'
-        })
+    .get(
+      '/key',
+      documented({
+        description: 'What may be shown of the key: its last four characters and its expiry',
+        answer: keyStatusSchema,
+        refuses: [404],
+        needsKey: false
+      }),
+      async (c) => {
+        const sealed = await sealedKey(getCookie(c, COOKIE, 'host'), c.env)
+        if (!sealed) {
+          throw new ProblemError({ status: 404, code: 'not_found', title: 'There is no key here' })
+        }
+        return c.json({ last4: sealed.last4, expiresAt: sealed.expiresAt })
       }
-      const post = c.req.valid('json')
-      notInThePast(post.scheduledFor)
-      return c.json(await c.var.provider.schedule(post, idempotencyKey), 201)
-    })
-    .patch('/scheduled-posts/:id', withKey, json(postChangesSchema), async (c) => {
-      const changes = c.req.valid('json')
-      notInThePast(changes.scheduledFor)
-      return c.json(await c.var.provider.update(c.req.param('id'), changes))
-    })
-    .delete('/scheduled-posts/:id', withKey, async (c) => {
-      await c.var.provider.cancel(c.req.param('id'))
-      return c.body(null, 204)
-    })
+    )
+    .delete(
+      '/key',
+      documented({
+        description: 'Forget the key in this browser. It stays valid at the provider',
+        status: 204,
+        needsKey: false
+      }),
+      (c) => {
+        deleteCookie(c, COOKIE, cookieOptions)
+        return c.body(null, 204)
+      }
+    )
+    .get(
+      '/accounts',
+      documented({
+        description: 'The Instagram accounts this key can reach',
+        answer: listOf(accountSchema)
+      }),
+      withKey,
+      async (c) => c.json({ items: await c.var.provider.accounts(c.var.sealed.profileId) })
+    )
+    .get(
+      '/connect-url',
+      documented({
+        description: 'Where to connect an account, for a key with none',
+        answer: connectUrlSchema
+      }),
+      withKey,
+      async (c) => {
+        const returnTo = `${new URL(c.req.url).origin}/`
+        return c.json({ url: await c.var.provider.connectUrl(c.var.sealed.profileId, returnTo) })
+      }
+    )
+    .get(
+      '/accounts/:id/posts',
+      documented({
+        description: 'What is already live, newest first',
+        answer: listOf(publishedPostSchema),
+        refuses: [404]
+      }),
+      withKey,
+      async (c) => c.json({ items: await c.var.provider.publishedPosts(c.req.param('id')) })
+    )
+    .post(
+      '/uploads',
+      documented({
+        description: 'An upload URL. The browser sends the image straight to it',
+        status: 201,
+        answer: uploadSchema,
+        refuses: [400]
+      }),
+      valid('json', uploadRequestSchema),
+      withKey,
+      async (c) => c.json(await c.var.provider.upload(c.req.valid('json')), 201)
+    )
+    .get(
+      '/scheduled-posts',
+      documented({
+        description: 'Posts made through Lineup, with their status',
+        answer: listOf(scheduledPostSchema),
+        refuses: [400]
+      }),
+      valid('query', z.object({ accountId: z.string().min(1) })),
+      withKey,
+      async (c) => {
+        const { accountId } = c.req.valid('query')
+        return c.json({ items: await c.var.provider.scheduledPosts(accountId) })
+      }
+    )
+    .post(
+      '/scheduled-posts',
+      documented({
+        description: 'Schedule. Needs `Idempotency-Key`, and refuses a time in the past',
+        status: 201,
+        answer: scheduledPostSchema,
+        refuses: [400, 409, 422]
+      }),
+      valid('json', newPostSchema),
+      withKey,
+      async (c) => {
+        const idempotencyKey = c.req.header('Idempotency-Key')
+        if (!idempotencyKey) {
+          throw new ProblemError({
+            status: 400,
+            code: 'idempotency_required',
+            title: 'A schedule request needs an Idempotency-Key'
+          })
+        }
+        const post = c.req.valid('json')
+        notInThePast(post.scheduledFor)
+        return c.json(await c.var.provider.schedule(post, idempotencyKey), 201)
+      }
+    )
+    .patch(
+      '/scheduled-posts/:id',
+      documented({
+        description: 'Change the time or the caption until it is published',
+        answer: scheduledPostSchema,
+        refuses: [400, 404, 409, 422]
+      }),
+      valid('json', postChangesSchema),
+      withKey,
+      async (c) => {
+        const changes = c.req.valid('json')
+        notInThePast(changes.scheduledFor)
+        return c.json(await c.var.provider.update(c.req.param('id'), changes))
+      }
+    )
+    .delete(
+      '/scheduled-posts/:id',
+      documented({
+        description: 'Cancel. Refused once it is published',
+        status: 204,
+        refuses: [404, 409, 422]
+      }),
+      withKey,
+      async (c) => {
+        await c.var.provider.cancel(c.req.param('id'))
+        return c.body(null, 204)
+      }
+    )
 }

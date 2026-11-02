@@ -114,6 +114,7 @@ make -C .devtools setup   # once: pinned tools + git hooks
 make -C .devtools check   # everything CI runs
 make -C .devtools e2e     # Playwright, against the built app
 make -C .devtools worker-budget  # fail if the Worker outgrows its gzip budget
+make -C .devtools openapi # regenerate the API reference from the routes
 make -C .devtools lint    # the pre-commit hook, on every file
 make -C .devtools lock    # after changing a pinned version
 make -C .devtools drift   # where this repo differs from the template
@@ -144,7 +145,8 @@ pnpm cf:deploy:production  # lineup.bimo.dev
   validate and by the web app to build forms and to type the client. Do not re-declare a
   response type by hand.
 - **Every endpoint is under `/api/v1`** and follows `docs/API.md`. Only `/api/health` is unversioned.
-  The OpenAPI document is generated from the routes; never edit it by hand.
+  The OpenAPI document is generated from the routes; never edit it by hand. A route describes
+  itself with `documented`, and `make -C .devtools openapi` writes the change.
 - **Routes are file-based.** Add a file under `apps/web/src/routes/`; never write code-based
   routes, and never edit `routeTree.gen.ts`.
 - **The Worker is on a budget.** `packages/api` takes no dependency that needs Node polyfills, a

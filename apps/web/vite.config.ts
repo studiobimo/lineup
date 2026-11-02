@@ -1,5 +1,7 @@
+import { rm } from 'node:fs/promises'
+
 import { visualizer } from 'rollup-plugin-visualizer'
-import { defineConfig, mergeConfig } from 'vite'
+import { defineConfig, mergeConfig, type Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 import { app } from '../../.devtools/vite/vite.ts'
@@ -16,6 +18,17 @@ const vendors = {
   tanstack: /[\\/]node_modules[\\/]@tanstack[\\/](?!react-form|form-core|react-query|query-core)/
 }
 
+/** The reference runs a third party's script, which must not run beside the key (docs/API.md). */
+const noReferenceInProduction = (): Plugin => ({
+  name: 'no-reference-in-production',
+  apply: 'build',
+  async closeBundle() {
+    if (process.env.CLOUDFLARE_ENV !== 'production') return
+    await rm('dist/client/api-docs/index.html', { force: true })
+    await rm('dist/client/api-docs/start.js', { force: true })
+  }
+})
+
 // The hosting profile's plugin, if there is one, comes in through app().
 export default defineConfig(
   // public/_headers allows no data: URIs, so a small font or image has to stay a file.
@@ -23,6 +36,7 @@ export default defineConfig(
     build: { assetsInlineLimit: 0 },
     plugins: [
       ...report,
+      noReferenceInProduction(),
       VitePWA({
         injectRegister: 'script',
         registerType: 'autoUpdate',
@@ -50,8 +64,9 @@ export default defineConfig(
           clientsClaim: true,
           skipWaiting: true,
           globPatterns: ['**/*.{js,css,html,woff2,png,svg}'],
+          globIgnores: ['api-docs/**'],
           navigateFallback: 'index.html',
-          navigateFallbackDenylist: [/^\/api\//]
+          navigateFallbackDenylist: [/^\/api\//, /^\/api-docs\//]
         }
       })
     ],

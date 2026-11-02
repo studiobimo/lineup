@@ -7,6 +7,7 @@ import { type ApiEnv, problem, ProblemError } from './problem'
 import { ProviderError, type ProviderFailure, type ProviderFor } from './provider/provider'
 import { providerRoutes } from './provider/routes'
 import { zernio } from './provider/zernio'
+import { documented } from './route-docs'
 
 // JSON loads nothing, so this asks for less than the app's own policy in public/_headers.
 const contentSecurityPolicy = { defaultSrc: ["'none'"], frameAncestors: ["'none'"] }
@@ -45,7 +46,9 @@ export function createApi(providerFor: ProviderFor = zernio) {
   })
   api.use(secureHeaders({ contentSecurityPolicy }))
 
-  api.get('/health', (c) => c.json({ ok: true }))
+  api.get('/health', documented({ description: 'Whether the API is up', needsKey: false }), (c) =>
+    c.json({ ok: true })
+  )
 
   api.notFound((c) =>
     problem(c, { status: 404, code: 'not_found', title: 'There is nothing at this path' })

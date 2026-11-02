@@ -155,13 +155,14 @@ The API reference is generated, so it cannot disagree with the code. Nobody writ
   `packages/contract`. [`@hono/zod-openapi`](https://hono.dev/examples/zod-openapi) was the
   alternative, but its schemas must import `z` from that package, which would pull it into the
   contract and so into the browser.
-- A build step calls `generateSpecs` and writes an OpenAPI 3.1 document to
-  `packages/api/openapi.json`, which is committed. The generator stays out of the Worker bundle, and
-  every API change shows up as a diff in its pull request.
-- `make -C .devtools check` fails if the document is stale, or if a route has no description.
-- CI compares the document with `main`, and a breaking change under `v1` fails. That is how "a
-  version is a promise" is enforced.
-- The document is published as a static file at `/api-docs/openapi.json`.
+- A test calls `generateSpecs` and compares the result with `apps/web/public/api-docs/openapi.json`,
+  which is committed, so the generator stays out of the Worker and every API change shows up as a
+  diff in its pull request. `make -C .devtools openapi` writes it again.
+- `make -C .devtools test` fails if the document is stale, or if a route has no description.
+- The `API contract` workflow compares the document with the base branch, and a breaking change
+  under `v1` fails. That is how "a version is a promise" is enforced.
+- The document is served as a static file at `/api-docs/openapi.json`, in every environment.
 - An interactive reference, [Scalar](https://github.com/scalar/scalar), runs at `/api-docs/` in
-  local development and on staging. It is left out of production, because a third-party script must
-  not run on the origin that holds the provider key.
+  local development and on staging, under a content security policy of its own. It is left out of
+  production's build, because a third-party script must not run on the origin that holds the
+  provider key.
