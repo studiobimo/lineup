@@ -13,10 +13,10 @@ export async function openBoard() {
       plannerStore.setState({ session: 'folder' })
       return
     }
+    await plannerStore.getState().load()
+    await backfillColours()
+    await folders?.offerNewFiles()
   } catch {
     plannerStore.setState({ loadFailed: true })
-    return
   }
-  await plannerStore.getState().load()
-  await backfillColours()
 }

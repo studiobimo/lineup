@@ -1,4 +1,13 @@
-import { Calendar, ChevronLeft, ChevronRight, MapPin, X, ZoomIn, ZoomOut } from 'lucide-react'
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  ImageOff,
+  MapPin,
+  X,
+  ZoomIn,
+  ZoomOut
+} from 'lucide-react'
 import { animate, m, type PanInfo, useMotionValue } from 'motion/react'
 import { type KeyboardEvent, useEffect, useRef, useState, type WheelEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -34,7 +43,8 @@ function ImageDetails({ id }: { id: string }) {
   const { t, i18n } = useTranslation('planner')
   const takenAt = usePlanner(({ images }) => images[id]?.takenAt)
   const place = usePlanner(({ images }) => images[id]?.place)
-  if (!takenAt && !place) return null
+  const missing = usePlanner(({ images }) => images[id]?.missing)
+  if (!takenAt && !place && !missing) return null
   const date = (iso: string) =>
     new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(iso))
   return (
@@ -49,6 +59,12 @@ function ImageDetails({ id }: { id: string }) {
         <span className="flex items-center gap-1.5">
           <MapPin aria-hidden className="size-3.5 text-muted-foreground" />
           {t('takenIn', { place })}
+        </span>
+      )}
+      {missing && (
+        <span className="flex items-center gap-1.5">
+          <ImageOff aria-hidden className="size-3.5 text-muted-foreground" />
+          {t('missingOriginal')}
         </span>
       )}
     </p>

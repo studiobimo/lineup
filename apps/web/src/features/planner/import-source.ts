@@ -8,7 +8,7 @@ export const IMAGE_LIMIT = 300
 // Browsers that cannot decode these leave the type empty, and a browser that can should get to try.
 const IMAGE_EXTENSION = /\.(hei[cf]|avif)$/i
 
-function isImage(file: File) {
+export function isImage(file: File) {
   return file.type.startsWith('image/') || IMAGE_EXTENSION.test(file.name)
 }
 

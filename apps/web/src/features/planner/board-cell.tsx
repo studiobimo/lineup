@@ -1,4 +1,12 @@
-import { ArrowRightLeft, Lock, LockOpen, Maximize2, Trash2 } from 'lucide-react'
+import {
+  ArrowRightLeft,
+  ImageOff,
+  Lock,
+  LockOpen,
+  type LucideIcon,
+  Maximize2,
+  Trash2
+} from 'lucide-react'
 import { m, useMotionValue } from 'motion/react'
 import { memo, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -90,6 +98,15 @@ const CellActions = memo(function CellActions({
   )
 })
 
+function CellBadge({ icon: Icon, label }: { icon: LucideIcon; label?: string }) {
+  return (
+    <span className="flex rounded-sm bg-background p-1 text-foreground shadow-xs">
+      <Icon aria-hidden className="size-3" />
+      {label && <span className="sr-only">{label}</span>}
+    </span>
+  )
+}
+
 /** Memoised, so that moving focus renders the two cells it touches and not all 300. */
 export const BoardCell = memo(function BoardCell({
   id,
@@ -101,6 +118,7 @@ export const BoardCell = memo(function BoardCell({
   const cell = useRef<HTMLDivElement>(null)
   const near = useNearViewport(cell)
   const locked = usePlanner(({ board }) => isLocked(board, id))
+  const missing = usePlanner(({ images }) => images[id]?.missing)
   const {
     ref: dragRef,
     attributes,
@@ -153,6 +171,7 @@ export const BoardCell = memo(function BoardCell({
         onDoubleClick={() => openLightbox(id)}
         className={cn(
           'size-full transition duration-200 ease-out',
+          missing && 'opacity-50 grayscale',
           mark === 'swap' && 'scale-95 opacity-50'
         )}
       >
@@ -164,11 +183,10 @@ export const BoardCell = memo(function BoardCell({
           (mark === 'swap' || isDragging) && 'opacity-100'
         )}
       />
-      {locked && (
-        <span className="pointer-events-none absolute bottom-1 left-1 rounded-sm bg-background p-1 text-foreground shadow-xs">
-          <Lock aria-hidden className="size-3" />
-        </span>
-      )}
+      <div className="pointer-events-none absolute bottom-1 left-1 flex gap-1">
+        {locked && <CellBadge icon={Lock} />}
+        {missing && <CellBadge icon={ImageOff} label={t('missingOriginal')} />}
+      </div>
       {!mark && <CellActions id={id} container={container} locked={locked} />}
     </m.div>
   )

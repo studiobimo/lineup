@@ -2,7 +2,13 @@ import { openDB } from 'idb'
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 
-import { copyBoard, createFolderBoardStore } from './folder-board-store'
+import { toastManager } from '@/components/ui/toast'
+import { loadSettingsStrings } from '@/features/help/settings-strings'
+import i18n from '@/i18n/config'
+
+import { copyBoard, createFolderBoardStore, type FolderBoardStore } from './folder-board-store'
+import { fromFiles, isImage } from './import-source'
+import { runImport } from './import-store'
 import { openBoard } from './open-board'
 import { boardStore, setFolderStore } from './planner'
 
@@ -12,6 +18,8 @@ type FolderState =
   { status: 'none' } | { status: 'open' | 'needs-permission' | 'unreachable'; name: string }
 
 const folderState = createStore<FolderState>(() => ({ status: 'none' }))
+
+let openFolder: FolderBoardStore | undefined
 
 // Every call opens it again, because this is read once per page and written once in a blue moon.
 const handles = () =>
@@ -23,6 +31,7 @@ const readHandle = async (): Promise<FileSystemDirectoryHandle | undefined> =>
 /** Settles which store the board is in. False if the folder has to be dealt with first. */
 export async function reopenFolder() {
   const handle = await readHandle()
+  openFolder = undefined
   if (!handle) {
     setFolderStore(undefined)
     folderState.setState({ status: 'none' }, true)
@@ -34,7 +43,8 @@ export async function reopenFolder() {
     return false
   }
   try {
-    setFolderStore(await createFolderBoardStore(handle))
+    openFolder = await createFolderBoardStore(handle)
+    setFolderStore(openFolder)
   } catch {
     // Most likely moved, renamed or on a drive that is not plugged in.
     folderState.setState({ status: 'unreachable', name }, true)
@@ -42,6 +52,24 @@ export async function reopenFolder() {
   }
   folderState.setState({ status: 'open', name }, true)
   return true
+}
+
+/** Stays up until it is answered, because the photos will still be there if it is not. */
+export async function offerNewFiles() {
+  const files = (await openFolder?.newFiles())?.filter(isImage) ?? []
+  if (files.length === 0) return
+  await loadSettingsStrings()
+  const offer = toastManager.add({
+    title: i18n.t('settings:newFiles', { count: files.length }),
+    timeout: 0,
+    actionProps: {
+      children: i18n.t('settings:addNewFiles'),
+      onClick: () => {
+        toastManager.close(offer)
+        void runImport(fromFiles(files))
+      }
+    }
+  })
 }
 
 /** Only from a click: the browser will not ask otherwise. */

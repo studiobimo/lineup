@@ -53,6 +53,7 @@
   "phonePreviewName": "The phone preview",
   "lightboxName": "The image",
   "takenOn": "Taken {{date}}",
+  "missingOriginal": "Original not in the folder",
   "takenIn": "Taken in {{place}}",
   "phone": {
     "username": "your_username",

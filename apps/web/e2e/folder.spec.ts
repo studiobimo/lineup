@@ -56,6 +56,24 @@ const folderBoard = (page: Page) =>
     }
   })
 
+/** What a person's file manager would do, with folders on the way made as it goes. */
+const addToFolder = (page: Page, path: string, bytes: Buffer) =>
+  page.evaluate(
+    async ({ path, bytes }) => {
+      const root = await navigator.storage.getDirectory()
+      let folder = await root.getDirectoryHandle('photos')
+      const parts = path.split('/')
+      const name = parts.pop()!
+      for (const part of parts) {
+        folder = await folder.getDirectoryHandle(part, { create: true })
+      }
+      const writable = await (await folder.getFileHandle(name, { create: true })).createWritable()
+      await writable.write(new Uint8Array(bytes))
+      await writable.close()
+    },
+    { path, bytes: [...bytes] }
+  )
+
 const openSettings = (page: Page) => page.getByRole('button', { name: 'Settings' }).click()
 
 async function useFolder(page: Page) {
@@ -170,6 +188,74 @@ test('a folder that has gone can be left behind', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'photos could not be found' })).toBeVisible()
   await page.getByRole('button', { name: 'Use the board in this browser' }).click()
   await expect(page.getByRole('button', { name: 'Add images' })).toBeVisible()
+})
+
+test('what appears in the folder is offered, and goes in without a second copy', async ({
+  page
+}) => {
+  await replacePicker(page)
+  await page.goto('/')
+  await useFolder(page)
+  const dropped = photo('01.jpg')
+  await addToFolder(page, 'trip/dropped.jpg', dropped.buffer)
+  await page.reload()
+
+  await page.getByRole('button', { name: 'Add to tray' }).click()
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
+  const files = Object.keys(await folderFiles(page)).filter((name) => !name.startsWith('.'))
+  expect(files).toEqual(['trip/dropped.jpg'])
+
+  await page.reload()
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await expect(page.getByRole('button', { name: 'Add to tray' })).toHaveCount(0)
+})
+
+test('a removed image stays in the folder and is not offered again', async ({ page }) => {
+  await replacePicker(page)
+  await page.goto('/')
+  await useFolder(page)
+  await addImages(page, [photo('01.jpg')])
+  await expect(page.getByRole('img')).toHaveCount(1)
+  const cell = page.locator('aside').getByRole('group', { name: 'Image 1', exact: true })
+  await cell.hover()
+  await cell.getByRole('button', { name: 'Delete' }).click()
+  await expect(page.getByRole('img')).toHaveCount(0)
+  await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(0)
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Add images' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Add to tray' })).toHaveCount(0)
+  expect(await folderFiles(page)).toHaveProperty(['01.jpg'])
+})
+
+test('a file deleted outside the app is a missing cell, and comes back', async ({ page }) => {
+  const errors = watchErrors(page)
+  await replacePicker(page)
+  await page.goto('/')
+  await useFolder(page)
+  const original = photo('01.jpg')
+  await addImages(page, [original])
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await expect.poll(() => folderFiles(page)).toHaveProperty(['01.jpg'])
+  await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
+
+  await page.evaluate(async () => {
+    const root = await navigator.storage.getDirectory()
+    await (await root.getDirectoryHandle('photos')).removeEntry('01.jpg')
+  })
+  await page.reload()
+  const cell = page.locator('aside').getByRole('group', { name: 'Image 1', exact: true })
+  await expect(cell.getByText('Original not in the folder')).toBeAttached()
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await cell.dblclick()
+  await expect(page.getByRole('dialog').getByText('Original not in the folder')).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  await addToFolder(page, '01.jpg', original.buffer)
+  await page.reload()
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await expect(page.getByText('Original not in the folder')).toHaveCount(0)
+  expect(errors).toEqual([])
 })
 
 test('the option is absent where the browser has no folders', async ({ page }) => {
