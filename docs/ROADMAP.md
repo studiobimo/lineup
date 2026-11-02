@@ -5,7 +5,7 @@ Each milestone here is a GitHub milestone with the same title. **The work itself
 live in issues**, not in this file; see [Planning](../CONTRIBUTING.md#planning-milestones-and-issues).
 
 A milestone closes when every exit criterion below is met. Milestones are not tied to version
-numbers: release-please decides those from the commits.
+numbers: semantic-release decides those from the commits.
 
 ## M0: Foundation
 
@@ -19,7 +19,7 @@ routes until M4 ([ADR-0001](adr/0001-single-worker.md)).
 - `make -C .devtools check` passes locally and in CI
 - The shell is live on `development`, under a strict Content-Security-Policy
 - A Worker over its size budget fails CI
-- release-please opens a release pull request
+- A push to `develop` with a releasable change opens a release pull request, and merging it tags the release and cuts the GitHub Release
 
 ## M1: Planner core
 

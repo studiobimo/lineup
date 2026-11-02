@@ -43,7 +43,7 @@ a lowercase subject with no full stop, and at most 100 characters in the header 
 body line.
 
 PRs are **squash-merged**, so the **PR title** must also be a Conventional Commit.
-It becomes the commit on `main` that release-please reads.
+It becomes the commit on `develop` that semantic-release reads.
 
 ### Issues: titled like the commit that closes them
 
@@ -125,15 +125,20 @@ PRs and stacks here go to `develop`, not `main` as the section above says for th
 | `develop` | `development` | `lineup-development` | `lineup-dev.bimo.dev` |
 | `main` | `production` | `lineup-production` | `lineup.bimo.dev` |
 
-`develop` reaches `main` through a pull request titled `chore: promote develop to main`, merged
-with a **merge commit**, not squashed: a squash would turn every Conventional Commit into one line
-of the release notes. It is the one merge commit `main` allows ([ADR-0019](docs/adr/0019-develop-and-main.md)).
+`develop` reaches `main` through a pull request that the `promote` workflow opens on a push to
+`develop`, when the commits since the last release call for one: `chore(release): v0.2.0`, from a
+`release/v0.2.0` branch, with the release notes and the issues it closes. Merge it when you are
+ready to release, with a **merge commit**, not squashed: a squash would turn every Conventional
+Commit into one line of the release notes. It is the one merge commit `main` allows
+([ADR-0019](docs/adr/0019-develop-and-main.md), [ADR-0020](docs/adr/0020-semantic-release.md)).
 
 ## Releases
 
-[release-please](https://github.com/googleapis/release-please) maintains a release PR from the
-Conventional Commits on `main`. Merging it tags a SemVer release and cuts the GitHub Release.
-Never edit a version by hand. Until 1.0.0, breaking changes bump the minor version.
+[semantic-release](https://github.com/semantic-release/semantic-release) runs on every push to
+`main`, through `studiobimo/.github`'s `semantic-release.yml`: merging the promotion pull request
+above tags a SemVer release and cuts the GitHub Release, with its notes on the Release. There is no
+version file or changelog, so nothing is edited by hand: never create a tag or a version yourself.
+Before 1.0.0 a `feat` is a minor bump and a `fix` a patch; only a breaking change reaches 1.0.0.
 
 ## Repository settings (maintainers)
 

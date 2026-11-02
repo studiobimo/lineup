@@ -1,0 +1,31 @@
+name: Promote
+
+#   push to develop -> promote-release works out the next version and, if there is one,
+#                      opens chore(release): vX.Y.Z from release/vX.Y.Z into main
+#   merge that pull request, with a merge commit -> release.yml tags it and cuts the Release
+#
+# Without the release app the pull request is made with GITHUB_TOKEN, which triggers no
+# workflow, so its required checks never run. RELEASE_APP_CLIENT_ID is a repository variable
+# and RELEASE_APP_PRIVATE_KEY a repository secret: a private repository on the Free plan gets
+# neither from the organization.
+
+on:
+  push:
+    branches: [develop]
+
+permissions: {}
+
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: studiobimo/.github/.github/workflows/promote-release.yml@v1
+    with:
+      app-client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+    secrets:
+      app-private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
