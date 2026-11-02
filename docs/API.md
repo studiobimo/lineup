@@ -163,6 +163,6 @@ The API reference is generated, so it cannot disagree with the code. Nobody writ
   under `v1` fails. That is how "a version is a promise" is enforced.
 - The document is served as a static file at `/api-docs/openapi.json`, in every environment.
 - An interactive reference, [Scalar](https://github.com/scalar/scalar), runs at `/api-docs/` in
-  local development and on staging, under a content security policy of its own. It is left out of
+  local development and in the `development` environment, under a content security policy of its own. It is left out of
   production's build, because a third-party script must not run on the origin that holds the
   provider key.

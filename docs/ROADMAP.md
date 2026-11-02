@@ -9,7 +9,7 @@ numbers: release-please decides those from the commits.
 
 ## M0: Foundation
 
-An empty app deploys to staging. The planner comes first and needs no API, so the Worker has no
+An empty app deploys to the `development` environment. The planner comes first and needs no API, so the Worker has no
 routes until M4 ([ADR-0001](adr/0001-single-worker.md)).
 
 **Stories:** none.
@@ -17,7 +17,7 @@ routes until M4 ([ADR-0001](adr/0001-single-worker.md)).
 ### Exit criteria
 
 - `make -C .devtools check` passes locally and in CI
-- The shell is live on staging, under a strict Content-Security-Policy
+- The shell is live on `development`, under a strict Content-Security-Policy
 - A Worker over its size budget fails CI
 - release-please opens a release pull request
 
@@ -80,10 +80,10 @@ here so that the planner is finished first.
 
 - The spike's answers are in [research/instagram-apis.md](research/instagram-apis.md), and ZRN-6 is
   confirmed or reworded
-- The API reference is generated from the routes, on staging and not in production
+- The API reference is generated from the routes, on `development` and not in production
 - Tests prove the key appears in no response, log or stored value, and that an expired or altered
   cookie is refused
-- On staging, with a test Instagram professional account: an image and a carousel are scheduled,
+- On `development`, with a test Instagram professional account: an image and a carousel are scheduled,
   rescheduled, cancelled and published, and each state matches the Zernio dashboard
 - A repeated schedule request creates one post
 

@@ -25,7 +25,19 @@ include vite.mk
 # Nothing imports these yet, so tsc would not reach them through the app.
 TSC_PROJECTS += ../../packages/api ../../packages/contract
 
-.PHONY: e2e first-load worker-budget knip duplication bundle-report openapi api-breaking
+# ADR-0019: each environment ships from one branch, so a laptop cannot put a feature on production.
+DEPLOY_ENVS := development production
+DEPLOY_BRANCH_development := develop
+DEPLOY_BRANCH_production := main
+
+.PHONY: e2e first-load worker-budget knip duplication bundle-report openapi api-breaking deploy-branch
+
+deploy: deploy-branch
+
+deploy-branch:
+	$(require-deploy-env)
+	@branch=$$(git branch --show-current); [ "$$branch" = "$(DEPLOY_BRANCH_$(ENV))" ] || { \
+		echo "$(GLYPH_FAIL) $(ENV) ships from $(DEPLOY_BRANCH_$(ENV)), and this is $$branch" >&2; exit 1; }
 
 # GitHub's runners set CI, and have the browser's system libraries to install.
 e2e: build ## Playwright, against the built app

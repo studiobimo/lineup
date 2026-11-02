@@ -109,9 +109,25 @@ Each kind of information lives in exactly one place, so nothing has to be kept i
 - **Its body names the stories** it delivers (`ARR-5`) and how we will know it is done. Acceptance
   stays in the PRD, not in a copy on the issue.
 - **Open questions are issues too**, in the milestone that needs the answer.
-- **The PR says `Closes #123`**, which closes the issue and moves the milestone along.
+- **The PR says `Closes #123`**. A merge into `develop` closes nothing, so the pull request that
+  promotes `develop` lists every issue it ships, and they close and move the milestone along with it.
 
 Start with the milestone's open issues, oldest first; they are created in working order.
+
+## Environments
+
+PRs and stacks here go to `develop`, not `main` as the section above says for the org
+(`gh stack init --base develop feat/first-slice`). Their squashed commits reach `main` when
+`develop` is promoted, and that is where release-please reads them.
+
+| Branch | GitHub environment | Worker | Address |
+| --- | --- | --- | --- |
+| `develop` | `development` | `lineup-development` | `lineup-dev.bimo.dev` |
+| `main` | `production` | `lineup-production` | `lineup.bimo.dev` |
+
+`develop` reaches `main` through a pull request titled `chore: promote develop to main`, merged
+with a **merge commit**, not squashed: a squash would turn every Conventional Commit into one line
+of the release notes. It is the one merge commit `main` allows ([ADR-0019](docs/adr/0019-develop-and-main.md)).
 
 ## Releases
 
@@ -122,7 +138,8 @@ Never edit a version by hand. Until 1.0.0, breaking changes bump the minor versi
 ## Repository settings (maintainers)
 
 `main` is protected by rulesets: PRs required, squash-only, linear history, and required checks
-`pr-checks` and `lint`. They and the other repository settings are defined in `studiobimo/.github`.
+`pr-checks` and `lint`. Promoting `develop` needs squash-only and linear history relaxed for that
+one pull request. They and the other repository settings are defined in `studiobimo/.github`.
 A private repository on the GitHub Free plan cannot use rulesets, so until this one is public or the
 plan changes, the hooks and the agent guard are what enforce these.
 `make -C .devtools github` applies them to this repository and needs `gh` signed in as an admin;

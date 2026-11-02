@@ -124,16 +124,20 @@ make -C .devtools help    # all targets
 ```
 
 Deploys run from a machine signed in with `wrangler login`, or through Workers Builds, so no
-Cloudflare credential is kept in GitHub (ADR-0001). Each builds and deploys in one step:
+Cloudflare credential is kept in GitHub (ADR-0019). Each builds and deploys in one step, and
+refuses to run from any branch but its own:
 
 ```sh
 pnpm cf:bundle             # the Worker's size, with no login; it does not fail on a size
-pnpm cf:deploy:staging     # lineup-staging.bimo.dev
-pnpm cf:deploy:production  # lineup.bimo.dev
+pnpm cf:deploy:development  # from develop, to lineup-dev.bimo.dev
+pnpm cf:deploy:production   # from main, to lineup.bimo.dev
 ```
 
 ## Conventions
 
+- **Branches and environments.** Pull requests go to `develop`, which ships to the `development`
+  environment; `main` ships to `production` (ADR-0019). This overrides the staging environment
+  and `deploy.yml` that the managed Hosting section below describes.
 - **Docs first.** A change in behaviour updates the PRD story it touches; a change of approach
   gets a new ADR that supersedes the old one. ADRs are not edited after they are accepted,
   except for their status.

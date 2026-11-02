@@ -1,6 +1,6 @@
 # ADR-0001: One Cloudflare Worker for the app and the API
 
-- **Status:** Accepted
+- **Status:** Accepted. Staging and the deploy scripts are superseded by [ADR-0019](0019-develop-and-main.md)
 - **Date:** 2026-10-09
 
 ## Context

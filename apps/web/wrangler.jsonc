@@ -1,6 +1,7 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "lineup",
+  "account_id": "de174843f2a2cc0497df268164c986df",
   "main": "worker/index.ts",
   "compatibility_date": "2026-10-18",
   "compatibility_flags": ["nodejs_compat"],
@@ -17,14 +18,14 @@
   "observability": { "enabled": true },
   "upload_source_maps": true,
   // The top level is local development. A deploy goes to one of these environments, named
-  // <name>-<environment>, chosen at build time: make -C .devtools deploy ENV=staging.
+  // <name>-<environment>, chosen at build time: make -C .devtools deploy ENV=development.
   // Neither inherits bindings or vars from the top level, so each restates them.
   "env": {
-    "staging": {
+    "development": {
       "ratelimits": [
         { "name": "KEY_RATE_LIMIT", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }
       ],
-      "routes": [{ "pattern": "lineup-staging.bimo.dev", "custom_domain": true }]
+      "routes": [{ "pattern": "lineup-dev.bimo.dev", "custom_domain": true }]
     },
     "production": {
       "ratelimits": [
