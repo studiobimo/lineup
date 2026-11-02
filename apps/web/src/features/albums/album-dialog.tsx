@@ -51,7 +51,7 @@ function AlbumTile({ album, image, position, locked }: AlbumTileProps) {
       {...listeners}
       aria-label={t('image', { position })}
       className={cn(
-        'group relative touch-manipulation overflow-hidden rounded-sm bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary',
+        'group relative touch-manipulation overflow-hidden rounded-sm bg-muted focus-visible:photo-outline',
         !locked && 'cursor-grab active:cursor-grabbing',
         isDragging && 'z-10 shadow-lg'
       )}

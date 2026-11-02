@@ -68,6 +68,7 @@
   "clearDescriptionLocked": "Salen del tablero, y Deshacer las recupera. Las imágenes bloqueadas se quedan.",
   "cancel": "Cancelar",
   "phonePreview": "Vista previa en un teléfono",
+  "phoneFeed": "Tu feed en el teléfono",
   "schedule": "Programar",
   "postDetails": "Detalles de la publicación",
   "postStatus": {
