@@ -1,4 +1,4 @@
-import { ImageOff, Layers, Lock, type LucideIcon } from 'lucide-react'
+import { ImageOff, Layers, Lock } from 'lucide-react'
 import { m, useMotionValue } from 'motion/react'
 import { memo, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,7 +7,7 @@ import { onButton } from '@/lib/dom'
 import { cn } from '@/lib/utils'
 
 import { type Container, coverOf, isLocked } from './board'
-import { AlbumButton, CellActions, SelectToggle } from './cell-controls'
+import { AlbumButton, CellActions, CellBadge, SelectToggle } from './cell-controls'
 import { useAirborne, useDropMark } from './drag-target'
 import { openLightbox } from './lightbox-store'
 import { GLIDING_Z, settle } from './motion'
@@ -25,20 +25,6 @@ interface BoardCellProps {
   position: number
   /** Whether Tab lands here. A container is one stop however many cells it has. */
   tabStop: boolean
-}
-
-interface CellBadgeProps {
-  icon: LucideIcon
-  label?: string
-}
-
-function CellBadge({ icon: Icon, label }: CellBadgeProps) {
-  return (
-    <span className="flex items-center gap-0.5 rounded-sm bg-background p-1 text-xs/3 text-foreground shadow-xs">
-      <Icon aria-hidden className="size-3" />
-      {label && <span className="sr-only">{label}</span>}
-    </span>
-  )
 }
 
 /** Memoised, so that moving focus renders the two cells it touches and not all 300. */

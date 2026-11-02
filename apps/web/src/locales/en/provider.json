@@ -25,6 +25,11 @@
     "connect": "Connect Instagram",
     "reconnect": "This account needs connecting again before anything can be scheduled."
   },
+  "published": {
+    "cell": "Published post",
+    "cellOn": "Published on {{date}}",
+    "failed": "Could not load your published posts."
+  },
   "problems": {
     "offline": "Could not reach the server. Check your connection and try again.",
     "not_found": "That could not be found. It may have been removed.",

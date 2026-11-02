@@ -16,6 +16,8 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { PublishedPicture } from '@/features/provider/published-picture'
+import { useConnectedAccount } from '@/features/provider/use-connected-account'
 import { cn } from '@/lib/utils'
 
 import { cellShape, gridColumns, instagram } from './network-profile'
@@ -62,9 +64,8 @@ function StatusBar() {
   )
 }
 
-function NavBar() {
+function NavBar({ handle }: { handle?: string }) {
   const { t } = useTranslation('planner')
-  const { handle } = useProfile()
   return (
     <div className="flex h-11 shrink-0 items-center justify-between gap-4 px-4">
       <span className="flex min-w-0 items-center gap-1 text-xl font-bold">
@@ -95,18 +96,33 @@ function Stat({ value, label }: { value?: number; label: string }) {
   )
 }
 
-function Profile({ posts }: { posts: number }) {
+interface ProfileProps {
+  name?: string
+  avatarUrl?: string
+  posts: number
+  followers?: number
+}
+
+function Profile({ name, avatarUrl, posts, followers }: ProfileProps) {
   const { t } = useTranslation('planner')
-  const { name } = useProfile()
   return (
     <div className="flex flex-col gap-3 px-4 pt-2 pb-4">
       <div className="flex items-center gap-7">
-        <span className="size-[5.375rem] shrink-0 rounded-full bg-foreground/10" />
+        <span className="size-[5.375rem] shrink-0 overflow-hidden rounded-full bg-foreground/10">
+          {avatarUrl && (
+            <img
+              src={avatarUrl}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="size-full object-cover"
+            />
+          )}
+        </span>
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="truncate text-sm font-semibold">{name || t('phone.displayName')}</span>
           <span className="flex justify-between">
             <Stat value={posts} label={t('phone.posts', { count: posts })} />
-            <Stat label={t('phone.followers')} />
+            <Stat value={followers} label={t('phone.followers')} />
             <Stat label={t('phone.following')} />
           </span>
         </span>
@@ -173,25 +189,42 @@ function PreviewCell({ id, position }: { id: string; position: number }) {
 
 /** Instagram's own type and layout, not the app's: this is what the feed will sit inside. */
 export function PhoneScreen() {
+  const { t } = useTranslation('planner')
   const grid = usePlanner(({ board }) => board.grid)
-  const emptySlots = Math.max(0, MINIMUM_SLOTS - grid.length)
+  const typed = useProfile()
+  const { account, published } = useConnectedAccount()
+  const posts = grid.length + published.length
+  const emptySlots = Math.max(0, MINIMUM_SLOTS - posts)
   return (
     <div className="flex h-full flex-col bg-background font-[system-ui] text-foreground">
       <div aria-hidden className="contents">
         <StatusBar />
-        <NavBar />
+        <NavBar handle={account?.username ?? typed.handle} />
       </div>
       <div
         data-scroll-root
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none]"
       >
         <div aria-hidden className="contents">
-          <Profile posts={grid.length} />
+          <Profile
+            name={account?.displayName ?? typed.name}
+            avatarUrl={account?.avatarUrl}
+            posts={posts}
+            followers={account?.followers}
+          />
           <ProfileTabs />
         </div>
         <div className="grid gap-0.5" style={gridColumns}>
           {grid.map((id, index) => (
             <PreviewCell key={id} id={id} position={index + 1} />
+          ))}
+          {published.map((post, index) => (
+            <div key={post.id} className="bg-foreground/5" style={cellShape}>
+              <PublishedPicture
+                post={post}
+                label={t('cell', { position: grid.length + index + 1 })}
+              />
+            </div>
           ))}
           {Array.from({ length: emptySlots }, (_, slot) => (
             <div key={slot} data-empty-slot className="bg-foreground/5" style={cellShape} />

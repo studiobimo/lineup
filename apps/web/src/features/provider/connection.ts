@@ -37,3 +37,6 @@ export const forgetConnection = () =>
 
 export const hasLiveKey = ({ expiresAt }: Connection) =>
   expiresAt !== undefined && Date.parse(expiresAt) > Date.now()
+
+export const liveAccount = (connection: Connection) =>
+  hasLiveKey(connection) ? connection.accountId : undefined

@@ -11,6 +11,7 @@ import {
   DialogPrimitive,
   DialogTitle
 } from '@/components/ui/dialog'
+import { ProviderQueries } from '@/features/provider/provider-queries'
 
 import { settle } from './motion'
 import { PhoneScreen } from './phone-screen'
@@ -71,7 +72,9 @@ export function PhonePreview({ onClose }: { onClose: () => void }) {
               style={{ width: SCREEN.width, height: SCREEN.height }}
             >
               <span className="absolute top-2.5 left-1/2 z-20 h-[2.125rem] w-[7.5rem] -translate-x-1/2 rounded-full bg-device" />
-              <PhoneScreen />
+              <ProviderQueries>
+                <PhoneScreen />
+              </ProviderQueries>
             </div>
           </m.div>
           <IconButton

@@ -3,6 +3,8 @@ import type { Page, Route } from '@playwright/test'
 interface MockAccount {
   id: string
   username: string
+  displayName?: string
+  followers?: number
   needsReconnection?: boolean
   avatarUrl?: string
 }

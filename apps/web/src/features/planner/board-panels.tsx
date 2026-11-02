@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/drawer'
 import { Group } from '@/components/ui/group'
 import { Intro } from '@/features/help/intro'
+import { PublishedPosts } from '@/features/provider/published-posts'
 import { cn } from '@/lib/utils'
 
 import { ClearBoard, ContainerActions, PreviewOnPhone } from './board-actions'
@@ -131,7 +132,11 @@ export function GridPanel({ desktop }: { desktop: boolean }) {
         {!desktop && <ImportProgress />}
         {/* On a phone the grid runs edge to edge, as it does in Instagram. */}
         <AreaBoundary>
-          <Cells container="grid" className={cn(desktop && 'px-gutter pb-gutter')} />
+          <Cells
+            container="grid"
+            className={cn(desktop && 'px-gutter pb-gutter')}
+            after={<PublishedPosts />}
+          />
         </AreaBoundary>
       </div>
     </section>

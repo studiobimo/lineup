@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Skeleton } from '@/components/ui/skeleton'
@@ -11,7 +12,14 @@ import { useTabStop } from './tab-stop'
 
 const SKELETON_CELLS = 6
 
-export function Cells({ container, className }: { container: Container; className?: string }) {
+interface CellsProps {
+  container: Container
+  className?: string
+  /** What carries on after the cells, in the same columns. */
+  after?: ReactNode
+}
+
+export function Cells({ container, className, after }: CellsProps) {
   const { t } = useTranslation('planner')
   const ids = usePlanner((state) => state.board[container])
   const ready = usePlanner((state) => state.ready)
@@ -30,25 +38,26 @@ export function Cells({ container, className }: { container: Container; classNam
       </div>
     )
   }
-  if (ids.length === 0) {
-    return (
-      <p className="p-gutter text-sm text-muted-foreground">
-        {t(container === 'tray' ? 'trayEmpty' : 'gridEmpty')}
-      </p>
-    )
-  }
   const tabStop = focused && ids.includes(focused) ? focused : ids[0]
   return (
-    <div className={cn('grid gap-0.5', className)} style={gridColumns}>
-      {ids.map((id, index) => (
-        <BoardCell
-          key={id}
-          id={id}
-          container={container}
-          position={index + 1}
-          tabStop={id === tabStop}
-        />
-      ))}
-    </div>
+    <>
+      {ids.length === 0 && (
+        <p className="p-gutter text-sm text-muted-foreground">
+          {t(container === 'tray' ? 'trayEmpty' : 'gridEmpty')}
+        </p>
+      )}
+      <div className={cn('grid gap-0.5 empty:hidden', className)} style={gridColumns}>
+        {ids.map((id, index) => (
+          <BoardCell
+            key={id}
+            id={id}
+            container={container}
+            position={index + 1}
+            tabStop={id === tabStop}
+          />
+        ))}
+        {after}
+      </div>
+    </>
   )
 }

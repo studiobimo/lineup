@@ -1,6 +1,7 @@
 # Static assets only: a response from the Worker never gets these, so /api/* sets its own.
-# Nothing runs or loads from another origin. A later feature adds what it needs, and no more.
+# Nothing runs or loads from another origin, except pictures of a connected account's posts, from
+# the provider and from Instagram. A later feature adds what it needs, and no more.
 # The style hash is the one tag Base UI's scroll area writes to hide native scrollbars. A Base UI
 # update can change it, and the browser tests then fail on the violation.
 /*
-    Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'sha256-kLmvWqfziFavKtqHqRsb90f006UAK2Dmd0It5Iz2KFA='; font-src 'self'; img-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+    Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'sha256-kLmvWqfziFavKtqHqRsb90f006UAK2Dmd0It5Iz2KFA='; font-src 'self'; img-src 'self' https://media.zernio.com https://*.cdninstagram.com https://*.fbcdn.net; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'

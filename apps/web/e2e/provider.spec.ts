@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
 
-import { watchErrors } from './fixtures'
+import { addImages, grid, image, png, watchErrors } from './fixtures'
 import { mockProvider } from './provider-mock'
 
 const KEY = 'pasted-key-ending-abcd'
@@ -137,4 +137,97 @@ test('an account that cannot be loaded offers to try again', async ({ page }) =>
   provider.failures.clear()
   await settings.getByRole('button', { name: 'Try again' }).click()
   await expect(settings.getByRole('combobox', { name: 'Instagram account' })).toHaveText(/@studio/)
+})
+
+const PICTURE = 'https://media.zernio.com/one.png'
+const YESTERDAY = new Date(Date.now() - 86_400_000).toISOString()
+const post = (id: string, thumbnailUrl?: string) => ({ id, thumbnailUrl, publishedAt: YESTERDAY })
+const publishedCells = (page: Page) => page.getByRole('img', { name: /^Published/ })
+
+async function connect(page: Page) {
+  const settings = await addKey(page)
+  await expect(settings.getByRole('combobox', { name: 'Instagram account' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(settings).toBeHidden()
+}
+
+test('published posts carry on after the planned cells, and stay after a reload', async ({
+  page
+}) => {
+  const errors = watchErrors(page)
+  await page.route(PICTURE, (route) => route.fulfill({ contentType: 'image/png', body: png }))
+  const provider = await mockProvider(page, { published: [post('one', PICTURE), post('two')] })
+  await page.goto('/')
+  await addImages(page, [image('planned.png')])
+  await page.getByRole('button', { name: 'Move all to the grid' }).click()
+  await connect(page)
+
+  await expect(publishedCells(page)).toHaveCount(2)
+  const planned = await grid(page).first().boundingBox()
+  const first = await publishedCells(page).first().boundingBox()
+  expect(first?.x).toBeGreaterThan(planned?.x ?? Infinity)
+  expect(first?.y).toBeCloseTo(planned?.y ?? Infinity, 0)
+  await expect(publishedCells(page).first()).toHaveJSProperty('complete', true)
+
+  await page.reload()
+  await expect(publishedCells(page)).toHaveCount(2)
+  expect(provider.requests).toContain('GET /accounts/account-1/posts')
+  expect(errors).toEqual([])
+})
+
+test('published posts show on an empty grid, under its empty note', async ({ page }) => {
+  await mockProvider(page, { published: [post('one')] })
+  await connect(page)
+  await expect(page.getByText('Move images here to plan your feed.')).toBeVisible()
+  await expect(publishedCells(page)).toHaveCount(1)
+})
+
+test('a picture that will not load leaves a marked cell, not a broken image', async ({ page }) => {
+  await page.route(PICTURE, (route) => route.abort())
+  await mockProvider(page, { published: [post('one', PICTURE)] })
+  await connect(page)
+  await expect(page.getByRole('img', { name: /^Published/ }).locator('svg')).toBeVisible()
+})
+
+test('published posts that cannot be loaded offer to try again', async ({ page }) => {
+  const provider = await mockProvider(page, { published: [post('one')] })
+  provider.failures.set('/posts', { status: 502, code: 'provider_failed' })
+  await connect(page)
+  await expect(page.getByText(/Could not load your published posts/)).toBeVisible()
+
+  provider.failures.clear()
+  await page.getByRole('button', { name: 'Try again' }).click()
+  await expect(publishedCells(page)).toHaveCount(1)
+})
+
+test('a key past its date asks for nothing', async ({ page }) => {
+  const provider = await mockProvider(page, { published: [post('one')] })
+  await connect(page)
+  await expect(publishedCells(page)).toHaveCount(1)
+
+  await page.evaluate(() => {
+    const connection = JSON.parse(localStorage.getItem('provider-connection') ?? '{}') as object
+    const expiresAt = new Date(0).toISOString()
+    localStorage.setItem('provider-connection', JSON.stringify({ ...connection, expiresAt }))
+  })
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Grid' })).toBeVisible()
+  await expect(publishedCells(page)).toHaveCount(0)
+  expect(provider.requests.filter((request) => request.endsWith('/posts'))).toHaveLength(1)
+})
+
+test('the phone preview shows the connected account and its posts', async ({ page }) => {
+  await mockProvider(page, {
+    accounts: [{ id: 'account-1', username: 'studio', displayName: 'The Studio', followers: 1234 }],
+    published: [post('one'), post('two')]
+  })
+  await connect(page)
+  await page.getByRole('button', { name: 'Preview on a phone' }).click()
+  const phone = page.getByRole('dialog', { name: 'Preview on a phone' })
+  const profile = phone.locator('[data-phone]')
+  await expect(profile.getByText('studio', { exact: true })).toBeAttached()
+  await expect(profile.getByText('The Studio')).toBeAttached()
+  await expect(profile.getByText('1234')).toBeAttached()
+  await expect(profile.getByText('2', { exact: true })).toBeAttached()
+  await expect(phone.locator('[data-empty-slot]')).toHaveCount(7)
 })

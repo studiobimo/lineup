@@ -19,3 +19,14 @@ export const accountsQuery = queryOptions({
   retry: worthRetrying,
   staleTime: MINUTE
 })
+
+export const publishedQuery = (accountId: string) =>
+  queryOptions({
+    queryKey: [PROVIDER_KEY, 'published', accountId],
+    queryFn: async () => {
+      const param = { id: accountId }
+      return (await answer(providerApi.accounts[':id'].posts.$get({ param }))).items
+    },
+    retry: worthRetrying,
+    staleTime: 5 * MINUTE
+  })

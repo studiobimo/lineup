@@ -1,4 +1,13 @@
-import { ArrowRightLeft, Check, Layers, Lock, LockOpen, Maximize2, Trash2 } from 'lucide-react'
+import {
+  ArrowRightLeft,
+  Check,
+  Layers,
+  Lock,
+  LockOpen,
+  type LucideIcon,
+  Maximize2,
+  Trash2
+} from 'lucide-react'
 import { type ComponentProps, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -19,6 +28,20 @@ interface CellActionsProps {
 }
 
 /** For the mouse: the keyboard has Enter on the cell, or these would be more tab stops per image. */
+interface CellBadgeProps {
+  icon: LucideIcon
+  label?: string
+}
+
+export function CellBadge({ icon: Icon, label }: CellBadgeProps) {
+  return (
+    <span className="flex items-center gap-0.5 rounded-sm bg-background p-1 text-xs/3 text-foreground shadow-xs">
+      <Icon aria-hidden className="size-3" />
+      {label && <span className="sr-only">{label}</span>}
+    </span>
+  )
+}
+
 function CellButton(props: ComponentProps<typeof IconButton>) {
   return (
     <IconButton variant="outline" size="icon-xs" tabIndex={-1} tooltip={cellTooltip} {...props} />
