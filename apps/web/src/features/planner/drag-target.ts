@@ -155,7 +155,7 @@ export function ground(ids: string[]) {
   }))
 }
 
-const cellElement = (id: string) => document.querySelector(`[data-drop-id="${id}"]`)
+export const cellElement = (id: string) => document.querySelector(`[data-drop-id="${id}"]`)
 
 export const cellBox = (id: string) => cellElement(id)?.getBoundingClientRect()
 

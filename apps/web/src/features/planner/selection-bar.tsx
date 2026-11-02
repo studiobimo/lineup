@@ -1,5 +1,5 @@
 import { ArrowRightLeft, Layers, Trash2, X } from 'lucide-react'
-import { AnimatePresence, m } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
 import { useStore } from 'zustand'
 import { useTranslation } from 'react-i18next'
 
@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button'
 import { toastManager } from '@/components/ui/toast'
 
 import { containerOf, groupProblem, inBoardOrder } from './board'
+import { BottomBar } from './bottom-bar'
 import { dragStore } from './drag-target'
-import { rise } from './motion'
 import { instagram } from './network-profile'
 import { plannerStore } from './planner'
 import { clearSelection, selectedCells, useSelectionSize } from './selection-store'
@@ -34,11 +34,10 @@ function SelectionActions({ count }: { count: number }) {
     } else act(() => plannerStore.getState().group(cells))
   }
   return (
-    <m.div
+    <BottomBar
       role="toolbar"
       aria-label={t('selectionActions')}
-      {...rise}
-      className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
+      className="flex items-center gap-1 rounded-lg p-1"
     >
       <p aria-live="polite" className="px-2 text-sm whitespace-nowrap">
         {t('selected', { count })}
@@ -71,7 +70,7 @@ function SelectionActions({ count }: { count: number }) {
       >
         <X />
       </IconButton>
-    </m.div>
+    </BottomBar>
   )
 }
 

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 
 import { coverOf, flightsBetween } from './board'
-import { type Box, cellBox, dragStore, ground, launch } from './drag-target'
+import { type Box, cellBox, cellElement, dragStore, ground, launch } from './drag-target'
 import { settle } from './motion'
 import { plannerStore } from './planner'
 import { Thumbnail } from './thumbnail'
@@ -36,8 +36,8 @@ const heading = (flight: Flight): Flight => ({
 })
 
 function copyOfPicture(cell: string) {
-  const source = document.querySelector(`[data-drop-id="${cell}"] canvas`)
-  if (!(source instanceof HTMLCanvasElement)) return undefined
+  const source = cellElement(cell)?.querySelector('canvas')
+  if (!source) return undefined
   const copy = document.createElement('canvas')
   copy.width = source.width
   copy.height = source.height

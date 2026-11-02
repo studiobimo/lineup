@@ -1,11 +1,14 @@
 import { expect, type Page, test } from '@playwright/test'
 
-import { addImages, image, watchErrors } from './fixtures'
-
-const tray = (page: Page) => page.locator('aside').getByRole('group', { name: /^Image \d+$/ })
-const grid = (page: Page) => page.locator('section').getByRole('group', { name: /^Image \d+$/ })
-const bar = (page: Page) => page.getByRole('toolbar', { name: 'Selected cells' })
-const modifier = process.platform === 'darwin' ? 'Meta' : 'Control'
+import {
+  addImages,
+  grid,
+  image,
+  selectKey as modifier,
+  selectionBar as bar,
+  tray,
+  watchErrors
+} from './fixtures'
 
 async function boardOfFour(page: Page) {
   await page.goto('/')

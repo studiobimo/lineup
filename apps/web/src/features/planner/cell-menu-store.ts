@@ -1,16 +1,7 @@
-import { useStore } from 'zustand'
-import { createStore } from 'zustand/vanilla'
+import { createOpenStore } from '@/lib/open-store'
 
-interface OpenCellMenu {
-  id: string
-  cell: HTMLElement
-}
-
-const cellMenuStore = createStore<OpenCellMenu | null>(() => null)
-
-export const useCellMenu = () => useStore(cellMenuStore)
-
-export const openCellMenu = (id: string, cell: HTMLElement) =>
-  cellMenuStore.setState({ id, cell }, true)
-
-export const closeCellMenu = () => cellMenuStore.setState(null, true)
+export const {
+  useOpen: useCellMenu,
+  open: openCellMenu,
+  close: closeCellMenu
+} = createOpenStore<{ id: string; cell: HTMLElement }>()

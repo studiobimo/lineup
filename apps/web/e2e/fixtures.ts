@@ -1,4 +1,10 @@
-import { type ConsoleMessage, expect, type FileChooser, type Page } from '@playwright/test'
+import {
+  type ConsoleMessage,
+  expect,
+  type FileChooser,
+  type Locator,
+  type Page
+} from '@playwright/test'
 
 // A 2 x 2 PNG, so these run through the real decoder and the real worker.
 export const png = Buffer.from(
@@ -148,4 +154,20 @@ export const savedGridSize = (page: Page) => savedBoard(page).then(({ grid }) =>
 export async function reloadWhenSaved(page: Page, saved: (board: SavedBoard) => boolean) {
   await expect.poll(async () => saved(await savedBoard(page))).toBe(true)
   await page.reload()
+}
+
+const cellLabel = { name: /^Image \d+$/ }
+
+export const tray = (page: Page) => page.locator('aside').getByRole('group', cellLabel)
+export const grid = (page: Page) => page.locator('section').getByRole('group', cellLabel)
+export const selectionBar = (page: Page) => page.getByRole('toolbar', { name: 'Selected cells' })
+
+/** The key that adds to a selection on the machine the tests run on. */
+export const selectKey = process.platform === 'darwin' ? 'Meta' : 'Control'
+
+/** Selects cells from the first of `cells` to the last, then groups them. */
+export async function groupCells(page: Page, cells: Locator, count: number) {
+  await cells.nth(0).click({ modifiers: [selectKey] })
+  await cells.nth(count - 1).click({ modifiers: ['Shift'] })
+  await selectionBar(page).getByRole('button', { name: 'Group' }).click()
 }

@@ -2,7 +2,7 @@
 
 import { expect, test } from '@playwright/test'
 
-import { addImages, image } from './fixtures'
+import { addImages, grid, image, selectKey } from './fixtures'
 
 test.use({ contextOptions: { reducedMotion: 'no-preference' } })
 
@@ -129,9 +129,8 @@ test('the ghost is centred on the pointer, and leans only while it moves', async
 })
 
 test('the cells of an album fly to it and back out, with no gap on the way', async ({ page }) => {
-  const cells = page.locator('section').getByRole('group', { name: /^Image \d+$/ })
-  const modifier = process.platform === 'darwin' ? 'Meta' : 'Control'
-  await cells.nth(0).click({ modifiers: [modifier] })
+  const cells = grid(page)
+  await cells.nth(0).click({ modifiers: [selectKey] })
   await cells.nth(2).click({ modifiers: ['Shift'] })
 
   // A frame with a cell neither on the board nor in the air is the flash this exists to prevent.
@@ -167,7 +166,7 @@ test('the cells of an album fly to it and back out, with no gap on the way', asy
 test('a cell dropped on another to make an album lands and leaves nothing hidden', async ({
   page
 }) => {
-  const cells = page.locator('section').getByRole('group', { name: /^Image \d+$/ })
+  const cells = grid(page)
   const start = (await cells.nth(1).boundingBox())!
   const end = (await cells.nth(0).boundingBox())!
   await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2)

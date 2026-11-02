@@ -44,7 +44,7 @@ export function usePlannerShortcuts() {
         if (!event.defaultPrevented && !dragStore.getState().dragging) {
           if (key === 'Enter') {
             event.preventDefault()
-            openCellMenu(dropId, target)
+            openCellMenu({ id: dropId, cell: target })
             return
           }
           const plain = !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey

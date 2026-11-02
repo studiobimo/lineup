@@ -1,11 +1,19 @@
 import { expect, type Page, test } from '@playwright/test'
 
-import { addImages, choose, image, reloadWhenSaved, savedBoard, watchErrors } from './fixtures'
+import {
+  addImages,
+  choose,
+  grid,
+  groupCells,
+  image,
+  reloadWhenSaved,
+  savedBoard,
+  selectKey as modifier,
+  selectionBar as bar,
+  tray,
+  watchErrors
+} from './fixtures'
 
-const tray = (page: Page) => page.locator('aside').getByRole('group', { name: /^Image \d+$/ })
-const grid = (page: Page) => page.locator('section').getByRole('group', { name: /^Image \d+$/ })
-const bar = (page: Page) => page.getByRole('toolbar', { name: 'Selected cells' })
-const modifier = process.platform === 'darwin' ? 'Meta' : 'Control'
 const named = (count: number) =>
   Array.from({ length: count }, (_, index) => image(`photo-${index}.png`))
 
@@ -15,15 +23,7 @@ async function boardOf(page: Page, count: number) {
   await expect(tray(page)).toHaveCount(count)
 }
 
-async function groupFirst(page: Page, count: number) {
-  await tray(page)
-    .nth(0)
-    .click({ modifiers: [modifier] })
-  await tray(page)
-    .nth(count - 1)
-    .click({ modifiers: ['Shift'] })
-  await bar(page).getByRole('button', { name: 'Group' }).click()
-}
+const groupFirst = (page: Page, count: number) => groupCells(page, tray(page), count)
 
 async function dragOnto(page: Page, from: number, to: number, holdFor: number) {
   const start = (await tray(page).nth(from).boundingBox())!

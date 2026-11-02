@@ -1,5 +1,5 @@
 import { type CollisionDetection, DndContext } from '@dnd-kit/core'
-import { AnimatePresence, m } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useStore } from 'zustand'
@@ -7,6 +7,7 @@ import { useStore } from 'zustand'
 import { Kbd } from '@/components/ui/kbd'
 
 import { groupProblem } from './board'
+import { BottomBar } from './bottom-bar'
 import { CellFlights } from './cell-flights'
 import { dragAnnouncements, placeOnBoard } from './drag-announcements'
 import { DragGhost } from './drag-ghost'
@@ -23,7 +24,6 @@ import {
   type Point
 } from './drag-target'
 import { InsertLine } from './insert-line'
-import { rise } from './motion'
 import { instagram } from './network-profile'
 import { plannerStore } from './planner'
 import { useCellSensors } from './use-cell-sensors'
@@ -63,11 +63,7 @@ function DragHint() {
   const grouping = useStore(dragStore, ({ target }) => target?.kind === 'group')
   const albumFull = useStore(dragStore, (state) => state.albumFull)
   return (
-    <m.p
-      role="status"
-      {...rise}
-      className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md pointer-coarse:hidden"
-    >
+    <BottomBar role="status" className="px-3 py-1.5 text-sm pointer-coarse:hidden">
       {albumFull ? (
         t('groupRefused.tooMany', { limit: instagram.carouselLimit })
       ) : grouping ? (
@@ -75,7 +71,7 @@ function DragHint() {
       ) : (
         <Trans i18nKey="planner:dragHint" components={{ key: <Kbd /> }} />
       )}
-    </m.p>
+    </BottomBar>
   )
 }
 

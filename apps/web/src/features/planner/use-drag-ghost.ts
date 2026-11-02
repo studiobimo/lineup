@@ -9,7 +9,7 @@ import {
 import { useCallback, useMemo, useRef, useState } from 'react'
 
 import { type Box, centreOf, type Point } from './drag-target'
-import { settle } from './motion'
+import { fade, settle } from './motion'
 import { instagram } from './network-profile'
 
 const { width, height } = instagram.cellRatio
@@ -82,7 +82,7 @@ export function useDragGhost() {
       animate(offsetX, 0, settle)
       animate(offsetY, 0, settle)
       animate(scale, restingScale(), settle)
-      animate(opacity, GHOST_OPACITY, { duration: 0.15 })
+      animate(opacity, GHOST_OPACITY, fade)
     },
     [finishLanding, leaning, offsetX, offsetY, opacity, pointerX, pointerY, scale]
   )
@@ -122,9 +122,7 @@ export function useDragGhost() {
         animate(offsetX, end.x - pointerX.get(), settle),
         animate(offsetY, end.y - pointerY.get(), settle),
         animate(scale, ((to.right - to.left) / GHOST_WIDTH) * (merging ? MERGED_SCALE : 1), settle),
-        animate(opacity, merging ? 0 : 1, {
-          duration: merging ? settle.visualDuration : 0.15
-        })
+        animate(opacity, merging ? 0 : 1, merging ? { duration: settle.visualDuration } : fade)
       ]).then(() => {
         if (landed.current !== clear) return
         landed.current = null

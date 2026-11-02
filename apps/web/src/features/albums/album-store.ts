@@ -1,10 +1,7 @@
-import { useStore } from 'zustand'
-import { createStore } from 'zustand/vanilla'
+import { createOpenStore } from '@/lib/open-store'
 
-const albumStore = createStore<{ id: string | null }>(() => ({ id: null }))
-
-export const useOpenAlbumId = () => useStore(albumStore, ({ id }) => id)
-
-export const openAlbum = (id: string) => albumStore.setState({ id })
-
-export const closeAlbum = () => albumStore.setState({ id: null })
+export const {
+  useOpen: useOpenAlbumId,
+  open: openAlbum,
+  close: closeAlbum
+} = createOpenStore<string>()
