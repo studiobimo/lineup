@@ -12,6 +12,7 @@ import {
   keepLocked,
   move,
   moveAll,
+  moveCells,
   remove,
   sameBoard,
   shuffle,
@@ -131,6 +132,24 @@ describe('board operations', () => {
   it('tells boards apart by order', () => {
     expect(sameBoard(board, structuredClone(board))).toBe(true)
     expect(sameBoard(board, swap(board, 'a', 'b'))).toBe(false)
+  })
+})
+
+describe('moving several cells', () => {
+  const board: Board = { tray: ['a', 'b', 'c'], grid: ['d', 'e'] }
+
+  it('keeps their order on the board, whatever order they were chosen in', () => {
+    expect(moveCells(board, ['c', 'a'], 'grid')).toEqual({
+      tray: ['b'],
+      grid: ['d', 'e', 'a', 'c']
+    })
+  })
+
+  it('leaves alone those already there', () => {
+    expect(moveCells(board, ['a', 'd'], 'grid')).toEqual({
+      tray: ['b', 'c'],
+      grid: ['d', 'e', 'a']
+    })
   })
 })
 

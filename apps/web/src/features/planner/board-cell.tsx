@@ -1,5 +1,6 @@
 import {
   ArrowRightLeft,
+  Check,
   ImageOff,
   Lock,
   LockOpen,
@@ -21,6 +22,7 @@ import { openLightbox } from './lightbox-store'
 import { GLIDING_Z, settle } from './motion'
 import { cellShape } from './network-profile'
 import { plannerStore, usePlanner } from './planner'
+import { clickCell, toggleSelected, useIsSelected } from './selection-store'
 import { setTabStop } from './tab-stop'
 import { Thumbnail } from './thumbnail'
 import { useCellDrag } from './use-board-drag'
@@ -98,6 +100,34 @@ const CellActions = memo(function CellActions({
   )
 })
 
+/** In its own corner, because a narrow cell's actions already fill its top edge. */
+const SelectToggle = memo(function SelectToggle({
+  id,
+  selected
+}: {
+  id: string
+  selected: boolean
+}) {
+  const { t } = useTranslation('planner')
+  return (
+    <IconButton
+      variant={selected ? 'default' : 'outline'}
+      size="icon-xs"
+      tabIndex={-1}
+      tooltip={cellTooltip}
+      label={t(selected ? 'deselect' : 'select')}
+      aria-pressed={selected}
+      className={cn(
+        'absolute right-1 bottom-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100',
+        selected && 'opacity-100'
+      )}
+      onClick={() => toggleSelected(id)}
+    >
+      <Check />
+    </IconButton>
+  )
+})
+
 function CellBadge({ icon: Icon, label }: { icon: LucideIcon; label?: string }) {
   return (
     <span className="flex rounded-sm bg-background p-1 text-foreground shadow-xs">
@@ -119,6 +149,7 @@ export const BoardCell = memo(function BoardCell({
   const near = useNearViewport(cell)
   const locked = usePlanner(({ board }) => isLocked(board, id))
   const missing = usePlanner(({ images }) => images[id]?.missing)
+  const selected = useIsSelected(id)
   const {
     ref: dragRef,
     attributes,
@@ -151,6 +182,9 @@ export const BoardCell = memo(function BoardCell({
       aria-disabled={undefined}
       tabIndex={tabStop ? 0 : -1}
       onFocus={() => setTabStop(container, id)}
+      onClick={(event) => {
+        if (!(event.target as HTMLElement).closest('button')) clickCell(id, event)
+      }}
       aria-label={t('cell', { position })}
       {...dropArea}
       data-mark={mark}
@@ -162,6 +196,7 @@ export const BoardCell = memo(function BoardCell({
       className={cn(
         'group relative touch-manipulation overflow-hidden bg-muted select-none [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary',
         !locked && 'cursor-grab active:cursor-grabbing',
+        selected && 'outline-2 -outline-offset-2 outline-primary',
         isDragging && 'opacity-30',
         airborne && 'opacity-0'
       )}
@@ -187,6 +222,7 @@ export const BoardCell = memo(function BoardCell({
         {locked && <CellBadge icon={Lock} />}
         {missing && <CellBadge icon={ImageOff} label={t('missingOriginal')} />}
       </div>
+      {!mark && <SelectToggle id={id} selected={selected} />}
       {!mark && <CellActions id={id} container={container} locked={locked} />}
     </m.div>
   )

@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Lock, LockOpen, Maximize2, Trash2 } from 'lucide-react'
+import { ArrowRightLeft, Check, Lock, LockOpen, Maximize2, Trash2 } from 'lucide-react'
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -8,6 +8,7 @@ import { containerOf, isLocked } from './board'
 import { closeCellMenu, useCellMenu } from './cell-menu-store'
 import { openLightbox } from './lightbox-store'
 import { plannerStore } from './planner'
+import { selectedCells, toggleSelected } from './selection-store'
 
 // Into the cell's lower edge, so the menu reads as belonging to it and not to the row below.
 const OVERLAP = -112
@@ -33,6 +34,10 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
         <MenuItem onClick={() => openLightbox(id)}>
           <Maximize2 />
           {t('openImage')}
+        </MenuItem>
+        <MenuItem onClick={() => toggleSelected(id)}>
+          <Check />
+          {t(selectedCells().includes(id) ? 'deselect' : 'select')}
         </MenuItem>
         {toTray && (
           <MenuItem onClick={() => plannerStore.getState().toggleLock(id)}>

@@ -49,6 +49,14 @@ export function move(board: Board, id: string, to: Container, index?: number): B
   return { ...without, [to]: cells }
 }
 
+/** Those not already in `to`, in their order on the board, after what is there. */
+export function moveCells(board: Board, ids: string[], to: Container): Board {
+  const chosen = new Set(ids)
+  const from = to === 'tray' ? board.grid : board.tray
+  const moving = from.filter((id) => chosen.has(id))
+  return { ...lift(board, moving), [to]: [...board[to], ...moving] }
+}
+
 export function swap(board: Board, first: string, second: string): Board {
   const a = locate(board, first)
   const b = locate(board, second)

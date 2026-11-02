@@ -12,6 +12,7 @@ import {
   keepLocked,
   move,
   moveAll,
+  moveCells,
   remove,
   sameBoard,
   shuffle,
@@ -45,6 +46,7 @@ export interface PlannerState {
   move(id: string, to: Container, index?: number): void
   swap(first: string, second: string): void
   moveAll(from: Container): void
+  moveCells(ids: string[], to: Container): void
   shuffle(container: Container): void
   sortByColour(container: Container, strategy: SortStrategy): Promise<void>
   /** Not a change to the board, so it is no part of undo. */
@@ -199,6 +201,7 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
       move: (id, to, index) => commit(move(get().board, id, to, index)),
       swap: (first, second) => commit(swap(get().board, first, second)),
       moveAll: (from) => commit(moveAll(get().board, from)),
+      moveCells: (ids, to) => commit(moveCells(get().board, ids, to)),
       shuffle: (container) => commit(shuffle(get().board, container)),
       toggleLock: (id) => commit(toggleLock(get().board, id)),
 

@@ -37,6 +37,7 @@ import { closeLightbox, useLightboxId } from './lightbox-store'
 import { cellShape, gridColumns } from './network-profile'
 import { openBoard } from './open-board'
 import { plannerStore, usePlanner } from './planner'
+import { SelectionBar } from './selection-bar'
 import { useDropArea } from './use-board-drag'
 import { useTabStop } from './tab-stop'
 import { usePlannerShortcuts } from './use-planner-shortcuts'
@@ -293,6 +294,7 @@ export function PlannerPage() {
         <SharedTooltip handle={cellTooltip} />
         <OpenImage />
         <CellMenu />
+        <SelectionBar />
         {desktop && <TrayPanel />}
         <GridPanel desktop={desktop} />
       </div>

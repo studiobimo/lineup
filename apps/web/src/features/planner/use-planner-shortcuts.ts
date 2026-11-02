@@ -7,6 +7,7 @@ import { openCellMenu } from './cell-menu-store'
 import { dragStore } from './drag-target'
 import { instagram } from './network-profile'
 import { plannerStore } from './planner'
+import { clearSelection, selectedCells } from './selection-store'
 import { cellStep, isDelete, shortcutFor } from './shortcuts'
 
 /** Focus moves on to the next cell, so a run of deletes does not start again from the top. */
@@ -15,7 +16,8 @@ function removeCell(cell: HTMLElement) {
   const { dropId } = cell.dataset
   const { board, remove } = plannerStore.getState()
   if (!dropId || isLocked(board, dropId)) return
-  remove([dropId])
+  const selected = selectedCells()
+  remove(selected.includes(dropId) ? selected : [dropId])
   if (next instanceof HTMLElement) next.focus()
 }
 
@@ -52,6 +54,7 @@ export function usePlannerShortcuts() {
           }
         }
       }
+      if (key === 'Escape' && !dialogIsOpen() && !dragStore.getState().dragging) clearSelection()
       const shortcut = shortcutFor(event)
       if (!shortcut || inTextField(event.target) || dialogIsOpen()) return
       event.preventDefault()
