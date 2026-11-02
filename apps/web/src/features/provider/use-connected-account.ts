@@ -12,8 +12,9 @@ export function usePublishedPosts(accountId: string | undefined) {
   const linked = usePlanner(({ board }) => board.posts)
   const { data, error, refetch } = query
   const posts = useMemo(() => {
-    const onBoard = new Set(Object.values(linked ?? {}).flatMap(({ id, url }) => [id, url]))
-    return data?.filter(({ id, url }) => !onBoard.has(id) && !onBoard.has(url))
+    const posts = Object.values(linked ?? {})
+    const onBoard = new Set(posts.flatMap(({ id, url }) => (url ? [id, url] : [id])))
+    return data?.filter(({ id, url }) => !onBoard.has(id) && !(url && onBoard.has(url)))
   }, [data, linked])
   return { posts, error, refetch }
 }

@@ -436,6 +436,13 @@ test('a post that goes out says so, links to it, and is not shown twice', async 
   await expect(publishedCells(page)).toHaveCount(1)
 })
 
+test('published posts stay beside a post that is only scheduled', async ({ page }) => {
+  const provider = await scheduledCell(page)
+  provider.published.push(post('other'))
+  await page.reload()
+  await expect(publishedCells(page)).toHaveCount(1)
+})
+
 test('a post that failed gives the reason, and a new time tries again', async ({ page }) => {
   const provider = await scheduledCell(page)
   const failure = 'The image is too wide'
