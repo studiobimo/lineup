@@ -19,7 +19,7 @@ routes until M4 ([ADR-0001](adr/0001-single-worker.md)).
 - `make -C .devtools check` passes locally and in CI
 - The shell is live on `development`, under a strict Content-Security-Policy
 - A Worker over its size budget fails CI
-- A push to `main` releases: semantic-release tags it and cuts the GitHub Release
+- A push to `develop` with a releasable change opens a release pull request, and merging it tags the release and cuts the GitHub Release
 
 ## M1: Planner core
 
