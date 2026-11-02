@@ -14,6 +14,7 @@ import { saveImportSettings, useImportSettings } from '@/features/planner/import
 import { instagram } from '@/features/planner/network-profile'
 import { boardStore } from '@/features/planner/planner'
 import { saveProfile, toHandle, useProfile } from '@/features/planner/profile-store'
+import { ProviderSettings } from '@/features/provider/provider-settings'
 import { useDialogPresence } from '@/hooks/use-dialog-presence'
 import { isInstalled, isSafari } from '@/lib/platform'
 import { getTheme, setTheme, subscribeToTheme, type Theme } from '@/lib/theme'
@@ -156,6 +157,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           <ProfileSettings />
           <PhotoSettings />
           <StorageSettings onLeave={close} />
+          <ProviderSettings />
         </DialogPanel>
       </DialogPopup>
     </Dialog>

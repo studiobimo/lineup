@@ -14,7 +14,8 @@ const HelpDialog = lazyComponent(
 )
 const SettingsDialog = lazyComponent(
   () => import('./settings-dialog').then(({ SettingsDialog }) => SettingsDialog),
-  settingsStrings
+  settingsStrings,
+  () => loadStrings('provider')
 )
 
 export function ShellActions() {

@@ -7,12 +7,13 @@ const catalogs = import.meta.glob(
     '../locales/*/albums.json',
     '../locales/*/legal.json',
     '../locales/*/planner.json',
+    '../locales/*/provider.json',
     '../locales/*/settings.json'
   ],
   { import: 'default' }
 ) as Record<string, () => Promise<object>>
 
-type LazyNamespace = 'albums' | 'legal' | 'planner' | 'settings'
+type LazyNamespace = 'albums' | 'legal' | 'planner' | 'provider' | 'settings'
 
 /** Every language's strings for what is about to show them. */
 export async function loadStrings(namespace: LazyNamespace) {

@@ -16,6 +16,7 @@ const catalogs = import.meta.glob(
     '!../locales/*/albums.json',
     '!../locales/*/legal.json',
     '!../locales/*/planner.json',
+    '!../locales/*/provider.json',
     '!../locales/*/settings.json'
   ],
   { eager: true, import: 'default' }

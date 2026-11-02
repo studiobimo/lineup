@@ -1,0 +1,45 @@
+{
+  "title": "Instagram",
+  "tryAgain": "Try again",
+  "guide": {
+    "account": "Create a free account at <site>{{provider}}</site>.",
+    "instagram": "Connect your Instagram there. It has to be a professional account, which Instagram requires to be public.",
+    "key": "Create an API key limited to one profile, and paste it here."
+  },
+  "key": {
+    "label": "{{provider}} API key",
+    "invalid": "That does not look like a key.",
+    "profile": "Profile",
+    "chooseProfile": "Choose a profile",
+    "save": "Save key",
+    "connected": "Key ending {{last4}}, good until {{date}}.",
+    "replace": "Replace key",
+    "forget": "Forget key",
+    "expired": "Your key has expired. What you planned and scheduled is safe. Add a key to carry on.",
+    "revoke": "Forgetting a key removes it from this browser. To cancel it everywhere, use your <site>{{provider}} dashboard</site>."
+  },
+  "account": {
+    "label": "Instagram account",
+    "choose": "Choose an account",
+    "none": "This key has no Instagram account yet.",
+    "connect": "Connect Instagram",
+    "reconnect": "This account needs connecting again before anything can be scheduled."
+  },
+  "problems": {
+    "offline": "Could not reach the server. Check your connection and try again.",
+    "not_found": "That could not be found. It may have been removed.",
+    "validation": "Something in this was not valid. Check it and try again.",
+    "internal": "Something went wrong on our side. Try again.",
+    "origin": "This request was blocked. Reload the page and try again.",
+    "rate_limited": "Too many tries. Wait a minute and try again.",
+    "key_missing": "Your key has gone. Add it again in Settings.",
+    "key_rejected": "That key was refused. Check it and try again.",
+    "key_not_allowed": "This key is not allowed to do that.",
+    "profile_required": "Choose a profile for this key.",
+    "idempotency_required": "This request was missing something. Reload the page and try again.",
+    "time_in_past": "That time has passed. Pick a later one.",
+    "provider_refused": "This was refused.",
+    "provider_busy": "This is still being worked on. Try again in a moment.",
+    "provider_failed": "The scheduling service did not answer. Try again in a moment."
+  }
+}
