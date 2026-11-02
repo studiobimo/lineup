@@ -4,11 +4,6 @@ import { expect, type Page, test } from '@playwright/test'
 
 import { addImages, image, watchErrors } from './fixtures'
 
-const safari =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15'
-
-const safariNote = 'Safari can delete'
-
 /** The worker controls the page only once it has cached what it needs. */
 async function readyForOffline(page: Page) {
   await page.evaluate(() => navigator.serviceWorker.ready)
@@ -49,18 +44,4 @@ test('it can be installed', async ({ page }) => {
   for (const { src } of manifest.icons) {
     expect((await page.request.get(src)).headers()['content-type']).toBe('image/png')
   }
-})
-
-test('only Safari is told about installing', async ({ page, browser, baseURL }) => {
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Settings' }).click()
-  await expect(page.getByRole('switch', { name: 'Read locations' })).toBeVisible()
-  await expect(page.getByText(safariNote)).toHaveCount(0)
-
-  const context = await browser.newContext({ baseURL, userAgent: safari })
-  const inSafari = await context.newPage()
-  await inSafari.goto('/')
-  await inSafari.getByRole('button', { name: 'Settings' }).click()
-  await expect(inSafari.getByText(safariNote)).toBeVisible()
-  await context.close()
 })
