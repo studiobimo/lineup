@@ -25,6 +25,8 @@ export interface FolderBoardStore extends BoardStore {
   countForgotten(): Promise<number>
   /** Lets `newFiles` offer those files again. */
   remember(): Promise<void>
+  /** Deletes those files from the folder, the one way Lineup ever removes a photo. Returns how many. */
+  deleteForgotten(): Promise<number>
 }
 
 const storedRecordSchema = imageRecordSchema.extend({ fileName: z.string().optional() })
@@ -90,11 +92,12 @@ function jsonFile<Value>(
 async function* walk(
   directory: FileSystemDirectoryHandle,
   prefix = ''
-): AsyncGenerator<[string, FileSystemFileHandle]> {
+): AsyncGenerator<[string, FileSystemFileHandle, FileSystemDirectoryHandle]> {
   for await (const [name, handle] of directory.entries()) {
     if (name.startsWith('.')) continue
-    if (handle.kind === 'file') yield [`${prefix}${name}`, handle as FileSystemFileHandle]
-    else yield* walk(handle as FileSystemDirectoryHandle, `${prefix}${name}/`)
+    if (handle.kind === 'file') {
+      yield [`${prefix}${name}`, handle as FileSystemFileHandle, directory]
+    } else yield* walk(handle as FileSystemDirectoryHandle, `${prefix}${name}/`)
   }
 }
 
@@ -235,6 +238,19 @@ export async function createFolderBoardStore(
     async remember() {
       forgotten.clear()
       await forgottenFile.write([])
+    },
+
+    async deleteForgotten() {
+      // Found first, because a folder changing under a walk can skip what comes next.
+      const doomed: [FileSystemDirectoryHandle, string][] = []
+      for await (const [path, , parent] of walk(folder)) {
+        if (forgotten.has(path)) doomed.push([parent, path.slice(path.lastIndexOf('/') + 1)])
+      }
+      for (const [parent, name] of doomed) await orUndefined(parent.removeEntry(name))
+      // Paths whose file had already gone have nothing left to be told about either.
+      forgotten.clear()
+      await forgottenFile.write([])
+      return doomed.length
     },
 
     // The folder is the person's disk, so it has no quota to report or browser to persuade.

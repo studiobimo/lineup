@@ -16,7 +16,12 @@
     "light": "Claro",
     "dark": "Oscuro"
   },
-  "photos": "Fotos",
+  "tabs": {
+    "general": "General",
+    "photos": "Fotos",
+    "storage": "Almacenamiento",
+    "integrations": "Integraciones"
+  },
   "captureDates": "Leer las fechas de captura",
   "locations": "Leer las ubicaciones",
   "photosNote": "Al añadir una foto, Bandas puede usar cuándo se tomó y la ciudad donde se tomó para mantener junta una sesión. Lineup guarda la ciudad, nunca la posición exacta, y ninguna de las dos sale de este navegador. Las fotos que ya están en el tablero no se vuelven a leer. Desactivar un interruptor no borra lo que ya se leyó.",
@@ -33,8 +38,8 @@
   "folderChoose": "Guardar en una carpeta",
   "folderChoosing": "Copiando tu tablero",
   "folderNote": "Guarda tu tablero y tus originales a tamaño completo en una carpeta que elijas, para que borrar el navegador no los afecte. Una carpeta vacía recibe una copia de este tablero. Una carpeta que ya tiene un tablero lo abre.",
-  "folderInUse": "Tu tablero está en {{name}}.",
-  "folderInUseNote": "Tus originales están ahí a tamaño completo. Lineup añade cosas a esa carpeta, pero nunca cambia ni borra tus fotos.",
+  "folderInUse": "Tu tablero está en <name>{{name}}</name>.",
+  "folderInUseNote": "Tus originales están ahí a tamaño completo. Lineup añade cosas a esa carpeta y nunca cambia tus fotos. Solo borra una si se lo pides.",
   "folderLeave": "Dejar de usar esta carpeta",
   "folderFailed": "No se pudo usar esa carpeta. Inténtalo de nuevo o elige otra.",
   "folderFull": "Esa unidad no tiene espacio. Libera algo de espacio o elige otra carpeta.",
@@ -88,6 +93,32 @@
       "enter": "Intro",
       "arrows": "Teclas de flecha",
       "escape": "Esc"
-    }
-  }
+    },
+    "tabs": {
+      "shortcuts": "Atajos",
+      "guide": "Primeros pasos",
+      "legal": "Legal"
+    },
+    "groups": {
+      "history": "Historial",
+      "board": "Tablero",
+      "moving": "Mover imágenes"
+    },
+    "guideTitle": "Cómo funciona",
+    "legalTitle": "Tus datos y las reglas"
+  },
+  "appearance": "Apariencia",
+  "backupTitle": "Copia de seguridad",
+  "folderTitle": "Carpeta",
+  "removedTitle": "Fotos quitadas",
+  "deleteRemoved": "Quitar del todo",
+  "deleteRemovedTitle_one": "¿Borrar esta foto de tu carpeta?",
+  "deleteRemovedTitle_other": "¿Borrar estas {{count}} fotos de tu carpeta?",
+  "deleteRemovedNote_one": "Se borra de {{name}} en tu dispositivo, no se mueve a la papelera. No se puede deshacer.",
+  "deleteRemovedNote_other": "Se borran de {{name}} en tu dispositivo, no se mueven a la papelera. No se puede deshacer.",
+  "deleteRemovedKeep": "Conservarlas",
+  "deleteRemovedConfirm_one": "Borrar foto",
+  "deleteRemovedConfirm_other": "Borrar {{count}} fotos",
+  "removedDone_one": "1 foto borrada de tu carpeta.",
+  "removedDone_other": "{{count}} fotos borradas de tu carpeta."
 }

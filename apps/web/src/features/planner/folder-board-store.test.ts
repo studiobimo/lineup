@@ -128,6 +128,24 @@ describe('a folder board', () => {
     expect((await reopened.newFiles()).map(({ name }) => name)).toEqual(['a.jpg'])
   })
 
+  it('deletes only the files it was told to forget, and counts them', async () => {
+    const { handle, files } = fakeDirectory()
+    const store = await createFolderBoardStore(handle)
+    await store.putImage(image('a', photo('a.jpg')))
+    await store.putImage(image('b', photo('b.jpg')))
+    await store.putImage(image('c', photo('c.jpg')))
+    await store.deleteImages(['a', 'b'])
+
+    expect(await store.deleteForgotten()).toBe(2)
+    expect([...files.keys()].filter((name) => name.endsWith('.jpg'))).toEqual(['c.jpg'])
+    expect(await store.countForgotten()).toBe(0)
+    expect(await store.deleteForgotten()).toBe(0)
+    expect((await store.listImages()).map(({ id }) => id)).toEqual(['c'])
+
+    const reopened = await createFolderBoardStore(handle)
+    expect(await reopened.newFiles()).toEqual([])
+  })
+
   it('offers what appeared, leaves hidden files alone, and looks in subfolders', async () => {
     const { handle, files } = fakeDirectory()
     const store = await createFolderBoardStore(handle)

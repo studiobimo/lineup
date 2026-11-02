@@ -54,6 +54,7 @@ test('closing with a button plays the exit too', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Help' }).click()
   await page.getByRole('dialog').waitFor()
+  await page.getByRole('tab', { name: 'Getting started' }).click()
   await page.waitForTimeout(300)
   const leaving = await opacities(page, () =>
     page.getByRole('button', { name: 'Show the introduction' }).click()

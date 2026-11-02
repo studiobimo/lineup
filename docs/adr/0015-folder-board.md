@@ -1,6 +1,6 @@
 # ADR-0015: What a folder board keeps, and where
 
-- **Status:** Accepted
+- **Status:** Accepted, in part amended by [ADR-0020](0020-delete-removed-photos-on-request.md)
 - **Date:** 2026-11-01
 
 ## Context
