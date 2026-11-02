@@ -6,6 +6,10 @@ const port = 4173
 export default defineConfig({
   testDir: './e2e',
   forbidOnly: !!process.env.CI,
+  // Every test makes its own context, so tests share nothing and spread across workers by test,
+  // not by file. The runner has two cores, and Playwright would pick one worker for them.
+  fullyParallel: true,
+  workers: process.env.CI ? 2 : undefined,
   reporter: process.env.CI ? 'github' : 'list',
   // A cell in mid-glide is a moving target for a real mouse. The animation has its own check.
   use: { baseURL: `http://localhost:${port}`, contextOptions: { reducedMotion: 'reduce' } },

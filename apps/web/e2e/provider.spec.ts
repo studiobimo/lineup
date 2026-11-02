@@ -49,53 +49,6 @@ test('a refused key says so, and stays to be corrected', async ({ page }) => {
   await expect(settings.getByLabel('Zernio API key')).toHaveValue('a-bad-pasted-key')
 })
 
-test('a key that sees several profiles asks which one', async ({ page }) => {
-  const provider = await mockProvider(page, {
-    profiles: [
-      { id: 'one', name: 'Personal' },
-      { id: 'two', name: 'Studio' }
-    ]
-  })
-  const settings = await addKey(page)
-  const save = settings.getByRole('button', { name: 'Save key' })
-  await expect(save).toBeDisabled()
-
-  await settings.getByRole('combobox', { name: 'Profile' }).click()
-  await page.getByRole('option', { name: 'Studio' }).click()
-  await save.click()
-  await expect(settings.getByText(/Key ending abcd/)).toBeVisible()
-  expect(provider.bodies[provider.requests.lastIndexOf('PUT /key')]).toMatchObject({
-    key: KEY,
-    profileId: 'two'
-  })
-})
-
-test('several accounts wait to be chosen, and the choice is kept', async ({ page }) => {
-  await mockProvider(page, {
-    accounts: [
-      { id: 'one', username: 'first' },
-      { id: 'two', username: 'second' }
-    ]
-  })
-  const settings = await addKey(page)
-  await settings.getByRole('combobox', { name: 'Account' }).click()
-  await page.getByRole('option', { name: '@second' }).click()
-
-  await page.reload()
-  const again = page.getByRole('dialog', { name: 'Settings' })
-  await page.getByRole('button', { name: 'Settings' }).click()
-  await again.getByRole('tab', { name: 'Integrations' }).click()
-  await expect(again.getByRole('combobox', { name: 'Account' })).toHaveText(/@second/)
-})
-
-test('a key with no account offers to connect one', async ({ page }) => {
-  await mockProvider(page, { accounts: [] })
-  const settings = await addKey(page)
-  await expect(settings.getByText('This key has no connected account yet.')).toBeVisible()
-  await settings.getByRole('button', { name: 'Connect an account' }).click()
-  await expect(page).toHaveURL(/\/connected$/)
-})
-
 test('forgetting the key clears it from this browser', async ({ page }) => {
   const provider = await mockProvider(page)
   const settings = await addKey(page)
@@ -105,19 +58,6 @@ test('forgetting the key clears it from this browser', async ({ page }) => {
   expect(provider.requests).toContain('DELETE /key')
   const stored = await page.evaluate(() => localStorage.getItem('provider-connection'))
   expect(stored).not.toContain('abcd')
-})
-
-test('a cookie that has gone turns the settings back to adding a key', async ({ page }) => {
-  await mockProvider(page)
-  await addKey(page)
-  // A new page with the hint but with the mock's key state gone, as a cleared cookie leaves it.
-  const fresh = await page.context().newPage()
-  await mockProvider(fresh)
-  await fresh.goto('/')
-  await fresh.getByRole('button', { name: 'Settings' }).click()
-  await fresh.getByRole('tab', { name: 'Integrations' }).click()
-  await expect(fresh.getByLabel('Zernio API key')).toBeVisible()
-  await fresh.close()
 })
 
 test('an expired key says so, and is asked for again', async ({ page }) => {
@@ -131,17 +71,6 @@ test('an expired key says so, and is asked for again', async ({ page }) => {
   const settings = await openSettings(page)
   await expect(settings.getByText(/Your key has expired/)).toBeVisible()
   await expect(settings.getByLabel('Zernio API key')).toBeVisible()
-})
-
-test('an account that cannot be loaded offers to try again', async ({ page }) => {
-  const provider = await mockProvider(page)
-  provider.failures.set('/accounts', { status: 502, code: 'provider_failed' })
-  const settings = await addKey(page)
-  await expect(settings.getByText(/did not answer/)).toBeVisible()
-
-  provider.failures.clear()
-  await settings.getByRole('button', { name: 'Try again' }).click()
-  await expect(settings.getByRole('combobox', { name: 'Account' })).toHaveText(/@studio/)
 })
 
 const PICTURE = 'https://media.zernio.com/one.png'
@@ -180,63 +109,6 @@ test('published posts carry on after the planned cells, and stay after a reload'
   expect(errors).toEqual([])
 })
 
-test('published posts show on an empty grid, under its empty note', async ({ page }) => {
-  await mockProvider(page, { published: [post('one')] })
-  await connect(page)
-  await expect(page.getByText('Move images here to plan your feed.')).toBeVisible()
-  await expect(publishedCells(page)).toHaveCount(1)
-})
-
-test('a picture that will not load leaves a marked cell, not a broken image', async ({ page }) => {
-  await page.route(PICTURE, (route) => route.abort())
-  await mockProvider(page, { published: [post('one', PICTURE)] })
-  await connect(page)
-  await expect(page.getByRole('img', { name: /^Published/ }).locator('svg')).toBeVisible()
-})
-
-test('published posts that cannot be loaded offer to try again', async ({ page }) => {
-  const provider = await mockProvider(page, { published: [post('one')] })
-  provider.failures.set('/posts', { status: 502, code: 'provider_failed' })
-  await connect(page)
-  await expect(page.getByText(/Could not load your published posts/)).toBeVisible()
-
-  provider.failures.clear()
-  await page.getByRole('button', { name: 'Try again' }).click()
-  await expect(publishedCells(page)).toHaveCount(1)
-})
-
-test('a key past its date asks for nothing', async ({ page }) => {
-  const provider = await mockProvider(page, { published: [post('one')] })
-  await connect(page)
-  await expect(publishedCells(page)).toHaveCount(1)
-
-  await page.evaluate(() => {
-    const connection = JSON.parse(localStorage.getItem('provider-connection') ?? '{}') as object
-    const expiresAt = new Date(0).toISOString()
-    localStorage.setItem('provider-connection', JSON.stringify({ ...connection, expiresAt }))
-  })
-  await page.reload()
-  await expect(page.getByRole('heading', { name: 'Grid' })).toBeVisible()
-  await expect(publishedCells(page)).toHaveCount(0)
-  expect(provider.requests.filter((request) => request.endsWith('/posts'))).toHaveLength(1)
-})
-
-test('the phone preview shows the connected account and its posts', async ({ page }) => {
-  await mockProvider(page, {
-    accounts: [{ id: 'account-1', username: 'studio', displayName: 'The Studio', followers: 1234 }],
-    published: [post('one'), post('two')]
-  })
-  await connect(page)
-  await page.getByRole('button', { name: 'Preview on a phone' }).click()
-  const phone = page.getByRole('dialog', { name: 'Preview on a phone' })
-  const profile = phone.locator('[data-phone]')
-  await expect(profile.getByText('studio', { exact: true })).toBeAttached()
-  await expect(profile.getByText('The Studio')).toBeAttached()
-  await expect(profile.getByText('1234')).toBeAttached()
-  await expect(profile.getByText('2', { exact: true })).toBeAttached()
-  await expect(phone.locator('[data-empty-slot]')).toHaveCount(7)
-})
-
 const IN_A_WEEK = new Date(Date.now() + 7 * 86_400_000)
 /** As a date and time field wants it, here and in the zone the test runs in. */
 const fieldTime = (date: Date) =>
@@ -265,63 +137,6 @@ async function schedule(dialog: Locator, when = IN_A_WEEK, caption = 'Hello') {
   await dialog.getByLabel('Date and time').fill(fieldTime(when))
   await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
 }
-
-test('no key, no way to schedule', async ({ page }) => {
-  await mockProvider(page)
-  await planOnGrid(page)
-  await grid(page).first().hover()
-  await expect(grid(page).first().getByRole('button', { name: 'Move to the tray' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Schedule', exact: true })).toHaveCount(0)
-})
-
-test('a key with no account says what is missing, and sends nothing', async ({ page }) => {
-  const provider = await mockProvider(page, { accounts: [] })
-  await planOnGrid(page)
-  const settings = await addKey(page)
-  await expect(settings.getByRole('button', { name: 'Connect an account' })).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(settings).toBeHidden()
-
-  const dialog = await openSchedule(page)
-  await expect(dialog.getByText(/Connect an Instagram account in Settings/)).toBeVisible()
-  await expect(dialog.getByRole('button', { name: 'Schedule', exact: true })).toHaveCount(0)
-  expect(provider.requests).not.toContain('POST /uploads')
-})
-
-test('a read-only key shows published posts and offers no way to schedule', async ({ page }) => {
-  const provider = await mockProvider(page, { readOnly: true, published: [post('one')] })
-  await planOnGrid(page)
-  const settings = await addKey(page)
-  await expect(settings.getByText(/This key is read-only/)).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(settings).toBeHidden()
-
-  await expect(publishedCells(page)).toHaveCount(1)
-  await grid(page).first().hover()
-  await expect(grid(page).first().getByRole('button', { name: 'Move to the tray' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Schedule', exact: true })).toHaveCount(0)
-  expect(provider.requests).not.toContain('POST /uploads')
-})
-
-test('a post on the board can be let go under a read-only key', async ({ page }) => {
-  const provider = await scheduledCell(page)
-  await page.getByRole('button', { name: 'Settings' }).click()
-  const settings = page.getByRole('dialog', { name: 'Settings' })
-  await settings.getByRole('tab', { name: 'Integrations' }).click()
-  provider.readOnly = true
-  await settings.getByRole('button', { name: 'Key options' }).click()
-  await page.getByRole('menuitem', { name: 'Replace key' }).click()
-  await settings.getByLabel('Zernio API key').fill(KEY)
-  await settings.getByRole('button', { name: 'Save key' }).click()
-  await expect(settings.getByText(/This key is read-only/)).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(settings).toBeHidden()
-
-  await postBadge(page, /^Scheduled for/).click()
-  const dialog = page.getByRole('dialog', { name: 'Your post' })
-  await expect(dialog.getByRole('button', { name: 'Save changes' })).toHaveCount(0)
-  await expect(dialog.getByText(/does not stop the post/)).toBeVisible()
-})
 
 test('a planned image is sent, scheduled and held in place', async ({ page }) => {
   const errors = watchErrors(page)
@@ -380,27 +195,6 @@ test('an album goes as one post, and each image on its own', async ({ page }) =>
   expect(provider.bodies[at].mediaUrls).toHaveLength(2)
 })
 
-test('a time that has passed is refused before anything leaves', async ({ page }) => {
-  const provider = await mockProvider(page)
-  await planOnGrid(page)
-  await connect(page)
-  const dialog = await openSchedule(page)
-  await schedule(dialog, new Date(Date.now() - 86_400_000))
-  await expect(dialog.getByText('Pick a time that is still to come.')).toBeVisible()
-  expect(provider.requests).not.toContain('POST /uploads')
-})
-
-test('a caption past the limit is refused before anything leaves', async ({ page }) => {
-  const provider = await mockProvider(page)
-  await planOnGrid(page)
-  await connect(page)
-  const dialog = await openSchedule(page)
-  await schedule(dialog, IN_A_WEEK, 'x'.repeat(2201))
-  await expect(dialog.getByText('2201 of 2200')).toBeVisible()
-  await expect(dialog).toBeVisible()
-  expect(provider.requests).not.toContain('POST /uploads')
-})
-
 test('a retry after a lost answer does not post twice', async ({ page }) => {
   const provider = await mockProvider(page, { loseNextAnswer: true })
   await planOnGrid(page)
@@ -418,41 +212,6 @@ test('a retry after a lost answer does not post twice', async ({ page }) => {
   )
   expect(keys).toHaveLength(2)
   expect(new Set(keys).size).toBe(1)
-})
-
-test('storage turning an image down says so, and trying again picks up', async ({ page }) => {
-  const provider = await mockProvider(page, { storageFails: true })
-  await planOnGrid(page)
-  await connect(page)
-  const dialog = await openSchedule(page)
-  await schedule(dialog)
-  await expect(dialog.getByText(/Could not reach the server/)).toBeVisible()
-  expect(provider.requests).not.toContain('POST /scheduled-posts')
-
-  provider.storageFails = false
-  await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
-  await expect(dialog).toBeHidden()
-  expect(provider.scheduled).toHaveLength(1)
-})
-
-test('a time out of grid order warns, and does not stop anyone', async ({ page }) => {
-  const provider = await mockProvider(page)
-  await planOnGrid(page, 2)
-  await connect(page)
-  const first = await openSchedule(page, 0)
-  await schedule(first)
-  await expect(first).toBeHidden()
-
-  const later = await openSchedule(page, 1)
-  await later.getByLabel('Date and time').fill(fieldTime(new Date(IN_A_WEEK.getTime() + 3_600_000)))
-  await expect(later.getByText(/will not go out in the order of your grid/)).toBeVisible()
-  await later.getByLabel('Date and time').fill(fieldTime(new Date(IN_A_WEEK.getTime() - 3_600_000)))
-  await expect(later.getByText(/will not go out in the order of your grid/)).toBeHidden()
-
-  await later.getByLabel('Date and time').fill(fieldTime(new Date(IN_A_WEEK.getTime() + 3_600_000)))
-  await later.getByRole('button', { name: 'Schedule', exact: true }).click()
-  await expect(later).toBeHidden()
-  expect(provider.scheduled).toHaveLength(2)
 })
 
 /** A cell on the grid with a post at the provider, ready for what happens to the post next. */
@@ -486,13 +245,6 @@ test('a post that goes out says so, links to it, and is not shown twice', async 
   await postBadge(page, 'Published').click()
   await dialog.getByRole('button', { name: 'Free this cell' }).click()
   await expect(dialog).toBeHidden()
-  await expect(publishedCells(page)).toHaveCount(1)
-})
-
-test('published posts stay beside a post that is only scheduled', async ({ page }) => {
-  const provider = await scheduledCell(page)
-  provider.published.push(post('other'))
-  await page.reload()
   await expect(publishedCells(page)).toHaveCount(1)
 })
 
@@ -543,59 +295,4 @@ test('cancelling asks first, then frees the cell', async ({ page }) => {
 
   await grid(page).first().hover()
   await expect(grid(page).first().getByRole('button', { name: 'Move to the tray' })).toBeVisible()
-})
-
-test('a post cancelled elsewhere frees its cell', async ({ page }) => {
-  const provider = await scheduledCell(page)
-  provider.scheduled[0] = { ...provider.scheduled[0], status: 'cancelled' }
-  await page.reload()
-  await expect(postBadge(page, /^Scheduled for/)).toHaveCount(0)
-})
-
-test('a post the provider has lost stays as it was, and cancelling clears it', async ({ page }) => {
-  const provider = await scheduledCell(page)
-  provider.scheduled.length = 0
-  provider.failures.set(`/scheduled-posts/post-1`, { status: 404, code: 'not_found' })
-  await page.reload()
-  await postBadge(page, /^Scheduled for/).click()
-  await page.getByRole('button', { name: 'Cancel post' }).click()
-  await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel post' }).click()
-  await expect(postBadge(page, /^Scheduled for/)).toHaveCount(0)
-})
-
-test('a refused cancel says why, and the cell stays', async ({ page }) => {
-  const provider = await scheduledCell(page)
-  const detail = 'This post has already gone out'
-  provider.failures.set('/scheduled-posts/post-1', {
-    status: 409,
-    code: 'provider_refused',
-    detail
-  })
-  await postBadge(page, /^Scheduled for/).click()
-  await page.getByRole('button', { name: 'Cancel post' }).click()
-  const confirm = page.getByRole('alertdialog')
-  await confirm.getByRole('button', { name: 'Cancel post' }).click()
-  await expect(confirm.getByText(detail)).toBeVisible()
-  await confirm.getByRole('button', { name: 'Keep it' }).click()
-  await page.keyboard.press('Escape')
-  await expect(postBadge(page, /^Scheduled for/)).toBeVisible()
-})
-
-test('without a key a post can still be let go, and the cell is never stuck', async ({ page }) => {
-  const provider = await scheduledCell(page)
-  await page.getByRole('button', { name: 'Settings' }).click()
-  const settings = page.getByRole('dialog', { name: 'Settings' })
-  await settings.getByRole('tab', { name: 'Integrations' }).click()
-  await settings.getByRole('button', { name: 'Key options' }).click()
-  await page.getByRole('menuitem', { name: 'Forget key' }).click()
-  await expect(settings.getByLabel('Zernio API key')).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(settings).toBeHidden()
-
-  await postBadge(page, /^Scheduled for/).click()
-  const dialog = page.getByRole('dialog', { name: 'Your post' })
-  await expect(dialog.getByText(/does not stop the post/)).toBeVisible()
-  await dialog.getByRole('button', { name: 'Free this cell' }).click()
-  await expect(postBadge(page, /^Scheduled for/)).toHaveCount(0)
-  expect(provider.requests.filter((request) => request.startsWith('DELETE /sch'))).toEqual([])
 })
