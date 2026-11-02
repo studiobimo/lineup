@@ -9,6 +9,7 @@ test('the legal pages open from Help in their own tab, leaving the board alone',
   await page.goto('/')
   const errors = watchErrors(page)
   await page.getByRole('button', { name: 'Help' }).click()
+  await page.getByRole('tab', { name: 'Legal' }).click()
 
   const opening = context.waitForEvent('page')
   await page.getByRole('link', { name: 'Privacy' }).click()

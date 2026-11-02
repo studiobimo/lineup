@@ -1,13 +1,13 @@
+import { HardDrive, ImageIcon, Plug, SlidersHorizontal } from 'lucide-react'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogHeader, DialogPanel, DialogPopup, DialogTitle } from '@/components/ui/dialog'
-import { Group } from '@/components/ui/group'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Field, FieldLabel } from '@/components/ui/field'
 import { Progress } from '@/components/ui/progress'
+import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { StorageUsage } from '@/features/planner/board-store'
 import { useFolder } from '@/features/planner/folder-board'
 import { saveImportSettings, useImportSettings } from '@/features/planner/import-settings'
@@ -15,14 +15,14 @@ import { instagram } from '@/features/planner/network-profile'
 import { boardStore } from '@/features/planner/planner'
 import { saveProfile, toHandle, useProfile } from '@/features/planner/profile-store'
 import { ProviderSettings } from '@/features/provider/provider-settings'
-import { useDialogPresence } from '@/hooks/use-dialog-presence'
 import i18n, { languages, setLanguage } from '@/i18n/config'
 import { isInstalled, isSafari } from '@/lib/platform'
 import { getTheme, setTheme, subscribeToTheme, type Theme } from '@/lib/theme'
 
 import { BackupActions } from './backup-actions'
 import { FolderSettings } from './folder-settings'
-import { SettingsNote, SettingsSection } from './settings-section'
+import { DialogNote, DialogSection, DialogStack } from './dialog-sections'
+import { TabbedDialog } from './tabbed-dialog'
 
 const themes: Theme[] = ['light', 'dark']
 
@@ -33,46 +33,50 @@ const size = (bytes: number) =>
     maximumFractionDigits: 1
   }).format(bytes / (bytes < 1e9 ? 1e6 : 1e9))
 
-function LanguageSettings() {
-  const { t } = useTranslation('settings')
-  const current = i18n.resolvedLanguage
-  return (
-    <SettingsSection title={t('language')}>
-      <Group aria-label={t('language')}>
-        {languages.map((language) => (
-          <Button
-            key={language}
-            variant={language === current ? 'default' : 'outline'}
-            aria-pressed={language === current}
-            lang={language}
-            onClick={() => setLanguage(language)}
-          >
-            {t(`languages.${language}`)}
-          </Button>
-        ))}
-      </Group>
-    </SettingsSection>
-  )
-}
-
-function ThemeSettings() {
+function AppearanceSettings() {
   const { t } = useTranslation('settings')
   const theme = useSyncExternalStore(subscribeToTheme, getTheme)
+  const current = i18n.resolvedLanguage
   return (
-    <SettingsSection title={t('theme')}>
-      <Group aria-label={t('theme')}>
-        {themes.map((option) => (
-          <Button
-            key={option}
-            variant={option === theme ? 'default' : 'outline'}
-            aria-pressed={option === theme}
-            onClick={() => setTheme(option)}
-          >
-            {t(`themes.${option}`)}
-          </Button>
-        ))}
-      </Group>
-    </SettingsSection>
+    <DialogSection title={t('appearance')}>
+      <Field className="flex-row items-center justify-between gap-4">
+        <FieldLabel>{t('theme')}</FieldLabel>
+        <ToggleGroup
+          variant="outline"
+          aria-label={t('theme')}
+          value={[theme]}
+          onValueChange={([next]) => next && setTheme(next as Theme)}
+        >
+          {themes.map((option) => (
+            <ToggleGroupItem key={option} value={option}>
+              {t(`themes.${option}`)}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </Field>
+      <Field className="flex-row items-center justify-between gap-4">
+        <FieldLabel>{t('language')}</FieldLabel>
+        <Select
+          items={languages.map((language) => ({
+            value: language,
+            label: t(`languages.${language}`)
+          }))}
+          value={current}
+          onValueChange={(language) => language && setLanguage(language)}
+        >
+          <SelectTrigger className="w-40" aria-label={t('language')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectPopup>
+            {languages.map((language) => (
+              <SelectItem key={language} value={language} lang={language}>
+                {t(`languages.${language}`)}
+              </SelectItem>
+            ))}
+          </SelectPopup>
+        </Select>
+      </Field>
+    </DialogSection>
   )
 }
 
@@ -80,21 +84,10 @@ function ProfileSettings() {
   const { t } = useTranslation('settings')
   const { handle, name } = useProfile()
   return (
-    <SettingsSection title={t('profile')}>
+    <DialogSection title={t('profile')} description={t('profileNote')}>
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="profile-handle">{t('handle')}</Label>
-          <Input
-            id="profile-handle"
-            value={handle}
-            placeholder={t('handlePlaceholder')}
-            autoComplete="off"
-            spellCheck={false}
-            onChange={({ target }) => saveProfile({ handle: toHandle(target.value) })}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="profile-name">{t('name')}</Label>
+        <Field>
+          <FieldLabel htmlFor="profile-name">{t('name')}</FieldLabel>
           <Input
             id="profile-name"
             value={name}
@@ -103,10 +96,20 @@ function ProfileSettings() {
             autoComplete="off"
             onChange={({ target }) => saveProfile({ name: target.value })}
           />
-        </div>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="profile-handle">{t('handle')}</FieldLabel>
+          <Input
+            id="profile-handle"
+            value={handle}
+            placeholder={t('handlePlaceholder')}
+            autoComplete="off"
+            spellCheck={false}
+            onChange={({ target }) => saveProfile({ handle: toHandle(target.value) })}
+          />
+        </Field>
       </div>
-      <SettingsNote>{t('profileNote')}</SettingsNote>
-    </SettingsSection>
+    </DialogSection>
   )
 }
 
@@ -114,23 +117,27 @@ function PhotoSettings() {
   const { t } = useTranslation('settings')
   const { readCaptureDates, readLocations } = useImportSettings()
   return (
-    <SettingsSection title={t('photos')}>
-      <Label className="flex items-center justify-between gap-4 font-normal">
-        {t('captureDates')}
-        <Switch
-          checked={readCaptureDates}
-          onCheckedChange={(checked) => saveImportSettings({ readCaptureDates: checked })}
-        />
-      </Label>
-      <Label className="mt-2 flex items-center justify-between gap-4 font-normal">
-        {t('locations')}
-        <Switch
-          checked={readLocations}
-          onCheckedChange={(checked) => saveImportSettings({ readLocations: checked })}
-        />
-      </Label>
-      <SettingsNote>{t('photosNote')}</SettingsNote>
-    </SettingsSection>
+    <DialogSection>
+      <Field>
+        <FieldLabel className="w-full justify-between font-normal">
+          {t('captureDates')}
+          <Switch
+            checked={readCaptureDates}
+            onCheckedChange={(checked) => saveImportSettings({ readCaptureDates: checked })}
+          />
+        </FieldLabel>
+      </Field>
+      <Field>
+        <FieldLabel className="w-full justify-between font-normal">
+          {t('locations')}
+          <Switch
+            checked={readLocations}
+            onCheckedChange={(checked) => saveImportSettings({ readLocations: checked })}
+          />
+        </FieldLabel>
+      </Field>
+      <DialogNote>{t('photosNote')}</DialogNote>
+    </DialogSection>
   )
 }
 
@@ -145,9 +152,17 @@ function StorageSettings({ onLeave }: { onLeave: () => void }) {
   }, [inFolder])
 
   return (
-    <SettingsSection title={t('storage')}>
+    <DialogStack>
       {!inFolder && (
-        <>
+        <DialogSection
+          title={t('storage')}
+          description={
+            <>
+              <p>{t('storageNote')}</p>
+              {isSafari() && !isInstalled() && <p className="mt-1.5">{t('safariNote')}</p>}
+            </>
+          }
+        >
           {usage && (
             <Progress value={usage.used} max={usage.quota} aria-label={t('storage')}>
               <p className="text-sm text-muted-foreground">
@@ -155,35 +170,53 @@ function StorageSettings({ onLeave }: { onLeave: () => void }) {
               </p>
             </Progress>
           )}
-          <SettingsNote>{t('storageNote')}</SettingsNote>
-          {isSafari() && !isInstalled() && <SettingsNote>{t('safariNote')}</SettingsNote>}
-        </>
+        </DialogSection>
       )}
       <FolderSettings onOffered={onLeave} />
-      <BackupActions onRestored={onLeave} />
-      <SettingsNote>{t('backupNote')}</SettingsNote>
-    </SettingsSection>
+      <DialogSection title={t('backupTitle')} description={t('backupNote')}>
+        <BackupActions onRestored={onLeave} />
+      </DialogSection>
+    </DialogStack>
   )
 }
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation('settings')
-  const { dialog, close } = useDialogPresence(onClose)
   return (
-    <Dialog {...dialog}>
-      <DialogPopup>
-        <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
-        </DialogHeader>
-        <DialogPanel className="flex flex-col gap-6">
-          <LanguageSettings />
-          <ThemeSettings />
-          <ProfileSettings />
-          <PhotoSettings />
-          <StorageSettings onLeave={close} />
-          <ProviderSettings />
-        </DialogPanel>
-      </DialogPopup>
-    </Dialog>
+    <TabbedDialog
+      title={t('title')}
+      onClose={onClose}
+      tabs={[
+        {
+          value: 'general',
+          label: t('tabs.general'),
+          icon: SlidersHorizontal,
+          content: () => (
+            <DialogStack>
+              <ProfileSettings />
+              <AppearanceSettings />
+            </DialogStack>
+          )
+        },
+        {
+          value: 'photos',
+          label: t('tabs.photos'),
+          icon: ImageIcon,
+          content: () => <PhotoSettings />
+        },
+        {
+          value: 'storage',
+          label: t('tabs.storage'),
+          icon: HardDrive,
+          content: (close) => <StorageSettings onLeave={close} />
+        },
+        {
+          value: 'integrations',
+          label: t('tabs.integrations'),
+          icon: Plug,
+          content: () => <ProviderSettings />
+        }
+      ]}
+    />
   )
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -11,6 +11,8 @@ import {
 } from '@/features/planner/folder-board'
 import { supportsFolders } from '@/features/planner/open-board'
 import { useFolderAction } from '@/features/planner/use-folder-action'
+
+import { DialogSection } from './dialog-sections'
 
 /** The offer is a toast, and a toast behind this dialog could not be clicked. */
 function RemovedPhotos({ onOffered }: { onOffered: () => void }) {
@@ -29,12 +31,13 @@ function RemovedPhotos({ onOffered }: { onOffered: () => void }) {
     onOffered()
   }
   return (
-    <div className="mt-3">
-      <p className="text-sm text-muted-foreground">{t('removedFiles', { count })}</p>
-      <Button variant="outline" className="mt-2" disabled={busy} onClick={() => void run(offer)}>
-        {t('offerRemoved')}
-      </Button>
-    </div>
+    <DialogSection title={t('removedTitle')} description={t('removedFiles', { count })}>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" disabled={busy} onClick={() => void run(offer)}>
+          {t('offerRemoved')}
+        </Button>
+      </div>
+    </DialogSection>
   )
 }
 
@@ -44,30 +47,50 @@ export function FolderSettings({ onOffered }: { onOffered: () => void }) {
   const { busy, run } = useFolderAction()
   if (!supportsFolders()) return null
 
+  if (folder.status !== 'open') {
+    return (
+      <DialogSection title={t('folderTitle')} description={t('folderNote')}>
+        <Button
+          variant="outline"
+          className="self-start"
+          disabled={busy}
+          onClick={() => void run(chooseFolder)}
+        >
+          {t(busy ? 'folderChoosing' : 'folderChoose')}
+        </Button>
+      </DialogSection>
+    )
+  }
   return (
-    <div className="mt-3">
-      {folder.status === 'open' ? (
-        <>
-          <p className="text-sm">{t('folderInUse', { name: folder.name })}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{t('folderInUseNote')}</p>
-          <Button
-            variant="outline"
-            className="mt-2"
-            disabled={busy}
-            onClick={() => void run(leaveFolder)}
-          >
-            {t('folderLeave')}
-          </Button>
-          <RemovedPhotos onOffered={onOffered} />
-        </>
-      ) : (
-        <>
-          <Button variant="outline" disabled={busy} onClick={() => void run(chooseFolder)}>
-            {t(busy ? 'folderChoosing' : 'folderChoose')}
-          </Button>
-          <p className="mt-2 text-sm text-muted-foreground">{t('folderNote')}</p>
-        </>
-      )}
-    </div>
+    <>
+      <DialogSection
+        title={t('folderTitle')}
+        description={
+          <>
+            <p>
+              <Trans
+                t={t}
+                i18nKey="folderInUse"
+                values={{ name: folder.name }}
+                components={{
+                  name: <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground" />
+                }}
+              />
+            </p>
+            <p className="mt-1.5">{t('folderInUseNote')}</p>
+          </>
+        }
+      >
+        <Button
+          variant="outline"
+          className="self-start"
+          disabled={busy}
+          onClick={() => void run(leaveFolder)}
+        >
+          {t('folderLeave')}
+        </Button>
+      </DialogSection>
+      <RemovedPhotos onOffered={onOffered} />
+    </>
   )
 }

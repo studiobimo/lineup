@@ -74,7 +74,10 @@ const addToFolder = (page: Page, path: string, bytes: Buffer) =>
     { path, bytes: [...bytes] }
   )
 
-const openSettings = (page: Page) => page.getByRole('button', { name: 'Settings' }).click()
+async function openSettings(page: Page) {
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('tab', { name: 'Storage' }).click()
+}
 
 async function useFolder(page: Page) {
   await openSettings(page)

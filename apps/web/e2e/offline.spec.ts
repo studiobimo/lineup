@@ -30,6 +30,7 @@ test('it works with the network off after the first visit', async ({ page, conte
 
   // Lazy on purpose: these load their own chunks, which the worker has to have cached.
   await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('tab', { name: 'Photos' }).click()
   await expect(page.getByRole('switch', { name: 'Read locations' })).toBeVisible()
   await page.keyboard.press('Escape')
   await addImages(page, [image('b.png')])
@@ -54,13 +55,17 @@ test('it can be installed', async ({ page }) => {
 test('only Safari is told about installing', async ({ page, browser, baseURL }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('tab', { name: 'Photos' }).click()
   await expect(page.getByRole('switch', { name: 'Read locations' })).toBeVisible()
+  await page.getByRole('tab', { name: 'Storage' }).click()
+  await expect(page.getByText(/ used$/)).toBeVisible()
   await expect(page.getByText(safariNote)).toHaveCount(0)
 
   const context = await browser.newContext({ baseURL, userAgent: safari })
   const inSafari = await context.newPage()
   await inSafari.goto('/')
   await inSafari.getByRole('button', { name: 'Settings' }).click()
+  await inSafari.getByRole('tab', { name: 'Storage' }).click()
   await expect(inSafari.getByText(safariNote)).toBeVisible()
   await context.close()
 })

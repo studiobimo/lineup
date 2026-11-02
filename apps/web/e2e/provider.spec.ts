@@ -8,7 +8,9 @@ const KEY = 'pasted-key-ending-abcd'
 async function openSettings(page: Page) {
   await page.goto('/')
   await page.getByRole('button', { name: 'Settings' }).click()
-  return page.getByRole('dialog', { name: 'Settings' })
+  const dialog = page.getByRole('dialog', { name: 'Settings' })
+  await dialog.getByRole('tab', { name: 'Integrations' }).click()
+  return dialog
 }
 
 async function addKey(page: Page, key = KEY) {
@@ -82,6 +84,7 @@ test('several accounts wait to be chosen, and the choice is kept', async ({ page
   await page.reload()
   const again = page.getByRole('dialog', { name: 'Settings' })
   await page.getByRole('button', { name: 'Settings' }).click()
+  await again.getByRole('tab', { name: 'Integrations' }).click()
   await expect(again.getByRole('combobox', { name: 'Instagram account' })).toHaveText(/@second/)
 })
 
@@ -111,6 +114,7 @@ test('a cookie that has gone turns the settings back to adding a key', async ({ 
   await mockProvider(fresh)
   await fresh.goto('/')
   await fresh.getByRole('button', { name: 'Settings' }).click()
+  await fresh.getByRole('tab', { name: 'Integrations' }).click()
   await expect(fresh.getByLabel('Zernio API key')).toBeVisible()
   await fresh.close()
 })
@@ -302,6 +306,7 @@ test('a post on the board can be let go under a read-only key', async ({ page })
   const provider = await scheduledCell(page)
   await page.getByRole('button', { name: 'Settings' }).click()
   const settings = page.getByRole('dialog', { name: 'Settings' })
+  await settings.getByRole('tab', { name: 'Integrations' }).click()
   provider.readOnly = true
   await settings.getByRole('button', { name: 'Replace key' }).click()
   await settings.getByLabel('Zernio API key').fill(KEY)
@@ -578,6 +583,7 @@ test('without a key a post can still be let go, and the cell is never stuck', as
   const provider = await scheduledCell(page)
   await page.getByRole('button', { name: 'Settings' }).click()
   const settings = page.getByRole('dialog', { name: 'Settings' })
+  await settings.getByRole('tab', { name: 'Integrations' }).click()
   await settings.getByRole('button', { name: 'Forget key' }).click()
   await expect(settings.getByLabel('Zernio API key')).toBeVisible()
   await page.keyboard.press('Escape')

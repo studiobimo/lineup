@@ -16,7 +16,12 @@
     "light": "Light",
     "dark": "Dark"
   },
-  "photos": "Photos",
+  "tabs": {
+    "general": "General",
+    "photos": "Photos",
+    "storage": "Storage",
+    "integrations": "Integrations"
+  },
   "captureDates": "Read capture dates",
   "locations": "Read locations",
   "photosNote": "As you add a photo, Bands can use when it was taken and the city it was taken in to keep a shoot together. Lineup keeps the city, never the exact position, and neither leaves this browser. Photos already on the board are not read again. Turning a switch off does not remove what was already read.",
@@ -33,7 +38,7 @@
   "folderChoose": "Keep in a folder",
   "folderChoosing": "Copying your board",
   "folderNote": "Keeps your board and your full-size originals in a folder you choose, so a cleared browser cannot touch them. An empty folder takes a copy of this board. A folder that has a board opens it.",
-  "folderInUse": "Your board is in {{name}}.",
+  "folderInUse": "Your board is in <name>{{name}}</name>.",
   "folderInUseNote": "Your originals are there at full size. Lineup adds to that folder but never changes or deletes your photos.",
   "folderLeave": "Stop using this folder",
   "folderFailed": "That folder could not be used. Try again, or choose another one.",
@@ -88,6 +93,22 @@
       "enter": "Enter",
       "arrows": "Arrow keys",
       "escape": "Esc"
-    }
-  }
+    },
+    "tabs": {
+      "shortcuts": "Shortcuts",
+      "guide": "Getting started",
+      "legal": "Legal"
+    },
+    "groups": {
+      "history": "History",
+      "board": "Board",
+      "moving": "Moving images"
+    },
+    "guideTitle": "How it works",
+    "legalTitle": "Your data and the rules"
+  },
+  "appearance": "Appearance",
+  "backupTitle": "Backup",
+  "folderTitle": "Folder",
+  "removedTitle": "Removed photos"
 }

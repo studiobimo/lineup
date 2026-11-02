@@ -16,7 +16,12 @@
     "light": "Claro",
     "dark": "Oscuro"
   },
-  "photos": "Fotos",
+  "tabs": {
+    "general": "General",
+    "photos": "Fotos",
+    "storage": "Almacenamiento",
+    "integrations": "Integraciones"
+  },
   "captureDates": "Leer las fechas de captura",
   "locations": "Leer las ubicaciones",
   "photosNote": "Al añadir una foto, Bandas puede usar cuándo se tomó y la ciudad donde se tomó para mantener junta una sesión. Lineup guarda la ciudad, nunca la posición exacta, y ninguna de las dos sale de este navegador. Las fotos que ya están en el tablero no se vuelven a leer. Desactivar un interruptor no borra lo que ya se leyó.",
@@ -33,7 +38,7 @@
   "folderChoose": "Guardar en una carpeta",
   "folderChoosing": "Copiando tu tablero",
   "folderNote": "Guarda tu tablero y tus originales a tamaño completo en una carpeta que elijas, para que borrar el navegador no los afecte. Una carpeta vacía recibe una copia de este tablero. Una carpeta que ya tiene un tablero lo abre.",
-  "folderInUse": "Tu tablero está en {{name}}.",
+  "folderInUse": "Tu tablero está en <name>{{name}}</name>.",
   "folderInUseNote": "Tus originales están ahí a tamaño completo. Lineup añade cosas a esa carpeta, pero nunca cambia ni borra tus fotos.",
   "folderLeave": "Dejar de usar esta carpeta",
   "folderFailed": "No se pudo usar esa carpeta. Inténtalo de nuevo o elige otra.",
@@ -88,6 +93,22 @@
       "enter": "Intro",
       "arrows": "Teclas de flecha",
       "escape": "Esc"
-    }
-  }
+    },
+    "tabs": {
+      "shortcuts": "Atajos",
+      "guide": "Primeros pasos",
+      "legal": "Legal"
+    },
+    "groups": {
+      "history": "Historial",
+      "board": "Tablero",
+      "moving": "Mover imágenes"
+    },
+    "guideTitle": "Cómo funciona",
+    "legalTitle": "Tus datos y las reglas"
+  },
+  "appearance": "Apariencia",
+  "backupTitle": "Copia de seguridad",
+  "folderTitle": "Carpeta",
+  "removedTitle": "Fotos quitadas"
 }

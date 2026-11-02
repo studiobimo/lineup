@@ -477,7 +477,8 @@ test('the introduction shows once, and comes back from Help', async ({ page }) =
   await expect(intro).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Help' }).click()
-  await expect(page.getByText('Keyboard shortcuts')).toBeVisible()
+  await expect(page.getByText('Pick up or drop the focused image')).toBeVisible()
+  await page.getByRole('tab', { name: 'Getting started' }).click()
   await page.getByRole('button', { name: 'Show the introduction' }).click()
   await expect(intro).toBeVisible()
 })
@@ -486,12 +487,13 @@ test('settings show the theme and what is stored', async ({ page }) => {
   const errors = watchErrors(page)
   await page.goto('/')
   await page.getByRole('button', { name: 'Settings' }).click()
-  await expect(page.getByText(/ used$/)).toBeVisible()
-
   await page.getByRole('button', { name: 'Dark' }).click()
   await expect(page.locator('html')).toHaveClass(/dark/)
   await page.getByRole('button', { name: 'Light' }).click()
   await expect(page.locator('html')).not.toHaveClass(/dark/)
+
+  await page.getByRole('tab', { name: 'Storage' }).click()
+  await expect(page.getByText(/ used$/)).toBeVisible()
   expect(errors).toEqual([])
 })
 

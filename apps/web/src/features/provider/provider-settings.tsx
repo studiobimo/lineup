@@ -6,7 +6,7 @@ import { ExternalLink } from '@/components/external-link'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { provider } from '@/config/provider'
-import { SettingsNote, SettingsSection } from '@/features/help/settings-section'
+import { DialogNote, DialogSection } from '@/features/help/dialog-sections'
 import { dateTimeFormat } from '@/i18n/format'
 
 import { AccountChoice } from './account-choice'
@@ -49,7 +49,7 @@ function ConnectedKey() {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm">{t('key.connected', { last4, date: expires })}</p>
-      {canPost === false && <SettingsNote>{t('key.readOnly')}</SettingsNote>}
+      {canPost === false && <DialogNote>{t('key.readOnly')}</DialogNote>}
       <AccountChoice />
       {replacing ? (
         <KeyForm onSaved={() => setReplacing(false)} />
@@ -73,14 +73,14 @@ function ConnectedKey() {
           <AlertDescription>{problemText(forget.error)}</AlertDescription>
         </Alert>
       )}
-      <SettingsNote>
+      <DialogNote>
         <Trans
           t={t}
           i18nKey="key.revoke"
           values={{ provider: provider.name }}
           components={{ site: <ExternalLink href={provider.dashboardUrl} /> }}
         />
-      </SettingsNote>
+      </DialogNote>
     </div>
   )
 }
@@ -90,17 +90,17 @@ function ProviderConnection() {
   const connection = useConnection()
   const live = hasLiveKey(connection)
   return (
-    <SettingsSection title={t('title')}>
+    <DialogSection title={t('title')}>
       {live ? (
         <ConnectedKey />
       ) : (
         <>
-          {connection.expiresAt && <SettingsNote>{t('key.expired')}</SettingsNote>}
+          {connection.expiresAt && <DialogNote>{t('key.expired')}</DialogNote>}
           <KeyGuide />
           <KeyForm />
         </>
       )}
-    </SettingsSection>
+    </DialogSection>
   )
 }
 
