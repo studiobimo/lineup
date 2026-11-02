@@ -174,9 +174,28 @@ test('a cell dropped on another to make an album lands and leaves nothing hidden
   await page.mouse.down()
   await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, { steps: 8 })
   await expect(page.getByText('Drop to make an album')).toBeVisible()
+  await expect(page.locator('html')).toHaveCSS('cursor', 'grabbing')
+
+  // Going in behind the cover: at full strength it would stand in for the cover as it lands.
+  await page.evaluate(() => {
+    const strengths: number[] = []
+    const sample = () => {
+      const ghost = document.querySelector<HTMLElement>('[data-ghost]')
+      if (ghost) strengths.push(Number(getComputedStyle(ghost).opacity))
+      if (strengths.length < 20 && ghost) requestAnimationFrame(sample)
+    }
+    Object.assign(window, { strengths })
+    requestAnimationFrame(sample)
+  })
   await page.mouse.up()
   await expect(cells).toHaveCount(2)
   await expect(page.locator('[data-flight], [data-ghost]')).toHaveCount(0)
   await expect(cells.first()).toHaveCSS('opacity', '1')
   await expect(page.getByText('Drop to make an album')).toHaveCount(0)
+  const strengths = await page.evaluate(
+    () => (window as unknown as { strengths: number[] }).strengths
+  )
+  expect(Math.max(...strengths)).toBeLessThanOrEqual(0.66)
+  expect(strengths.at(-1)).toBeLessThan(0.65)
+  await expect(page.locator('html')).not.toHaveCSS('cursor', 'grabbing')
 })

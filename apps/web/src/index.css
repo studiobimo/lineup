@@ -249,6 +249,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* The whole page, because a drag passes over everything and each thing has its own cursor. */
+  [data-dragging],
+  [data-dragging] * {
+    cursor: grabbing !important;
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'ss01', 'cv01';

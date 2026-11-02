@@ -149,7 +149,7 @@ const SelectToggle = memo(function SelectToggle({
       )}
       onClick={() => toggleSelected(id)}
     >
-      <Check />
+      <Check strokeWidth={3} className="opacity-100" />
     </IconButton>
   )
 })
@@ -230,8 +230,7 @@ export const BoardCell = memo(function BoardCell({
       onLayoutAnimationStart={() => zIndex.set(GLIDING_Z)}
       onLayoutAnimationComplete={() => zIndex.set(0)}
       className={cn(
-        'group relative touch-manipulation overflow-hidden bg-muted select-none [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary',
-        !locked && 'cursor-grab active:cursor-grabbing',
+        'group relative cursor-pointer touch-manipulation overflow-hidden bg-muted select-none [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary',
         selected && 'outline-2 -outline-offset-2 outline-primary',
         isDragging && 'opacity-30',
         airborne && 'opacity-0'

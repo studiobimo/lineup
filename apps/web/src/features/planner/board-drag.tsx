@@ -160,11 +160,13 @@ export function BoardDrag({ children }: { children: ReactNode }) {
     // Straight from the event rather than through React, so the ghost keeps up with the pointer.
     const mouse = (event: MouseEvent) => follow(pointOf(event))
     const touch = ({ touches: [finger] }: TouchEvent) => follow(pointOf(finger))
+    document.documentElement.toggleAttribute('data-dragging', true)
     window.addEventListener('keydown', shift)
     window.addEventListener('keyup', shift)
     window.addEventListener('mousemove', mouse)
     window.addEventListener('touchmove', touch)
     return () => {
+      document.documentElement.toggleAttribute('data-dragging', false)
       window.removeEventListener('keydown', shift)
       window.removeEventListener('keyup', shift)
       window.removeEventListener('mousemove', mouse)
@@ -184,8 +186,9 @@ export function BoardDrag({ children }: { children: ReactNode }) {
     if (!id) return
     launch([id])
     const landing = apply && target ? place(id, target) : id
+    const merging = apply && target?.kind === 'group'
     // The board has changed but the page has not, until React has committed it.
-    requestAnimationFrame(() => land(cellBox(landing), () => ground([id])))
+    requestAnimationFrame(() => land(cellBox(landing), () => ground([id]), { merging }))
   }
 
   return (

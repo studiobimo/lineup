@@ -18,6 +18,8 @@ export const GHOST_WIDTH = 192
 export const GHOST_HEIGHT = (GHOST_WIDTH * height) / width
 
 const GHOST_OPACITY = 0.65
+// A cell dropped into an album goes in behind its cover, which stays what the cell shows.
+const MERGED_SCALE = 0.6
 // On a phone the full size would cover most of the grid.
 const MAX_VIEWPORT_SHARE = 0.4
 const MAX_LEAN_DEGREES = 10
@@ -103,7 +105,7 @@ export function useDragGhost() {
   )
 
   const land = useCallback(
-    (to: Box | undefined, done: () => void) => {
+    (to: Box | undefined, done: () => void, { merging = false } = {}) => {
       const clear = () => {
         setId(null)
         opacity.jump(0)
@@ -119,8 +121,10 @@ export function useDragGhost() {
       void Promise.all([
         animate(offsetX, end.x - pointerX.get(), settle),
         animate(offsetY, end.y - pointerY.get(), settle),
-        animate(scale, (to.right - to.left) / GHOST_WIDTH, settle),
-        animate(opacity, 1, { duration: 0.15 })
+        animate(scale, ((to.right - to.left) / GHOST_WIDTH) * (merging ? MERGED_SCALE : 1), settle),
+        animate(opacity, merging ? 0 : 1, {
+          duration: merging ? settle.visualDuration : 0.15
+        })
       ]).then(() => {
         if (landed.current !== clear) return
         landed.current = null

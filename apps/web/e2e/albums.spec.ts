@@ -291,6 +291,7 @@ test('an album cell opens its images full size from one button and its editor fr
 
 test('double-clicking anywhere on a cell opens it, even under its buttons', async ({ page }) => {
   await boardOf(page, 2)
+  await expect(tray(page).first()).toHaveCSS('cursor', 'pointer')
   await tray(page)
     .first()
     .dblclick({ position: { x: 4, y: 4 } })
