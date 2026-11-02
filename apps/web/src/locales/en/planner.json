@@ -87,7 +87,7 @@
   "storageFull": "This device is out of room for images",
   "storageFullHelp": "Delete images you no longer need, or free up space on this device, then try again.",
   "saveFailed": "Your latest changes are not saved yet",
-  "saveFailedHelp": "They are safe in this tab for now. If this device is full, free up some space. Your next change will try again.",
+  "saveFailedHelp": "Your board is safe on this device, and Lineup keeps trying. If the device is full, free up some space.",
   "dropHere": "Drop to add to the tray",
   "importing": "Adding {{done}} of {{total}}",
   "notImages_one": "{{count}} file was not an image.",

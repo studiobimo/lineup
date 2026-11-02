@@ -29,8 +29,8 @@ const importStore = createStore<ImportState>((set, get) => ({
         })
         failed = result.failed
         await plannerStore.getState().addImages(result.images)
-        // After an import, when the browser has a reason to say yes.
-        void boardStore.requestPersistence()
+        // After an import, when the browser has a reason to say yes. A no changes nothing.
+        void boardStore.requestPersistence().catch(() => undefined)
       }
 
       const skipped = [

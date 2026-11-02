@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { ImageColour } from '@/features/autosort/colour'
+
+import type { BoardJournal } from './board-journal'
 import type { Board, History, ImageRecord, StoredImage } from './board-store'
 import { createPlannerStore, type PlannerState } from './planner-store'
 import type { ProcessedImage } from './process-image'
@@ -10,6 +13,26 @@ const processed = {
   thumbnail: new Blob(),
   publish: new Blob()
 } as ProcessedImage
+
+const colour: ImageColour = {
+  dominant: { lightness: 0, chroma: 0, hue: 0 },
+  palette: [],
+  tone: 0,
+  vivid: 0
+}
+
+function memoryJournal(): BoardJournal {
+  let saved: Board | undefined
+  return {
+    write: (board) => {
+      saved = board
+    },
+    read: () => saved,
+    clear: () => {
+      saved = undefined
+    }
+  }
+}
 
 function fakeBoardStore(board: Board = { tray: [], grid: [] }, ids: string[] = []) {
   const images = new Map<string, ImageRecord>(
@@ -48,6 +71,8 @@ async function loaded(board: Board = start) {
   await store.getState().load()
   return { boardStore, store, state: () => store.getState() }
 }
+
+beforeEach(() => localStorage.clear())
 
 describe('the planner store', () => {
   describe('after a reload', () => {
@@ -284,14 +309,120 @@ describe('the planner store', () => {
     expect(boardStore.deleteImages).toHaveBeenCalledWith([id])
   })
 
-  it('restores a saved board on load, and purges images it no longer reaches', async () => {
-    const boardStore = fakeBoardStore({ tray: ['a'], grid: ['b'] }, ['a', 'b', 'left-behind'])
+  it('restores a saved board on load', async () => {
+    const boardStore = fakeBoardStore({ tray: ['a'], grid: ['b'] }, ['a', 'b'])
     const store = createPlannerStore(boardStore)
 
     await store.getState().load()
 
     expect(store.getState()).toMatchObject({ board: { tray: ['a'], grid: ['b'] }, ready: true })
-    expect(boardStore.deleteImages).toHaveBeenCalledWith(['left-behind'])
+    expect(boardStore.deleteImages).not.toHaveBeenCalled()
+  })
+
+  it('puts an image no board reaches in the tray, as a step that can be undone', async () => {
+    const boardStore = fakeBoardStore({ tray: ['a'], grid: [] }, ['a', 'stranded'])
+    const store = createPlannerStore(boardStore)
+    await store.getState().load()
+
+    expect(store.getState().board.tray).toEqual(['stranded', 'a'])
+    expect(boardStore.deleteImages).not.toHaveBeenCalled()
+    await vi.waitFor(() => expect(boardStore.saved.tray).toEqual(['stranded', 'a']))
+
+    store.getState().undo()
+    expect(store.getState().board.tray).toEqual(['a'])
+  })
+
+  it('brings back every image if the board itself was lost', async () => {
+    const store = createPlannerStore(fakeBoardStore({ tray: [], grid: [] }, ['a', 'b']))
+    await store.getState().load()
+    expect(store.getState().board.tray).toEqual(['a', 'b'])
+  })
+
+  describe('a change whose save never finished', () => {
+    const unfinished = (board: Board) => {
+      const journal = memoryJournal()
+      journal.write(board)
+      return journal
+    }
+
+    it('comes back on load, as a step that can be undone', async () => {
+      const boardStore = fakeBoardStore({ tray: ['a', 'b'], grid: [] }, ['a', 'b'])
+      const journal = unfinished({ tray: ['b'], grid: ['a'] })
+      const store = createPlannerStore(boardStore, journal)
+      await store.getState().load()
+
+      expect(store.getState().board).toEqual({ tray: ['b'], grid: ['a'] })
+      await vi.waitFor(() => expect(boardStore.saved.grid).toEqual(['a']))
+      await vi.waitFor(() => expect(journal.read()).toBeUndefined())
+
+      store.getState().undo()
+      expect(store.getState().board).toEqual({ tray: ['a', 'b'], grid: [] })
+    })
+
+    it('adds nothing when the save did finish', async () => {
+      const board = { tray: ['a'], grid: [] }
+      const journal = unfinished(board)
+      const store = createPlannerStore(fakeBoardStore(board, ['a']), journal)
+      await store.getState().load()
+
+      expect(store.getState().past).toEqual([])
+      expect(journal.read()).toBeUndefined()
+    })
+
+    it('is ignored if it names an image this store does not hold', async () => {
+      const journal = unfinished({ tray: ['from-another-board'], grid: [] })
+      const store = createPlannerStore(fakeBoardStore({ tray: ['a'], grid: [] }, ['a']), journal)
+      await store.getState().load()
+
+      expect(store.getState().board.tray).toEqual(['a'])
+      expect(journal.read()).toBeUndefined()
+    })
+  })
+
+  it('keeps a change in the journal until its save has finished', async () => {
+    const journal = memoryJournal()
+    const boardStore = fakeBoardStore({ tray: ['a'], grid: [] }, ['a'])
+    const store = createPlannerStore(boardStore, journal)
+    await store.getState().load()
+
+    boardStore.saveBoard.mockRejectedValueOnce(new Error('the drive has gone'))
+    store.getState().move('a', 'grid')
+    expect(journal.read()?.grid).toEqual(['a'])
+    await vi.waitFor(() => expect(store.getState().saveFailed).toBe(true))
+    expect(journal.read()?.grid).toEqual(['a'])
+
+    store.getState().retrySave()
+    await vi.waitFor(() => expect(store.getState().saveFailed).toBe(false))
+    expect(journal.read()).toBeUndefined()
+    expect(boardStore.saved.grid).toEqual(['a'])
+  })
+
+  it('does not take a colour saving for the board being saved', async () => {
+    const { boardStore, state } = await loaded()
+    boardStore.saveBoard.mockRejectedValueOnce(new Error('the drive has gone'))
+    state().move('a', 'grid')
+    await vi.waitFor(() => expect(state().saveFailed).toBe(true))
+    state().setColour('b', colour)
+    await Promise.resolve()
+    expect(state().saveFailed).toBe(true)
+  })
+
+  it('keeps the images that were stored when others could not be', async () => {
+    const { boardStore, state } = await loaded()
+    boardStore.putImage.mockRejectedValueOnce(new Error('the disk is full'))
+    const before = state().board.tray.length
+
+    await expect(state().addImages([processed, processed])).rejects.toThrow('the disk is full')
+    expect(state().board.tray).toHaveLength(before + 1)
+  })
+
+  it('drops what a load read if the board went to another tab meanwhile', async () => {
+    const boardStore = fakeBoardStore({ tray: ['a'], grid: [] }, ['a'])
+    const store = createPlannerStore(boardStore)
+    const loading = store.getState().load()
+    store.getState().suspend()
+    await loading
+    expect(store.getState()).toMatchObject({ session: 'elsewhere', ready: false })
   })
 
   it('drops a cell whose image is gone, so nothing renders it', async () => {

@@ -17,6 +17,7 @@ import {
   toggleLock
 } from './board'
 import type { Backup } from './backup'
+import { boardJournal, type BoardJournal } from './board-journal'
 import { type Board, type BoardStore, emptyBoard, type ImageRecord, toRecord } from './board-store'
 import type { ProcessedImage } from './process-image'
 
@@ -32,9 +33,10 @@ export interface PlannerState {
   loadFailed: boolean
   /** Only the active tab writes or purges (ADR-0010). `folder`: its folder cannot open yet. */
   session: 'starting' | 'active' | 'elsewhere' | 'folder'
-  /** The last write to the store failed: what is on screen may not survive a reload. */
+  /** A write failed. The board is safe in the journal, and `retrySave` writes it again. */
   saveFailed: boolean
   load(): Promise<void>
+  retrySave(): void
   suspend(): void
   addImages(images: ProcessedImage[]): Promise<void>
   move(id: string, to: Container, index?: number): void
@@ -53,20 +55,21 @@ export interface PlannerState {
   redo(): void
 }
 
-export function createPlannerStore(boardStore: BoardStore) {
+const placedIn = (boards: Board[]) =>
+  new Set(boards.flatMap(({ tray, grid }) => [...tray, ...grid]))
+
+export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal = boardJournal) {
   return createStore<PlannerState>((set, get) => {
-    const report = (write: Promise<unknown>) =>
-      write.then(
-        () => set({ saveFailed: false }),
-        () => set({ saveFailed: true })
-      )
+    // A later load, or another tab taking over, makes what an earlier load read out of date.
+    let latestLoad = 0
+    let savesUnderWay = 0
+
+    const report = (write: Promise<unknown>) => write.catch(() => set({ saveFailed: true }))
 
     /** An image stays until no snapshot can bring it back, which is what makes undo exact. */
     const purge = () => {
       const { board, past, future, images } = get()
-      const reachable = new Set(
-        [board, ...past, ...future].flatMap(({ tray, grid }) => [...tray, ...grid])
-      )
+      const reachable = placedIn([board, ...past, ...future])
       const gone = Object.keys(images).filter((id) => !reachable.has(id))
       if (gone.length === 0) return
       set({
@@ -77,8 +80,23 @@ export function createPlannerStore(boardStore: BoardStore) {
 
     const save = () => {
       const { board, past, future } = get()
-      void report(
-        Promise.all([boardStore.saveBoard(board), boardStore.saveHistory({ past, future })])
+      journal.write(board)
+      savesUnderWay += 1
+      void Promise.all([
+        boardStore.saveBoard(board),
+        boardStore.saveHistory({ past, future })
+      ]).then(
+        () => {
+          savesUnderWay -= 1
+          // A later save has a newer board in the journal, and only the last may clear it.
+          if (savesUnderWay > 0) return
+          journal.clear()
+          set({ saveFailed: false })
+        },
+        () => {
+          savesUnderWay -= 1
+          set({ saveFailed: true })
+        }
       )
     }
 
@@ -104,17 +122,19 @@ export function createPlannerStore(boardStore: BoardStore) {
       saveFailed: false,
 
       async load() {
+        const thisLoad = ++latestLoad
         set({ loadFailed: false })
         const reading = await Promise.all([
           boardStore.loadBoard(),
           boardStore.listImages(),
           boardStore.loadHistory()
         ]).catch(() => null)
+        if (thisLoad !== latestLoad) return
         if (!reading) {
           set({ loadFailed: true })
           return
         }
-        const [stored, records, history] = reading
+        const [storedBoard, records, history] = reading
         const images = Object.fromEntries(records.map((record) => [record.id, record]))
         const known = (id: string) => id in images
         const present = ({ tray, grid, locked }: Board): Board => ({
@@ -122,25 +142,48 @@ export function createPlannerStore(boardStore: BoardStore) {
           grid: grid.filter(known),
           locked: locked?.filter(known)
         })
-        set({
-          board: present(stored),
-          images,
-          past: history.past.map(present),
-          future: history.future.map(present),
-          ready: true,
-          session: 'active'
-        })
+        const stored = present(storedBoard)
+        const future = history.future.map(present)
+        let board = stored
+        let past = history.past.map(present)
+        const step = (next: Board) => {
+          past = [...past, board].slice(-HISTORY_LIMIT)
+          board = next
+        }
+
+        // Each is a step of its own, so that what comes back can still be undone.
+        const unsaved = journal.read()
+        if (unsaved && [...unsaved.tray, ...unsaved.grid].every(known)) {
+          if (!sameBoard(unsaved, board)) step(unsaved)
+        }
+        // Stored but on no board: an import stopped, or the board's own file was lost.
+        const placed = placedIn([board, ...past, ...future])
+        const stranded = records.map(({ id }) => id).filter((id) => !placed.has(id))
+        if (stranded.length > 0) step(addToTray(board, stranded))
+
+        set({ board, images, past, future, ready: true, session: 'active' })
+        if (board === stored) journal.clear()
+        else save()
         purge()
       },
 
-      suspend: () => set({ session: 'elsewhere' }),
+      retrySave() {
+        if (get().session === 'active') save()
+      },
+
+      suspend() {
+        latestLoad += 1
+        set({ session: 'elsewhere' })
+      },
 
       async addImages(added) {
         if (get().session !== 'active') return
         const createdAt = new Date().toISOString()
         const stored = added.map((image) => ({ ...image, id: crypto.randomUUID(), createdAt }))
-        await Promise.all(stored.map((image) => boardStore.putImage(image)))
-        const records = stored.map(toRecord)
+        const puts = await Promise.allSettled(stored.map((image) => boardStore.putImage(image)))
+        const records = stored
+          .filter((_, index) => puts[index].status === 'fulfilled')
+          .map(toRecord)
         set(({ images }) => ({
           images: { ...images, ...Object.fromEntries(records.map((r) => [r.id, r])) }
         }))
@@ -150,6 +193,9 @@ export function createPlannerStore(boardStore: BoardStore) {
             records.map(({ id }) => id)
           )
         )
+        // After the board, so that the images that made it are kept whatever stopped the rest.
+        const failed = puts.find(({ status }) => status === 'rejected')
+        if (failed) throw (failed as PromiseRejectedResult).reason
       },
 
       move: (id, to, index) => commit(move(get().board, id, to, index)),

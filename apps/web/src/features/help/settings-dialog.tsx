@@ -40,7 +40,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const inFolder = useFolder().status === 'open'
 
   useEffect(() => {
-    void boardStore.storageUsage().then(setUsage)
+    // Without a figure there is no bar, which is all this is for.
+    boardStore.storageUsage().then(setUsage, () => undefined)
   }, [inFolder])
 
   return (

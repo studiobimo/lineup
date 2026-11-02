@@ -28,6 +28,8 @@ export function useCanvasImage(
         element.height = bitmap.height
         context.transferFromImageBitmap(bitmap)
       })
+      // A damaged or unreadable image stays an empty cell, which can still be moved or deleted.
+      .catch(() => undefined)
     return () => {
       cancelled = true
     }
