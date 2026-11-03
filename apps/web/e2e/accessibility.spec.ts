@@ -190,7 +190,7 @@ test('an album reorders without dragging', async ({ page }) => {
   await grid(page).first().getByRole('button', { name: 'Open album' }).click()
   await settled(page)
   const tile = page.getByRole('dialog').getByRole('group', { name: 'Image 1' })
-  await expect(tile.getByRole('button', { name: 'Move earlier' })).toBeDisabled()
+  await expect(tile.getByRole('button', { name: 'Move earlier' })).toHaveCount(0)
   await tile.hover()
   await tile.getByRole('button', { name: 'Move later' }).click()
   await expect.poll(order).toEqual([second, first, third])
