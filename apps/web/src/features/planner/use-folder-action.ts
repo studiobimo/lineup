@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { toastManager } from '@/components/ui/toast'
+import { lastingToast } from '@/lib/lasting-toast'
 
 import { isStorageFull } from './import-store'
 
@@ -18,7 +18,7 @@ export function useFolderAction() {
       await action()
     } catch (error) {
       if (isCancelled(error)) return
-      toastManager.add({
+      lastingToast({
         type: 'error',
         title: t(isStorageFull(error) ? 'folderFull' : 'folderFailed')
       })

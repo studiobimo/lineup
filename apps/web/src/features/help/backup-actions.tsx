@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Group } from '@/components/ui/group'
 import { toastManager } from '@/components/ui/toast'
+import { lastingToast } from '@/lib/lasting-toast'
 import { createBackup, readBackup } from '@/features/planner/backup'
 import { boardStore, plannerStore } from '@/features/planner/planner'
 import { download } from '@/lib/download'
@@ -20,7 +21,7 @@ export function BackupActions({ onRestored }: { onRestored: () => void }) {
       const day = new Date().toISOString().slice(0, 10)
       download(file, `lineup-${day}${EXTENSION}`)
     } catch {
-      toastManager.add({ type: 'error', title: t('backupFailed') })
+      lastingToast({ type: 'error', title: t('backupFailed') })
     }
   }
 
@@ -34,7 +35,7 @@ export function BackupActions({ onRestored }: { onRestored: () => void }) {
       toastManager.add({ type: 'success', title: t('restored') })
       onRestored()
     } catch {
-      toastManager.add({ type: 'error', title: t('restoreFailed') })
+      lastingToast({ type: 'error', title: t('restoreFailed') })
     }
   }
 
