@@ -114,6 +114,21 @@ test('the arrows pan a zoomed picture, and step through one that is not', async 
   await expect(lightbox.getByText('2 of 6')).toBeVisible()
 })
 
+test('a zoomed picture pans without dragging', async ({ page }) => {
+  await fillBoard(page)
+  await page.locator('section').getByRole('img').first().dblclick()
+  const lightbox = page.getByRole('dialog')
+  const pans = lightbox.getByRole('group', { name: 'Look around the picture' })
+  await expect(pans).toHaveCount(0)
+  await lightbox.getByRole('button', { name: 'Zoom in' }).click()
+  const at = () => lightbox.locator('[data-zoom]').evaluate((zoomed) => zoomed.style.transform)
+  const before = await at()
+  await pans.getByRole('button', { name: 'Look right' }).click()
+  await expect.poll(at).not.toBe(before)
+  await settled(page)
+  expect(await violations(page)).toEqual([])
+})
+
 test('focus opens a picture without a tooltip, so Escape goes straight to closing', async ({
   page
 }) => {
