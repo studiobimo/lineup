@@ -42,6 +42,7 @@
     "picture": "La imagen de la publicación",
     "caption": "Pie de foto",
     "captionCount": "{{count}} de {{limit}}",
+    "captionOver": "{{over}} por encima del límite de {{limit}}",
     "time": "Fecha y hora",
     "timeZone": "En tu zona horaria, {{zone}}.",
     "timeInvalid": "Elige una hora que aún no haya pasado.",

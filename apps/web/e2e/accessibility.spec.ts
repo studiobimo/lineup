@@ -1,7 +1,8 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, type Page, test } from '@playwright/test'
 
-import { addImages, grid, image, tray } from './fixtures'
+import { addImages, grid, groupCells, image, tray } from './fixtures'
+import { mockProvider } from './provider-mock'
 
 const wcag = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
@@ -11,8 +12,8 @@ async function violations(page: Page) {
 }
 
 /** A dialog still fading in reads as low contrast. */
-async function settled(page: Page) {
-  const dialog = page.getByRole('dialog')
+async function settled(page: Page, role: 'dialog' | 'alertdialog' = 'dialog') {
+  const dialog = page.getByRole(role)
   await dialog.waitFor()
   await dialog.evaluate((element) =>
     Promise.all(element.getAnimations({ subtree: true }).map(({ finished }) => finished))
@@ -152,8 +153,80 @@ test('a focused photo is marked in two colours, one of which shows on any photo'
   expect(colours.outer).not.toEqual(colours.inner)
 })
 
+/** The one place a person meets a destructive button without first opening anything else. */
+async function openClear(page: Page) {
+  await fillBoard(page)
+  await page.getByRole('button', { name: 'Clear' }).click()
+  await settled(page, 'alertdialog')
+}
+
+test('the confirmation before clearing the board', async ({ page }) => {
+  await openClear(page)
+  expect(await violations(page)).toEqual([])
+})
+
+test('the pages around the board', async ({ page }) => {
+  for (const path of ['/no-such-page', '/privacy', '/terms']) {
+    await page.goto(path)
+    await page.getByRole('heading', { level: 1 }).waitFor()
+    expect(await violations(page)).toEqual([])
+  }
+})
+
+test('an album', async ({ page }) => {
+  await fillBoard(page)
+  await groupCells(page, grid(page), 3)
+  await grid(page).first().hover()
+  await grid(page).first().getByRole('button', { name: 'Open album' }).click()
+  await settled(page)
+  expect(await violations(page)).toEqual([])
+})
+
+test('a key that is not one is called out at the field', async ({ page }) => {
+  await mockProvider(page)
+  await page.goto('/')
+  await openDialog(page, 'Settings')
+  await page.getByRole('tab', { name: 'Integrations' }).click()
+  await page.getByRole('button', { name: 'Save key' }).click()
+  await expect(page.getByLabel('Zernio API key')).toHaveAccessibleDescription(
+    'That does not look like a key.'
+  )
+  expect(await violations(page)).toEqual([])
+})
+
+test('the schedule form says what is wrong, beside the field it is about', async ({ page }) => {
+  await mockProvider(page)
+  await fillBoard(page)
+  await openDialog(page, 'Settings')
+  await page.getByRole('tab', { name: 'Integrations' }).click()
+  await page.getByLabel('Zernio API key').fill('pasted-key-ending-abcd')
+  await page.getByRole('button', { name: 'Save key' }).click()
+  await page.getByText(/Key ending abcd/).waitFor()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await grid(page).first().hover()
+  await grid(page).first().getByRole('button', { name: 'Schedule', exact: true }).click()
+  await settled(page)
+  expect(await violations(page)).toEqual([])
+
+  const dialog = page.getByRole('dialog', { name: 'Schedule a post' })
+  await dialog.getByLabel('Caption').fill('x'.repeat(2201))
+  await dialog.getByLabel('Date and time').fill('2020-01-01T10:00')
+  await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await expect(dialog.getByLabel('Caption')).toHaveAccessibleDescription('1 over the limit of 2200')
+  await expect(dialog.getByLabel('Date and time')).toHaveAccessibleDescription(
+    'Pick a time that is still to come.'
+  )
+  expect(await violations(page)).toEqual([])
+})
+
 test.describe('in dark', () => {
   test.use({ colorScheme: 'dark' })
+
+  test('the confirmation before clearing the board', async ({ page }) => {
+    await openClear(page)
+    expect(await violations(page)).toEqual([])
+  })
 
   test('a planner with images, its grid and tray filled', async ({ page }) => {
     await fillBoard(page)
