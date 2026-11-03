@@ -76,28 +76,30 @@ function AlbumTile({ album, image, position, count, locked }: AlbumTileProps) {
         <>
           {/* For a pointer that cannot drag (WCAG 2.5.7). The keyboard has Space on the tile. */}
           <div className="absolute top-1 left-1 flex gap-1">
-            <IconButton
-              variant="outline"
-              size="icon-xs"
-              tabIndex={-1}
-              className={tileButton}
-              label={t('planner:moveEarlier')}
-              disabled={position === 1}
-              onClick={() => shift(-1)}
-            >
-              <ArrowLeft />
-            </IconButton>
-            <IconButton
-              variant="outline"
-              size="icon-xs"
-              tabIndex={-1}
-              className={tileButton}
-              label={t('planner:moveLater')}
-              disabled={position === count}
-              onClick={() => shift(1)}
-            >
-              <ArrowRight />
-            </IconButton>
+            {position > 1 && (
+              <IconButton
+                variant="outline"
+                size="icon-xs"
+                tabIndex={-1}
+                className={tileButton}
+                label={t('planner:moveEarlier')}
+                onClick={() => shift(-1)}
+              >
+                <ArrowLeft />
+              </IconButton>
+            )}
+            {position < count && (
+              <IconButton
+                variant="outline"
+                size="icon-xs"
+                tabIndex={-1}
+                className={tileButton}
+                label={t('planner:moveLater')}
+                onClick={() => shift(1)}
+              >
+                <ArrowRight />
+              </IconButton>
+            )}
           </div>
           <IconButton
             variant="outline"
