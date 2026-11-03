@@ -6,6 +6,7 @@ This folder is the source of truth for what Lineup is and why it is built the wa
 - [Roadmap](ROADMAP.md): milestones, their stories and exit criteria
 - [Risks](RISKS.md): risks with mitigations, and assumptions
 - [API conventions](API.md): paths, versions, errors, pagination and the other rules every endpoint follows
+- [Accessibility review](accessibility-review.md): WCAG 2.2 AA, criterion by criterion, and what is open
 - Research:
   - [Instagram APIs](research/instagram-apis.md): the vendors compared, and what publishing through
     Meta directly would take

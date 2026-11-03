@@ -10,6 +10,8 @@ import { localTimeZone } from './post-time'
 
 const CAPTION_FIELD = 'post-caption'
 const TIME_FIELD = 'post-time'
+const CAPTION_COUNT = 'post-caption-count'
+const TIME_NOTE = 'post-time-note'
 
 interface FieldProps {
   value: string
@@ -20,7 +22,8 @@ interface FieldProps {
 
 export function CaptionField({ value, invalid, onBlur, onChange }: FieldProps) {
   const { t } = useTranslation('provider')
-  const over = value.length > instagram.captionLimit
+  const { captionLimit: limit } = instagram
+  const over = value.length - limit
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={CAPTION_FIELD}>{t('post.caption')}</Label>
@@ -28,16 +31,20 @@ export function CaptionField({ value, invalid, onBlur, onChange }: FieldProps) {
         id={CAPTION_FIELD}
         value={value}
         aria-invalid={invalid || undefined}
+        aria-describedby={CAPTION_COUNT}
         onBlur={onBlur}
         onChange={({ target }) => onChange(target.value)}
       />
       <p
+        id={CAPTION_COUNT}
         className={cn(
           'text-right text-xs text-muted-foreground tabular-nums',
-          over && 'text-destructive-foreground'
+          over > 0 && 'text-destructive-foreground'
         )}
       >
-        {t('post.captionCount', { count: value.length, limit: instagram.captionLimit })}
+        {over > 0
+          ? t('post.captionOver', { over, limit })
+          : t('post.captionCount', { count: value.length, limit })}
       </p>
     </div>
   )
@@ -53,10 +60,16 @@ export function TimeField({ value, invalid, onBlur, onChange }: FieldProps) {
         type="datetime-local"
         value={value}
         aria-invalid={invalid || undefined}
+        aria-describedby={TIME_NOTE}
         onBlur={onBlur}
         onChange={({ target }) => onChange(target.value)}
       />
-      <p className={cn('text-xs text-muted-foreground', invalid && 'text-destructive-foreground')}>
+      {/* The same element all along, because a live region only speaks when its text changes. */}
+      <p
+        id={TIME_NOTE}
+        aria-live="polite"
+        className={cn('text-xs text-muted-foreground', invalid && 'text-destructive-foreground')}
+      >
         {invalid ? t('post.timeInvalid') : t('post.timeZone', { zone: localTimeZone() })}
       </p>
     </div>

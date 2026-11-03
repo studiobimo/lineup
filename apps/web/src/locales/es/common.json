@@ -8,7 +8,10 @@
     "overlay": "No se pudo abrir «{{name}}». Recarga la página e inténtalo de nuevo.",
     "routeTitle": "Esta página ha tenido un problema",
     "routeDescription": "Tu tablero está a salvo en este dispositivo.",
-    "retry": "Intentar de nuevo"
+    "retry": "Intentar de nuevo",
+    "notFoundTitle": "Esta página no existe",
+    "notFoundDescription": "Tu tablero está a salvo en este dispositivo.",
+    "backToBoard": "Volver a tu tablero"
   },
   "theme": {
     "light": "Cambiar al tema claro",

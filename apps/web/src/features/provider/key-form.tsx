@@ -18,6 +18,7 @@ import { PROVIDER_KEY } from './queries'
 import { useProblemText } from './use-problem-text'
 
 const KEY_FIELD = 'provider-key'
+const KEY_ERROR = 'provider-key-error'
 
 /** The key stays in this form until it is sent, and goes when the form does. */
 export function KeyForm({ onSaved, onCancel }: { onSaved?: () => void; onCancel?: () => void }) {
@@ -72,11 +73,14 @@ export function KeyForm({ onSaved, onCancel }: { onSaved?: () => void; onCancel?
               disabled={choosing}
               value={field.state.value}
               aria-invalid={field.state.meta.errors.length > 0 || undefined}
+              aria-describedby={field.state.meta.errors.length > 0 ? KEY_ERROR : undefined}
               onBlur={field.handleBlur}
               onChange={({ target }) => field.handleChange(target.value)}
             />
             {field.state.meta.errors.length > 0 && (
-              <p className="text-sm text-destructive-foreground">{t('key.invalid')}</p>
+              <p id={KEY_ERROR} role="alert" className="text-sm text-destructive-foreground">
+                {t('key.invalid')}
+              </p>
             )}
           </div>
         )}
