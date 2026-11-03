@@ -50,10 +50,12 @@ describe('runImport', () => {
   it('says so when anything else goes wrong', async () => {
     vi.mocked(importImages).mockRejectedValue(new Error('the worker died'))
     await runImport(fromFiles([photo()]))
-    expect(toastManager.add).toHaveBeenCalledWith({
-      type: 'error',
-      title: 'Those images could not be added. Please try again.'
-    })
+    expect(toastManager.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'error',
+        title: 'Those images could not be added. Please try again.'
+      })
+    )
   })
 
   it('takes another import after one fails', async () => {

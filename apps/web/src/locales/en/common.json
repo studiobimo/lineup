@@ -18,6 +18,7 @@
     "dark": "Switch to dark theme"
   },
   "close": "Close",
+  "dismiss": "Dismiss",
   "loading": "Loading",
   "specimen": {
     "h2": "Arrange it before it goes live",

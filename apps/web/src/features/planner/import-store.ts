@@ -1,8 +1,8 @@
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 
-import { toastManager } from '@/components/ui/toast'
 import i18n from '@/i18n/config'
+import { lastingToast } from '@/lib/lasting-toast'
 
 import { imagesOn } from './board'
 import { importImages } from './import-images'
@@ -55,10 +55,10 @@ const importStore = createStore<ImportState>((set, get) => ({
           i18n.t('planner:overLimit', { count: plan.overLimit, limit: IMAGE_LIMIT })
       ].filter(Boolean)
       if (skipped.length > 0) {
-        toastManager.add({ type: 'warning', title: skipped.join(' ') })
+        lastingToast({ type: 'warning', title: skipped.join(' ') })
       }
     } catch (error) {
-      toastManager.add(
+      lastingToast(
         isStorageFull(error)
           ? {
               type: 'error',
