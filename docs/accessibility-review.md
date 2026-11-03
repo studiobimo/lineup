@@ -3,10 +3,9 @@
 The review for SHL-8 and issue 44, against every Level A and AA criterion of WCAG 2.2. It was made
 on 2026-11-02, on the planner as it stood with the fixes listed here.
 
-**Result:** two criteria fail, 2.2.1 Timing Adjustable and 2.5.7 Dragging Movements, and SHL-8 is
-not met until they pass. Each needs new interface, which is a design decision, so they are left open
-below. Everything else either passes, does not apply, or was fixed in the same stack of pull
-requests.
+**Result:** one criterion still fails in part, 2.5.7 Dragging Movements, for panning a zoomed
+picture, and SHL-8 is not met until it passes. Everything else either passes, does not apply, or was
+fixed in the same stack of pull requests.
 
 ## How it was checked
 
@@ -35,14 +34,9 @@ These are the limits of this review. A pass below means none of the above found 
 
 ## Open
 
-**2.2.1 Timing Adjustable.** An error toast goes after five seconds, and only hovering it holds it
-there. Toasts have no close button, so the keyboard cannot hold one at all. That matters most when
-storage is full, where SHL-5 has the toast explain what to do. A toast that stays up until it is
-dismissed needs a control to dismiss it.
-
-**2.5.7 Dragging Movements.** Reordering the grid, the tray or an album needs a drag with a pointer.
-The cell menu only moves a cell between the tray and the grid, and Space with the arrows is the
-keyboard, not a single pointer. Panning a zoomed picture is a drag too.
+**2.5.7 Dragging Movements, in part.** Panning a zoomed picture needs a drag with a pointer. The
+arrow keys pan it, but they are the keyboard, not a single pointer. Reordering no longer needs a
+drag: see below.
 
 Worth improving, though they fail nothing:
 
@@ -57,20 +51,22 @@ Worth improving, though they fail nothing:
 
 ## Fixed in this review
 
-| Criterion                  | What was wrong                                                             | Now                                                              |
-| -------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| 1.4.3 Contrast             | White on a destructive button was 3.8:1, and 3.5:1 in dark                 | `--destructive` is red-600, 4.8:1                                |
-| 1.4.11 Non-text Contrast   | The focus ring was 2.6:1 on a light page                                   | `--ring` is 7.8:1 in light and 11.6:1 in dark                    |
-| 1.4.11 Non-text Contrast   | A field's border and a switch's track were 1.3:1                           | `--field-border`, at least 3.2:1 in both themes                  |
-| 2.1.1 Keyboard             | The phone preview's feed could not be scrolled                             | It takes focus when the preview opens                            |
-| 2.1.1 Keyboard             | A zoomed picture could not be panned                                       | The arrow keys pan it, and step through pictures when not zoomed |
-| 2.4.2 Page Titled          | A missing page had the site's title, and no heading                        | Its own title, a heading and a way back, in both languages       |
-| 2.4.7 Focus Visible        | A cell's outline vanished on a photo of its own tone                       | A second outline runs inside it, in the page's colour            |
-| 2.4.7 Focus Visible        | Tab panels took focus and showed nothing                                   | They show the ring                                               |
-| 2.4.7 Focus Visible        | Plain links had the browser's 1px outline at half strength                 | A 2px outline in `--ring`                                        |
-| 2.4.11 Focus Not Obscured  | What took focus could sit entirely under the sticky header                 | The page leaves room for the header and the bottom bar           |
-| 3.3.1 Error Identification | A caption over the limit showed only as a red count                        | It says how far over                                             |
-| 4.1.3 Status Messages      | A bad key and a bad time were shown but not announced or tied to the field | Announced, and the field's description                           |
+| Criterion                  | What was wrong                                                             | Now                                                                                                                |
+| -------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 1.4.3 Contrast             | White on a destructive button was 3.8:1, and 3.5:1 in dark                 | `--destructive` is red-600, 4.8:1                                                                                  |
+| 1.4.11 Non-text Contrast   | The focus ring was 2.6:1 on a light page                                   | `--ring` is 7.8:1 in light and 11.6:1 in dark                                                                      |
+| 1.4.11 Non-text Contrast   | A field's border and a switch's track were 1.3:1                           | `--field-border`, at least 3.2:1 in both themes                                                                    |
+| 2.1.1 Keyboard             | The phone preview's feed could not be scrolled                             | It takes focus when the preview opens                                                                              |
+| 2.1.1 Keyboard             | A zoomed picture could not be panned                                       | The arrow keys pan it, and step through pictures when not zoomed                                                   |
+| 2.2.1 Timing Adjustable    | An error toast went after five seconds, and had no close button            | Errors and warnings stay until dismissed                                                                           |
+| 2.4.2 Page Titled          | A missing page had the site's title, and no heading                        | Its own title, a heading and a way back, in both languages                                                         |
+| 2.4.7 Focus Visible        | A cell's outline vanished on a photo of its own tone                       | A second outline runs inside it, in the page's colour                                                              |
+| 2.4.7 Focus Visible        | Tab panels took focus and showed nothing                                   | They show the ring                                                                                                 |
+| 2.4.7 Focus Visible        | Plain links had the browser's 1px outline at half strength                 | A 2px outline in `--ring`                                                                                          |
+| 2.4.11 Focus Not Obscured  | What took focus could sit entirely under the sticky header                 | The page leaves room for the header and the bottom bar                                                             |
+| 2.5.7 Dragging Movements   | Reordering the grid, the tray or an album needed a drag                    | Move earlier and Move later, in the cell's menu and on an album's images. The menu opens from a button on the cell |
+| 3.3.1 Error Identification | A caption over the limit showed only as a red count                        | It says how far over                                                                                               |
+| 4.1.3 Status Messages      | A bad key and a bad time were shown but not announced or tied to the field | Announced, and the field's description                                                                             |
 
 The lightbox and the phone preview also opened on a button, whose tooltip took the first Escape.
 That fails nothing, but it read as Escape not working, so they now open without one.
@@ -100,28 +96,28 @@ That fails nothing, but it read as Escape not working, so they now open without 
 
 ### 2 Operable
 
-| Criterion                     | Result         | Notes                                                                       |
-| ----------------------------- | -------------- | --------------------------------------------------------------------------- |
-| 2.1.1 Keyboard                | Fixed          | See above. Each cell's actions are also in its menu                         |
-| 2.1.2 No Keyboard Trap        | Pass           | Dialogs hold focus by design, and Escape leaves them                        |
-| 2.1.4 Character Key Shortcuts | Pass           | There are no single-character shortcuts                                     |
-| 2.2.1 Timing Adjustable       | **Fails**      | See Open. A toast offering an action stays, or repeats a button on the page |
-| 2.2.2 Pause, Stop, Hide       | Pass           | Nothing moves by itself for more than five seconds                          |
-| 2.3.1 Three Flashes           | Pass           | Nothing flashes                                                             |
-| 2.4.1 Bypass Blocks           | Pass           | Landmarks and headings                                                      |
-| 2.4.2 Page Titled             | Fixed          | See above                                                                   |
-| 2.4.3 Focus Order             | Pass           | Focus returns to what opened a dialog or menu                               |
-| 2.4.4 Link Purpose            | Pass           | Links say where they go                                                     |
-| 2.4.5 Multiple Ways           | Pass           | A legal page is reached from Help on any page, and from the other one       |
-| 2.4.6 Headings and Labels     | Pass           |                                                                             |
-| 2.4.7 Focus Visible           | Fixed          | See above                                                                   |
-| 2.4.11 Focus Not Obscured     | Fixed          | See above                                                                   |
-| 2.5.1 Pointer Gestures        | Pass           | Pinch and swipe have buttons                                                |
-| 2.5.2 Pointer Cancellation    | Pass           | Actions run on release, and Escape cancels a drag                           |
-| 2.5.3 Label in Name           | Pass           |                                                                             |
-| 2.5.4 Motion Actuation        | Does not apply | Nothing responds to motion                                                  |
-| 2.5.7 Dragging Movements      | **Fails**      | See Open                                                                    |
-| 2.5.8 Target Size (Minimum)   | Pass           | Nothing is under 24 px, on a desktop or at 360 px with touch                |
+| Criterion                     | Result            | Notes                                                                                                      |
+| ----------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------- |
+| 2.1.1 Keyboard                | Fixed             | See above. Each cell's actions are also in its menu                                                        |
+| 2.1.2 No Keyboard Trap        | Pass              | Dialogs hold focus by design, and Escape leaves them                                                       |
+| 2.1.4 Character Key Shortcuts | Pass              | There are no single-character shortcuts                                                                    |
+| 2.2.1 Timing Adjustable       | Fixed             | See above. Only a success goes by itself, and the sort's offer to undo, which repeats a button on the page |
+| 2.2.2 Pause, Stop, Hide       | Pass              | Nothing moves by itself for more than five seconds                                                         |
+| 2.3.1 Three Flashes           | Pass              | Nothing flashes                                                                                            |
+| 2.4.1 Bypass Blocks           | Pass              | Landmarks and headings                                                                                     |
+| 2.4.2 Page Titled             | Fixed             | See above                                                                                                  |
+| 2.4.3 Focus Order             | Pass              | Focus returns to what opened a dialog or menu                                                              |
+| 2.4.4 Link Purpose            | Pass              | Links say where they go                                                                                    |
+| 2.4.5 Multiple Ways           | Pass              | A legal page is reached from Help on any page, and from the other one                                      |
+| 2.4.6 Headings and Labels     | Pass              |                                                                                                            |
+| 2.4.7 Focus Visible           | Fixed             | See above                                                                                                  |
+| 2.4.11 Focus Not Obscured     | Fixed             | See above                                                                                                  |
+| 2.5.1 Pointer Gestures        | Pass              | Pinch and swipe have buttons                                                                               |
+| 2.5.2 Pointer Cancellation    | Pass              | Actions run on release, and Escape cancels a drag                                                          |
+| 2.5.3 Label in Name           | Pass              |                                                                                                            |
+| 2.5.4 Motion Actuation        | Does not apply    | Nothing responds to motion                                                                                 |
+| 2.5.7 Dragging Movements      | **Fails in part** | See Open. Reordering is fixed; panning a zoomed picture is not                                             |
+| 2.5.8 Target Size (Minimum)   | Pass              | Nothing is under 24 px, on a desktop or at 360 px with touch                                               |
 
 ### 3 Understandable
 

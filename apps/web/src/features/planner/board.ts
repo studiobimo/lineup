@@ -198,6 +198,12 @@ export function clear(board: Board, containers: Container[]): Board {
 export const isLocked = (board: Board, id: string) =>
   board.posts?.[id] !== undefined || (board.locked?.includes(id) ?? false)
 
+/** The cell that `id` changes places with one place along. A locked cell is passed over. */
+export function neighbour(board: Board, id: string, step: 1 | -1): string | undefined {
+  const free = freeCells(board, containerOf(board, id))
+  return free[free.indexOf(id) + step]
+}
+
 /** The cells that sorting, shuffling, moving and clearing can touch. */
 export function freeCells(board: Board, container: Container) {
   const locked = lockedCells(board)
