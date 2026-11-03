@@ -7,6 +7,7 @@ import {
   LockOpen,
   type LucideIcon,
   Maximize2,
+  MoreHorizontal,
   Trash2
 } from 'lucide-react'
 import { type ComponentProps, memo } from 'react'
@@ -19,6 +20,7 @@ import { openPost } from '@/features/provider/post-store'
 import { cn } from '@/lib/utils'
 
 import { type Container, coverOf } from './board'
+import { openCellMenu } from './cell-menu-store'
 import { cellTooltip } from './cell-tooltip'
 import { openLightbox } from './lightbox-store'
 import { plannerStore } from './planner'
@@ -95,6 +97,16 @@ export const CellActions = memo(function CellActions({
           </CellButton>
           <CellButton label={t('remove')} onClick={() => plannerStore.getState().remove([id])}>
             <Trash2 />
+          </CellButton>
+          {/* What a drag does, for those who cannot drag (WCAG 2.5.7), is in the cell's menu. */}
+          <CellButton
+            label={t('moreActions')}
+            onClick={({ currentTarget }) => {
+              const cell = currentTarget.closest<HTMLElement>('[data-drop-id]')
+              if (cell) openCellMenu({ id, cell })
+            }}
+          >
+            <MoreHorizontal />
           </CellButton>
         </>
       )}
