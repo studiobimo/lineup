@@ -1,4 +1,6 @@
 import {
+  ArrowLeft,
+  ArrowRight,
   ArrowRightLeft,
   CalendarClock,
   Check,
@@ -17,7 +19,7 @@ import { openAlbum } from '@/features/albums/album-store'
 import { mayPost, useConnection } from '@/features/provider/connection'
 import { openPost } from '@/features/provider/post-store'
 
-import { containerOf, coverOf, isLocked } from './board'
+import { containerOf, coverOf, isLocked, neighbour } from './board'
 import { closeCellMenu, useCellMenu } from './cell-menu-store'
 import { openLightbox } from './lightbox-store'
 import { plannerStore } from './planner'
@@ -40,6 +42,11 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
   const album = board.albums?.[id] !== undefined
   const posted = board.posts?.[id] !== undefined
   const LockToggle = locked ? LockOpen : Lock
+  const earlier = neighbour(board, id, -1)
+  const later = neighbour(board, id, 1)
+  const swapWith = (other?: string) => {
+    if (other) plannerStore.getState().swap(id, other)
+  }
   const leave = (action: () => void) => {
     returnTo.current = neighbourOf(cell)
     action()
@@ -81,6 +88,14 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
         )}
         {!locked && (
           <>
+            <MenuItem disabled={!earlier} onClick={() => swapWith(earlier)}>
+              <ArrowLeft />
+              {t('moveEarlier')}
+            </MenuItem>
+            <MenuItem disabled={!later} onClick={() => swapWith(later)}>
+              <ArrowRight />
+              {t('moveLater')}
+            </MenuItem>
             {album && (
               <MenuItem onClick={() => leave(() => plannerStore.getState().ungroup(id))}>
                 <Ungroup />
@@ -106,7 +121,7 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
   )
 }
 
-/** One for the page, opened from the keyboard: a menu per cell is hundreds of roots for nothing. */
+/** One for the page, as a menu per cell is hundreds of roots for nothing. */
 export function CellMenu() {
   const open = useCellMenu()
   return open && <OpenMenu key={open.id} {...open} />

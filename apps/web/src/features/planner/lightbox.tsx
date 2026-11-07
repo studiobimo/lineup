@@ -1,4 +1,15 @@
-import { ChevronLeft, ChevronRight, Layers, X, ZoomIn, ZoomOut } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  Layers,
+  X,
+  ZoomIn,
+  ZoomOut
+} from 'lucide-react'
 import { AnimatePresence, m, type PanInfo } from 'motion/react'
 import { type KeyboardEvent, type MouseEvent, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -24,6 +35,14 @@ import { useZoom } from './use-zoom'
 
 // How far a drag at normal size has to go to count as a swipe to the next image, in pixels.
 const SWIPE_DISTANCE = 80
+
+// For a pointer that cannot drag (WCAG 2.5.7). Each does what its arrow key does.
+const PAN_BUTTONS = [
+  { key: 'ArrowLeft', label: 'panLeft', icon: ArrowLeft },
+  { key: 'ArrowUp', label: 'panUp', icon: ArrowUp },
+  { key: 'ArrowDown', label: 'panDown', icon: ArrowDown },
+  { key: 'ArrowRight', label: 'panRight', icon: ArrowRight }
+] as const
 
 export function Lightbox({ id }: { id: string }) {
   const { t } = useTranslation('planner')
@@ -177,6 +196,15 @@ export function Lightbox({ id }: { id: string }) {
             >
               <ChevronRight />
             </IconButton>
+            {zoomed && (
+              <Group aria-label={t('pan')} className="absolute top-4 right-4">
+                {PAN_BUTTONS.map(({ key, label, icon: Icon }) => (
+                  <IconButton key={key} variant="outline" label={t(label)} onClick={() => pan(key)}>
+                    <Icon />
+                  </IconButton>
+                ))}
+              </Group>
+            )}
             <AnimatePresence>
               {album && <AlbumStrip key={cell} images={album} current={id} onPick={step} />}
             </AnimatePresence>

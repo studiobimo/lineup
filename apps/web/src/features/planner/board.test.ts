@@ -13,6 +13,7 @@ import {
   holdsCell,
   imagesOf,
   imagesOn,
+  neighbour,
   inBoardOrder,
   isLocked,
   keepLocked,
@@ -35,6 +36,26 @@ import type { CellPost } from './board-schema'
 import type { Board } from './board-store'
 
 const board = { tray: ['a', 'b'], grid: ['c', 'd', 'e'] }
+
+describe('neighbour', () => {
+  const board = { tray: ['a'], grid: ['b', 'c', 'd', 'e'], locked: ['c'] }
+
+  it('is the next cell along, either way', () => {
+    expect(neighbour(board, 'd', 1)).toBe('e')
+    expect(neighbour(board, 'e', -1)).toBe('d')
+  })
+
+  it('passes over a locked cell, which keeps its place', () => {
+    expect(neighbour(board, 'b', 1)).toBe('d')
+    expect(neighbour(board, 'd', -1)).toBe('b')
+  })
+
+  it('stops at the ends', () => {
+    expect(neighbour(board, 'b', -1)).toBeUndefined()
+    expect(neighbour(board, 'e', 1)).toBeUndefined()
+    expect(neighbour(board, 'a', 1)).toBeUndefined()
+  })
+})
 
 describe('locked cells', () => {
   const locked = { tray: ['a'], grid: ['b', 'c', 'd', 'e'], locked: ['c'] }

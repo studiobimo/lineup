@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, type Page, test } from '@playwright/test'
 
-import { addImages, grid, groupCells, image, tray } from './fixtures'
+import { addImages, grid, groupCells, image, png, savedBoard, tray } from './fixtures'
 import { mockProvider } from './provider-mock'
 
 const wcag = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
@@ -114,6 +114,21 @@ test('the arrows pan a zoomed picture, and step through one that is not', async 
   await expect(lightbox.getByText('2 of 6')).toBeVisible()
 })
 
+test('a zoomed picture pans without dragging', async ({ page }) => {
+  await fillBoard(page)
+  await page.locator('section').getByRole('img').first().dblclick()
+  const lightbox = page.getByRole('dialog')
+  const pans = lightbox.getByRole('group', { name: 'Look around the picture' })
+  await expect(pans).toHaveCount(0)
+  await lightbox.getByRole('button', { name: 'Zoom in' }).click()
+  const at = () => lightbox.locator('[data-zoom]').evaluate((zoomed) => zoomed.style.transform)
+  const before = await at()
+  await pans.getByRole('button', { name: 'Look right' }).click()
+  await expect.poll(at).not.toBe(before)
+  await settled(page)
+  expect(await violations(page)).toEqual([])
+})
+
 test('focus opens a picture without a tooltip, so Escape goes straight to closing', async ({
   page
 }) => {
@@ -163,6 +178,52 @@ async function openClear(page: Page) {
 test('the confirmation before clearing the board', async ({ page }) => {
   await openClear(page)
   expect(await violations(page)).toEqual([])
+})
+
+test('a mouse reorders without dragging, and undo puts it back', async ({ page }) => {
+  await fillBoard(page)
+  const before = (await savedBoard(page)).grid
+  await grid(page).first().hover()
+  await grid(page).first().getByRole('button', { name: 'More actions' }).click()
+  expect(await violations(page)).toEqual([])
+  await expect(page.getByRole('menuitem', { name: 'Move earlier' })).toBeDisabled()
+  await page.getByRole('menuitem', { name: 'Move later' }).click()
+  const swapped = [before[1], before[0], ...before.slice(2)]
+  await expect.poll(async () => (await savedBoard(page)).grid).toEqual(swapped)
+
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect.poll(async () => (await savedBoard(page)).grid).toEqual(before)
+})
+
+test('an album reorders without dragging', async ({ page }) => {
+  await fillBoard(page)
+  await groupCells(page, grid(page), 3)
+  const [album] = (await savedBoard(page)).grid
+  const order = async () => (await savedBoard(page)).albums?.[album]
+  const [first, second, third] = (await order())!
+  await grid(page).first().hover()
+  await grid(page).first().getByRole('button', { name: 'Open album' }).click()
+  await settled(page)
+  const tile = page.getByRole('dialog').getByRole('group', { name: 'Image 1' })
+  await expect(tile.getByRole('button', { name: 'Move earlier' })).toHaveCount(0)
+  await tile.hover()
+  await tile.getByRole('button', { name: 'Move later' }).click()
+  await expect.poll(order).toEqual([second, first, third])
+})
+
+test('an error stays until it is dismissed, and the dismiss is in reach', async ({ page }) => {
+  await page.goto('/')
+  await openDialog(page, 'Settings')
+  await page.getByRole('tab', { name: 'Storage' }).click()
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: 'Restore' }).click()
+  await (await chooser).setFiles({ name: 'photo.lineup', mimeType: 'text/plain', buffer: png })
+  const message = page.getByText('That file could not be restored')
+  await expect(message).toBeVisible()
+  await page.waitForTimeout(5500)
+  await expect(message).toBeVisible()
+  await page.getByRole('button', { name: 'Dismiss' }).click()
+  await expect(message).toHaveCount(0)
 })
 
 test('the pages around the board', async ({ page }) => {
