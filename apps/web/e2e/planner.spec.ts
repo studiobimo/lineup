@@ -1,5 +1,7 @@
 /// <reference lib="dom" />
 
+import { readFileSync } from 'node:fs'
+
 import { expect, type Locator, type Page, test } from '@playwright/test'
 
 import {
@@ -42,6 +44,20 @@ test('imports, arranges, undoes and comes back after a reload', async ({ page })
   await expect(images).toHaveCount(3)
   await expect(grid.getByRole('img')).toHaveJSProperty('width', 2)
 
+  expect(errors).toEqual([])
+})
+
+test('a HEIC photo imports in a browser that cannot decode it', async ({ page }) => {
+  const errors = watchErrors(page)
+  await page.goto('/')
+  // Chromium has no HEIC decoder, so this is the fallback: the real file, the real WASM, the real CSP.
+  const buffer = readFileSync(new URL('./fixtures/photo.heic', import.meta.url))
+
+  await addImages(page, [{ name: 'IMG_0001.HEIC', mimeType: 'image/heic', buffer }])
+
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await expect(page.getByRole('img')).toHaveJSProperty('width', 128)
+  await expect(page.getByText(/could not be read/)).toBeHidden()
   expect(errors).toEqual([])
 })
 

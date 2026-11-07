@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
 import { Button } from '@/components/ui/button'
-import { toastManager } from '@/components/ui/toast'
+import { lastingToast } from '@/lib/lasting-toast'
 
 import { containerOf, groupProblem, inBoardOrder } from './board'
 import { BottomBar } from './bottom-bar'
@@ -30,7 +30,7 @@ function SelectionActions({ count }: { count: number }) {
     const problem = groupProblem(board, cells)
     if (problem) {
       const limit = instagram.carouselLimit
-      toastManager.add({ type: 'warning', title: t(`groupRefused.${problem}`, { limit }) })
+      lastingToast({ type: 'warning', title: t(`groupRefused.${problem}`, { limit }) })
     } else act(() => plannerStore.getState().group(cells))
   }
   return (

@@ -1,7 +1,7 @@
 import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, rectSortingStrategy, SortableContext, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Ungroup, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Ungroup, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -32,10 +32,14 @@ interface AlbumTileProps {
   album: string
   image: string
   position: number
+  count: number
   locked: boolean
 }
 
-function AlbumTile({ album, image, position, locked }: AlbumTileProps) {
+const tileButton =
+  'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100'
+
+function AlbumTile({ album, image, position, count, locked }: AlbumTileProps) {
   const { t } = useTranslation(['albums', 'planner'])
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: image,
@@ -44,6 +48,11 @@ function AlbumTile({ album, image, position, locked }: AlbumTileProps) {
     animateLayoutChanges: () => true,
     attributes: { role: 'group', roleDescription: t('planner:cellRole') }
   })
+  const shift = (step: 1 | -1) => {
+    const { board, reorderAlbum } = plannerStore.getState()
+    const images = board.albums?.[album] ?? []
+    reorderAlbum(album, arrayMove(images, position - 1, position - 1 + step))
+  }
   return (
     <div
       ref={setNodeRef}
@@ -51,7 +60,7 @@ function AlbumTile({ album, image, position, locked }: AlbumTileProps) {
       {...listeners}
       aria-label={t('image', { position })}
       className={cn(
-        'group relative touch-manipulation overflow-hidden rounded-sm bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary',
+        'group relative touch-manipulation overflow-hidden rounded-sm bg-muted focus-visible:photo-outline',
         !locked && 'cursor-grab active:cursor-grabbing',
         isDragging && 'z-10 shadow-lg'
       )}
@@ -64,15 +73,44 @@ function AlbumTile({ album, image, position, locked }: AlbumTileProps) {
         </span>
       )}
       {!locked && (
-        <IconButton
-          variant="outline"
-          size="icon-xs"
-          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
-          label={t('takeOut')}
-          onClick={() => plannerStore.getState().takeFromAlbum(album, image)}
-        >
-          <X />
-        </IconButton>
+        <>
+          {/* For a pointer that cannot drag (WCAG 2.5.7). The keyboard has Space on the tile. */}
+          <div className="absolute top-1 left-1 flex gap-1">
+            {position > 1 && (
+              <IconButton
+                variant="outline"
+                size="icon-xs"
+                tabIndex={-1}
+                className={tileButton}
+                label={t('planner:moveEarlier')}
+                onClick={() => shift(-1)}
+              >
+                <ArrowLeft />
+              </IconButton>
+            )}
+            {position < count && (
+              <IconButton
+                variant="outline"
+                size="icon-xs"
+                tabIndex={-1}
+                className={tileButton}
+                label={t('planner:moveLater')}
+                onClick={() => shift(1)}
+              >
+                <ArrowRight />
+              </IconButton>
+            )}
+          </div>
+          <IconButton
+            variant="outline"
+            size="icon-xs"
+            className={cn('absolute top-1 right-1', tileButton)}
+            label={t('takeOut')}
+            onClick={() => plannerStore.getState().takeFromAlbum(album, image)}
+          >
+            <X />
+          </IconButton>
+        </>
       )}
     </div>
   )
@@ -135,6 +173,7 @@ export function AlbumDialog({ id }: { id: string }) {
                     album={id}
                     image={image}
                     position={index + 1}
+                    count={images.length}
                     locked={locked}
                   />
                 ))}

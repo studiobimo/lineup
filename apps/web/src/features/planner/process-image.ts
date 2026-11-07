@@ -1,6 +1,7 @@
 import { extractColour, type ImageColour } from '@/features/autosort/colour'
 
 import type { ImportSettings } from './import-settings'
+import { looksLikeHeif } from './looks-like-heif'
 import { type PhotoMetadata, readMetadata } from './photo-metadata'
 
 const PUBLISH_MAX_WIDTH = 1440
@@ -74,10 +75,20 @@ export async function colourOf(file: Blob) {
   }
 }
 
+/** The browser's own decoder first; the HEIC one (ADR-0021) only for what the browser cannot read. */
+async function decode(file: Blob) {
+  try {
+    // A phone stores a portrait photo sideways, with a tag saying so.
+    return await createImageBitmap(file, { imageOrientation: 'from-image' })
+  } catch (error) {
+    if (!(await looksLikeHeif(file))) throw error
+    return (await import('./heic-decode')).decodeHeif(file)
+  }
+}
+
 /** The originals are not kept (ADR-0002), so these two copies are all a board ever holds. */
 export async function processImage(file: Blob, read: ImportSettings): Promise<ProcessedImage> {
-  // A phone stores a portrait photo sideways, with a tag saying so.
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
+  const bitmap = await decode(file)
   try {
     const size = publishSize(bitmap)
     const publish = draw(bitmap, size)

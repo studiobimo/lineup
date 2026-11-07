@@ -3,6 +3,9 @@ updates:
   # >>> template:base
   - package-ecosystem: github-actions
     directory: /
+    # Pull requests go to develop, which ships to development (ADR-0019). Without this,
+    # Dependabot opens them against the default branch, main.
+    target-branch: develop
     # Monthly: every update run, and every rebase of an open PR, is a billed Actions run
     # on a private repository. Security updates ignore the schedule.
     schedule:
@@ -24,6 +27,7 @@ updates:
   # >>> template:vite
   - package-ecosystem: npm
     directory: /
+    target-branch: develop
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
@@ -39,4 +43,8 @@ updates:
       # typescript-eslint supports TypeScript below 6.1, so a TypeScript bump waits for it.
       - dependency-name: typescript
         update-types: [version-update:semver-major, version-update:semver-minor]
+      # Its major follows the node pinned in mise.toml, which Dependabot does not read, so it
+      # is bumped by hand with that.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
   # <<< template:vite

@@ -8,13 +8,17 @@
     "overlay": "{{name}} could not be opened. Reload the page and try again.",
     "routeTitle": "This page ran into a problem",
     "routeDescription": "Your board is safe on this device.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "notFoundTitle": "There is no such page",
+    "notFoundDescription": "Your board is safe on this device.",
+    "backToBoard": "Back to your board"
   },
   "theme": {
     "light": "Switch to light theme",
     "dark": "Switch to dark theme"
   },
   "close": "Close",
+  "dismiss": "Dismiss",
   "loading": "Loading",
   "specimen": {
     "h2": "Arrange it before it goes live",

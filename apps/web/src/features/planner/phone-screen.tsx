@@ -13,7 +13,7 @@ import {
   SquareUser,
   Wifi
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { type RefObject, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { PublishedPicture } from '@/features/provider/published-picture'
@@ -187,7 +187,7 @@ function PreviewCell({ id, position }: { id: string; position: number }) {
 }
 
 /** Instagram's own type and layout, not the app's: this is what the feed will sit inside. */
-export function PhoneScreen() {
+export function PhoneScreen({ feed }: { feed: RefObject<HTMLDivElement | null> }) {
   const { t } = useTranslation('planner')
   const grid = usePlanner(({ board }) => board.grid)
   const typed = useProfile()
@@ -200,9 +200,14 @@ export function PhoneScreen() {
         <StatusBar />
         <NavBar handle={account?.username ?? typed.handle} />
       </div>
+      {/* Nothing inside takes focus, and the keyboard has to be able to scroll this too. */}
       <div
+        ref={feed}
         data-scroll-root
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none]"
+        role="region"
+        aria-label={t('phoneFeed')}
+        tabIndex={0}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
       >
         <div aria-hidden className="contents">
           <Profile

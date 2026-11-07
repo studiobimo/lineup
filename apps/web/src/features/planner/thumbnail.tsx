@@ -14,18 +14,19 @@ interface StoredImageProps {
   label: string
   read: (id: string) => Promise<Blob | undefined>
   className?: string
+  cover?: boolean
 }
 
-function StoredImage({ id, label, read, className }: StoredImageProps) {
+function StoredImage({ id, label, read, className, cover }: StoredImageProps) {
   const canvas = useRef<HTMLCanvasElement>(null)
-  useCanvasImage(canvas, id, read)
+  useCanvasImage(canvas, id, read, { cover })
   return <canvas ref={canvas} role="img" aria-label={label} className={className} />
 }
 
 type ImageProps = Pick<StoredImageProps, 'id' | 'label'>
 
 export function Thumbnail(props: ImageProps) {
-  return <StoredImage {...props} read={readThumbnail} className="size-full object-cover" />
+  return <StoredImage {...props} read={readThumbnail} className="size-full object-cover" cover />
 }
 
 /** A cell's picture, for anything that draws a cell: an album's cover, or the image itself. */

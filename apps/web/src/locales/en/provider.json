@@ -42,6 +42,7 @@
     "picture": "The post's picture",
     "caption": "Caption",
     "captionCount": "{{count}} of {{limit}}",
+    "captionOver": "{{over}} over the limit of {{limit}}",
     "time": "Date and time",
     "timeZone": "In your time zone, {{zone}}.",
     "timeInvalid": "Pick a time that is still to come.",

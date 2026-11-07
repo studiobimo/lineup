@@ -30,7 +30,7 @@ DEPLOY_ENVS := development production
 DEPLOY_BRANCH_development := develop
 DEPLOY_BRANCH_production := main
 
-.PHONY: e2e first-load worker-budget knip duplication bundle-report openapi api-breaking deploy-branch
+.PHONY: e2e memory-budget first-load worker-budget knip duplication bundle-report openapi api-breaking deploy-branch
 
 deploy: deploy-branch
 
@@ -40,7 +40,10 @@ deploy-branch:
 		echo "$(GLYPH_FAIL) $(ENV) ships from $(DEPLOY_BRANCH_$(ENV)), and this is $$branch" >&2; exit 1; }
 
 e2e: build playwright-install ## Playwright, against the built app
-	$(APP_PNPM) exec playwright test
+	$(APP_PNPM) exec playwright test --project=chromium
+
+memory-budget: build playwright-install ## Fail if a 300-image board passes the PRD's memory limit
+	$(APP_PNPM) exec playwright test --project=budget
 
 first-load: build ## Fail if the script a first visit downloads passes the PRD's limit
 	$(APP_CD) && $(MISE) exec -- node $(ROOT)/.devtools/scripts/first-load.mjs \
@@ -72,4 +75,4 @@ api-breaking: ## Fail if the API reference breaks v1, against BASE (a new docume
 bundle-report: ## Build, and write a picture of the bundle to dist/bundle-report.html
 	$(APP_CD) && ANALYZE=1 $(MISE) exec -- pnpm exec vite build
 
-ci: e2e first-load worker-budget knip duplication
+ci: e2e memory-budget first-load worker-budget knip duplication

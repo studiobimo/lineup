@@ -1,8 +1,8 @@
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 
-import { toastManager } from '@/components/ui/toast'
 import i18n from '@/i18n/config'
+import { lastingToast } from '@/lib/lasting-toast'
 
 import { imagesOn } from './board'
 import { importImages } from './import-images'
@@ -27,11 +27,23 @@ const importStore = createStore<ImportState>((set, get) => ({
       let failed = 0
       if (plan.accepted.length > 0) {
         set({ progress: { done: 0, total: plan.accepted.length } })
-        const result = await importImages(plan.accepted, {
-          onProgress: (done, total) => set({ progress: { done, total } })
-        })
-        failed = result.failed
-        await plannerStore.getState().addImages(result.images)
+        const adding = plannerStore.getState().beginImport()
+        try {
+          const result = await importImages(plan.accepted, {
+            onBatch: adding.add,
+            onProgress: (done, total) => set({ progress: { done, total } })
+          })
+          failed = result.failed
+        } catch (error) {
+          // What was stored before this stopped is kept, and not left in storage with no cell.
+          try {
+            adding.finish()
+          } catch {
+            // The first error is the one to report.
+          }
+          throw error
+        }
+        adding.finish()
         // After an import, when the browser has a reason to say yes. A no changes nothing.
         void boardStore.requestPersistence().catch(() => undefined)
       }
@@ -43,10 +55,10 @@ const importStore = createStore<ImportState>((set, get) => ({
           i18n.t('planner:overLimit', { count: plan.overLimit, limit: IMAGE_LIMIT })
       ].filter(Boolean)
       if (skipped.length > 0) {
-        toastManager.add({ type: 'warning', title: skipped.join(' ') })
+        lastingToast({ type: 'warning', title: skipped.join(' ') })
       }
     } catch (error) {
-      toastManager.add(
+      lastingToast(
         isStorageFull(error)
           ? {
               type: 'error',

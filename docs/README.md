@@ -6,6 +6,7 @@ This folder is the source of truth for what Lineup is and why it is built the wa
 - [Roadmap](ROADMAP.md): milestones, their stories and exit criteria
 - [Risks](RISKS.md): risks with mitigations, and assumptions
 - [API conventions](API.md): paths, versions, errors, pagination and the other rules every endpoint follows
+- [Accessibility review](accessibility-review.md): WCAG 2.2 AA, criterion by criterion, and what is open
 - Research:
   - [Instagram APIs](research/instagram-apis.md): the vendors compared, and what publishing through
     Meta directly would take
@@ -24,6 +25,7 @@ This folder is the source of truth for what Lineup is and why it is built the wa
   - [ADR-0010: One tab at a time changes a board](adr/0010-one-active-tab.md)
   - [ADR-0011: Drag with dnd kit's core package](adr/0011-drag-with-dnd-kit.md)
   - [ADR-0012: Animate arranging with Motion](adr/0012-animation-with-motion.md)
+  - [ADR-0021: Decode HEIC in the import worker with libheif](adr/0021-heic-decoding.md)
   - [ADR-0020: Release with semantic-release](adr/0020-semantic-release.md)
 
 A record is for a decision that is specific to this product, costly to reverse, and had real

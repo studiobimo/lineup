@@ -4,3 +4,4 @@
 # Seals each user's provider key (ADR-0008): openssl rand -base64 32. The number is its version: a
 # new one is added beside the old, which stays for 30 days, so nobody loses their key.
 PROVIDER_KEY_SECRET_V1=
+ZERNIO_API_KEY=

@@ -64,7 +64,11 @@ export function TabbedDialog({
           <div className="min-h-0 min-w-0 flex-1">
             <DialogPanel>
               {tabs.map(({ value, content }) => (
-                <TabsPanel key={value} value={value}>
+                <TabsPanel
+                  key={value}
+                  value={value}
+                  className="rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                >
                   {content(close)}
                 </TabsPanel>
               ))}

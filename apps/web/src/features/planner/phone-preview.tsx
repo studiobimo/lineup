@@ -1,6 +1,6 @@
 import { X } from 'lucide-react'
 import { m } from 'motion/react'
-import { type MouseEvent, useState } from 'react'
+import { type MouseEvent, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
@@ -33,6 +33,7 @@ const SIDE_BUTTONS = [
 export function PhonePreview({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation('planner')
   const [leaving, setLeaving] = useState(false)
+  const feed = useRef<HTMLDivElement>(null)
   const fit = useFitScale(SCREEN.width + BEZEL * 2, SCREEN.height + BEZEL * 2, WINDOW_MARGIN)
   const leave = () => setLeaving(true)
   const fade = { initial: { opacity: 0 }, animate: { opacity: leaving ? 0 : 1 } }
@@ -46,6 +47,7 @@ export function PhonePreview({ onClose }: { onClose: () => void }) {
         <DialogPrimitive.Popup
           className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden outline-none"
           render={<m.div {...fade} />}
+          initialFocus={feed}
           onClick={closeOutside}
         >
           <DialogTitle className="sr-only">{t('phonePreview')}</DialogTitle>
@@ -73,7 +75,7 @@ export function PhonePreview({ onClose }: { onClose: () => void }) {
             >
               <span className="absolute top-2.5 left-1/2 z-20 h-[2.125rem] w-[7.5rem] -translate-x-1/2 rounded-full bg-device" />
               <ProviderQueries>
-                <PhoneScreen />
+                <PhoneScreen feed={feed} />
               </ProviderQueries>
             </div>
           </m.div>
