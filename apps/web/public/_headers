@@ -15,6 +15,12 @@
     ! Cache-Control
     Cache-Control: public, max-age=0, must-revalidate
 
+# A dedicated worker takes its policy from its own script's response, not from the page, so only the
+# import worker may compile WebAssembly, for the HEIC decoder (ADR-0021). It allows no eval() of text.
+/assets/image-import.worker-*
+    ! Content-Security-Policy
+    Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'
+
 # The reference, which production's build leaves out. Rules add up, so this takes the one above off.
 # It runs Scalar from a CDN at a pinned version with an integrity hash, and Scalar styles itself inline.
 /api-docs/*

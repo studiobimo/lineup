@@ -1,4 +1,5 @@
 import type { ImportSettings } from './import-settings'
+import { looksLikeHeif } from './looks-like-heif'
 import { nearestCity } from './nearest-city'
 
 export interface PhotoMetadata {
@@ -31,10 +32,16 @@ export async function readMetadata(
   { readCaptureDates, readLocations }: ImportSettings
 ): Promise<PhotoMetadata> {
   if (!readCaptureDates && !readLocations) return {}
-  // Only those who turn a setting on load this.
-  const { gps, parse } = await import('exifr/dist/mini.esm.mjs')
+  // Only those who turn a setting on load this. The small build reads JPEG alone, so a HEIC photo
+  // gets the one that also reads HEIC, set to answer in the same terms: tag numbers and raw text.
+  const heif = await looksLikeHeif(file)
+  const { gps, parse } = heif
+    ? await import('exifr/dist/lite.esm.mjs')
+    : await import('exifr/dist/mini.esm.mjs')
   const tags = readCaptureDates
-    ? ((await parse(file).catch(() => undefined)) as Record<number, unknown> | undefined)
+    ? ((await parse(file, heif ? { translateKeys: false, reviveValues: false } : undefined).catch(
+        () => undefined
+      )) as Record<number, unknown> | undefined)
     : undefined
   return {
     takenAt: parseExifDate(tags?.[DATE_TIME_ORIGINAL]),
