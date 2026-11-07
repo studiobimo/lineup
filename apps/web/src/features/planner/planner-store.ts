@@ -191,9 +191,13 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
         if (unsaved && imagesOn(unsaved).every(known)) {
           if (!sameBoard(unsaved, board)) step(unsaved)
         }
-        // Stored but on no board: an import stopped, or the board's own file was lost.
+        // Stored but on no board: an import stopped, or the board's own file was lost. Not one
+        // still under way here, as when this tab takes the board back mid-import: its `finish`
+        // places those, and placing them now as well would put each in the tray twice.
         const placed = placedIn([board, ...past, ...future])
-        const stranded = records.map(({ id }) => id).filter((id) => !placed.has(id))
+        const stranded = records
+          .map(({ id }) => id)
+          .filter((id) => !placed.has(id) && !staged.has(id))
         if (stranded.length > 0) step(addToTray(board, stranded))
 
         set({ board, images, past, future, ready: true, session: 'active' })
