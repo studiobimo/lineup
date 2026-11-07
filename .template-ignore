@@ -8,3 +8,7 @@ LICENSE
 # Lineup deploys with cf:deploy or Workers Builds, so no Cloudflare credential is kept in
 # GitHub (docs/adr/0001-single-worker.md).
 .github/workflows/deploy.yml
+
+# Lineup's pull requests go to develop (ADR-0019), so its Dependabot entries name it as
+# target-branch. The template's entries open them against main.
+.github/dependabot.yml
