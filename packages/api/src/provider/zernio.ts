@@ -44,7 +44,16 @@ const zernioPostSchema = z.object({
   status: z.string(),
   scheduledFor: z.string().nullish(),
   timezone: z.string().nullish(),
-  mediaItems: z.array(z.object({ url: z.string().nullish() })).nullish(),
+  mediaProductType: z.string().nullish(),
+  mediaItems: z
+    .array(
+      z.object({
+        url: z.string().nullish(),
+        thumbnail: z.string().nullish(),
+        instagramThumbnail: z.string().nullish()
+      })
+    )
+    .nullish(),
   platforms: z
     .array(
       z.object({
@@ -57,6 +66,19 @@ const zernioPostSchema = z.object({
     .nullish()
 })
 type ZernioPost = z.infer<typeof zernioPostSchema>
+
+// A video's url is the video, so its picture is the thumbnail.
+function toPublishedPost(post: ZernioPost, id: string) {
+  const [target] = post.platforms ?? []
+  const [media] = post.mediaItems ?? []
+  return {
+    id,
+    url: target?.platformPostUrl ?? undefined,
+    thumbnailUrl: media?.thumbnail ?? media?.instagramThumbnail ?? media?.url ?? undefined,
+    caption: post.content ?? undefined,
+    publishedAt: target?.publishedAt ?? post.scheduledFor ?? undefined
+  }
+}
 
 const statuses: Record<string, PostStatus> = {
   draft: 'scheduled',
@@ -100,18 +122,6 @@ const accountsSchema = z.object({
     })
   )
 })
-const externalPostsSchema = z.object({
-  posts: z.array(
-    z.object({
-      platformPostId: z.string(),
-      platformPostUrl: z.string().nullish(),
-      content: z.string().nullish(),
-      publishedAt: z.string().nullish(),
-      thumbnailUrl: z.string().nullish(),
-      mediaProductType: z.string().nullish()
-    })
-  )
-})
 const postsSchema = z.object({ posts: z.array(zernioPostSchema) })
 const postSchema = z.object({ post: zernioPostSchema })
 const createdKeySchema = z.object({ apiKey: z.object({ key: z.string() }) })
@@ -127,6 +137,25 @@ async function failureOf(response: Response) {
   const body = errorSchema.safeParse(await response.json().catch(() => undefined))
   const failure = failures[response.status] ?? 'down'
   return new ProviderError(failure, { detail: body.data?.error, retryAfter })
+}
+
+const at = (value: unknown, path: PropertyKey[]) =>
+  path.reduce<unknown>(
+    (node, step) =>
+      node !== null && typeof node === 'object' ? Reflect.get(node, step) : undefined,
+    value
+  )
+const kindOf = (value: unknown) =>
+  value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value
+
+// Types and field names only, never a value, so the log holds nothing from the account.
+function shapeOf(error: z.ZodError, body: unknown) {
+  const issues = error.issues.slice(0, 5)
+  const holder = issues[0] && at(body, issues[0].path.slice(0, -1))
+  return {
+    shape: issues.map(({ path, code }) => `${path.join('.')}:${code}:${kindOf(at(body, path))}`),
+    fields: holder !== null && typeof holder === 'object' ? Object.keys(holder).sort() : undefined
+  }
 }
 
 export function zernio(key: string): Provider {
@@ -154,11 +183,11 @@ export function zernio(key: string): Provider {
       throw error
     }
     if (response.status === 204) return schema.parse(undefined)
-    const parsed = schema.safeParse(await response.json().catch(() => undefined))
+    const answer: unknown = await response.json().catch(() => undefined)
+    const parsed = schema.safeParse(answer)
     // An answer of a shape nobody expected has to fail here, not somewhere it cannot be explained.
     if (!parsed.success) {
-      const issues = parsed.error.issues.map(({ path, code }) => `${path.join('.')}:${code}`)
-      console.error(JSON.stringify({ provider: 'zernio', where, shape: issues.slice(0, 5) }))
+      console.error(JSON.stringify({ provider: 'zernio', where, ...shapeOf(parsed.error, answer) }))
       throw new ProviderError('down')
     }
     return parsed.data
@@ -226,19 +255,14 @@ export function zernio(key: string): Provider {
     async publishedPosts(accountId) {
       const limit = String(RECENT_POSTS)
       const query = (source: string) => new URLSearchParams({ accountId, limit, source })
+      // Zernio documents posts from elsewhere in another shape, but sends them in this one.
       const [{ posts: elsewhere }, { posts: throughHere }] = await Promise.all([
-        call(`/posts?${query('external')}`, externalPostsSchema),
+        call(`/posts?${query('external')}`, postsSchema),
         call(`/posts?${query('zernio')}&status=published`, postsSchema)
       ])
       const fromElsewhere = elsewhere
         .filter(({ mediaProductType }) => !OFF_THE_GRID.includes(mediaProductType ?? ''))
-        .map((post) => ({
-          id: post.platformPostId,
-          url: post.platformPostUrl ?? undefined,
-          thumbnailUrl: post.thumbnailUrl ?? undefined,
-          caption: post.content ?? undefined,
-          publishedAt: post.publishedAt ?? undefined
-        }))
+        .map((post) => toPublishedPost(post, post.platforms?.[0]?.platformPostId ?? post._id))
       // Zernio syncs its own posts back as external ones, with the id or the link maybe missing.
       const seen = new Set(fromElsewhere.flatMap(({ id, url }) => (url ? [id, url] : [id])))
       const fromHere = throughHere
@@ -248,13 +272,7 @@ export function zernio(key: string): Provider {
             (key) => key && seen.has(key)
           )
         })
-        .map((post) => ({
-          id: post._id,
-          url: post.platforms?.[0]?.platformPostUrl ?? undefined,
-          thumbnailUrl: post.mediaItems?.[0]?.url ?? undefined,
-          caption: post.content ?? undefined,
-          publishedAt: post.platforms?.[0]?.publishedAt ?? undefined
-        }))
+        .map((post) => toPublishedPost(post, post._id))
       return [...fromElsewhere, ...fromHere]
         .toSorted((one, other) => (other.publishedAt ?? '').localeCompare(one.publishedAt ?? ''))
         .slice(0, RECENT_POSTS)
