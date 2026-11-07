@@ -1,6 +1,7 @@
 # Static assets only: a response from the Worker never gets these, so /api/* sets its own.
 # Nothing runs or loads from another origin, except pictures of a connected account's posts, from
 # the provider and from Instagram, and the images sent to the provider's storage on scheduling.
+# 'wasm-unsafe-eval' lets the HEIC decoder (ADR-0021) compile its WebAssembly, and allows no eval() of text.
 # A later feature adds what it needs, and no more.
 # The style hash is the one tag Base UI's scroll area writes to hide native scrollbars. A Base UI
 # update can change it, and the browser tests then fail on the violation.
@@ -8,7 +9,7 @@
 # on every load. Any path can be HTML, as the app's routes fall back to it, so only the bundles opt out.
 /*
     Cache-Control: public, max-age=0, must-revalidate, no-transform
-    Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'sha256-kLmvWqfziFavKtqHqRsb90f006UAK2Dmd0It5Iz2KFA='; font-src 'self'; img-src 'self' https://media.zernio.com https://*.cdninstagram.com https://*.fbcdn.net; connect-src 'self' https://*.r2.cloudflarestorage.com; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+    Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'sha256-kLmvWqfziFavKtqHqRsb90f006UAK2Dmd0It5Iz2KFA='; font-src 'self'; img-src 'self' https://media.zernio.com https://*.cdninstagram.com https://*.fbcdn.net; connect-src 'self' https://*.r2.cloudflarestorage.com; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
 
 # Cloudflare compresses these, which no-transform would stop.
 /assets/*
