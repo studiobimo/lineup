@@ -171,6 +171,7 @@
   /* Opaque: a control over an image has to stay readable whatever is under it. */
   --control-hover: color-mix(in srgb, var(--popover) 90%, var(--foreground));
   --device: var(--color-neutral-950);
+  --field-border: --alpha(var(--color-black) / 44%);
   --foreground: var(--color-neutral-800);
   --input: --alpha(var(--color-black) / 10%);
   --muted: --alpha(var(--color-black) / 4%);
@@ -179,7 +180,7 @@
   --popover-foreground: var(--color-neutral-800);
   --primary: var(--color-neutral-800);
   --primary-foreground: var(--color-neutral-50);
-  --ring: var(--color-neutral-400);
+  --ring: var(--color-neutral-600);
   --secondary: --alpha(var(--color-black) / 4%);
   --secondary-foreground: var(--color-neutral-800);
   --chart-1: var(--color-orange-600);
@@ -216,6 +217,7 @@
   --card: color-mix(in srgb, var(--background) 98%, var(--color-white));
   --card-foreground: var(--color-neutral-100);
   --destructive: color-mix(in srgb, var(--color-red-500) 90%, var(--color-white));
+  --field-border: --alpha(var(--color-white) / 42%);
   --foreground: var(--color-neutral-100);
   --input: --alpha(var(--color-white) / 8%);
   --muted: --alpha(var(--color-white) / 4%);
@@ -224,7 +226,7 @@
   --popover-foreground: var(--color-neutral-100);
   --primary: var(--color-neutral-100);
   --primary-foreground: var(--color-neutral-800);
-  --ring: var(--color-neutral-500);
+  --ring: var(--color-neutral-300);
   --secondary: --alpha(var(--color-white) / 4%);
   --secondary-foreground: var(--color-neutral-100);
   --chart-1: var(--color-blue-700);
@@ -254,6 +256,9 @@
   [data-dragging] * {
     cursor: grabbing !important;
   }
+  a:focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'ss01', 'cv01';
@@ -281,11 +286,38 @@
   pre {
     font-family: var(--font-mono);
   }
+  /* Past the header and the bottom bar, which float over the page and would hide what has focus. */
   html {
-    @apply font-sans;
+    @apply scroll-pt-16 scroll-pb-16 font-sans;
     color-scheme: light;
   }
   html.dark {
     color-scheme: dark;
+  }
+}
+
+/* coss draws these in --input, too faint to find a field or a switch by (WCAG 1.4.11). */
+@layer utilities {
+  [data-slot='input-control'],
+  [data-slot='textarea-control'] {
+    border-color: var(--field-border);
+  }
+  [data-slot='switch'][data-unchecked] {
+    background-color: var(--field-border);
+  }
+}
+
+/* A mark on a photo. One colour vanishes on a photo of that tone, so another runs inside it. */
+@utility photo-outline {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border: 2px solid var(--background);
+    border-radius: inherit;
+    pointer-events: none;
   }
 }

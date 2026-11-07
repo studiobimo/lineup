@@ -47,7 +47,7 @@ export function AlbumStrip({ images, current, onPick }: AlbumStripProps) {
             <m.span
               layoutId="album-strip-current"
               transition={settle}
-              className="pointer-events-none absolute inset-0 z-10 rounded-sm ring-2 ring-primary ring-inset"
+              className="pointer-events-none absolute inset-0 z-10 rounded-sm photo-outline"
             />
           )}
         </button>
