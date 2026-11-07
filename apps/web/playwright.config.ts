@@ -13,7 +13,17 @@ export default defineConfig({
   reporter: process.env.CI ? 'github' : 'list',
   // A cell in mid-glide is a moving target for a real mouse. The animation has its own check.
   use: { baseURL: `http://localhost:${port}`, contextOptions: { reducedMotion: 'reduce' } },
-  projects: [{ name: 'chromium', use: devices['Desktop Chrome'] }],
+  projects: [
+    { name: 'chromium', use: devices['Desktop Chrome'] },
+    // The PRD's budgets, run alone by `make memory-budget`: slow, and never beside other tests,
+    // which would share the machine's memory and time.
+    {
+      name: 'budget',
+      use: devices['Desktop Chrome'],
+      testMatch: '*.budget.ts',
+      fullyParallel: false
+    }
+  ],
   webServer: {
     command: `pnpm exec vite preview --port ${port} --strictPort`,
     url: `http://localhost:${port}`,
