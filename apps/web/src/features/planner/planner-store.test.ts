@@ -300,6 +300,21 @@ describe('the planner store', () => {
       expect(state().board).toEqual(imported)
     })
 
+    it('is placed once when the board is loaded again while it is under way', async () => {
+      const { state } = await loaded()
+      const importing = state().beginImport()
+      await importing.add([processed])
+      // Another tab took the board, and this one took it back, before the import finished.
+      state().suspend()
+      await state().load()
+      await importing.add([processed])
+      importing.finish()
+
+      const { tray } = state().board
+      expect(tray).toHaveLength(start.tray.length + 2)
+      expect(new Set(tray).size).toBe(tray.length)
+    })
+
     it('is not purged by a change to the board while it is under way', async () => {
       const { boardStore, state } = await loaded()
       const importing = state().beginImport()
