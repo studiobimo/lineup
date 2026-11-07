@@ -140,6 +140,38 @@ describe('zernio', () => {
     expect(posts[0].thumbnailUrl).toBe('https://media.zernio.com/new.jpg')
   })
 
+  it('keeps posts whose optional fields Zernio sent as null', async () => {
+    stub.mockImplementation(async (url) =>
+      String(url).includes('source=external')
+        ? respond({
+            posts: [
+              {
+                platformPostId: 'nulls',
+                platformPostUrl: null,
+                content: null,
+                publishedAt: '2026-02-01T00:00:00Z',
+                thumbnailUrl: null,
+                mediaProductType: null
+              }
+            ]
+          })
+        : respond({
+            posts: [
+              {
+                _id: 'drafted',
+                status: 'published',
+                content: null,
+                scheduledFor: null,
+                mediaItems: [{ url: null }],
+                platforms: [{ platformPostUrl: null, publishedAt: null }]
+              }
+            ]
+          })
+    )
+    const posts = await provider.publishedPosts('account')
+    expect(posts.map(({ id }) => id)).toEqual(['nulls', 'drafted'])
+  })
+
   it('schedules one Instagram post with its images in order and the idempotency key', async () => {
     stub.mockResolvedValue(respond({ post: { _id: 'post', status: 'scheduled' } }, 201))
     const post = await provider.schedule(
