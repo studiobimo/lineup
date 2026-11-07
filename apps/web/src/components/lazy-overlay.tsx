@@ -1,8 +1,8 @@
 import { type ReactNode, Suspense } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 
-import { toastManager } from '@/components/ui/toast'
 import i18n from '@/i18n/config'
+import { lastingToast } from '@/lib/lasting-toast'
 
 interface LazyOverlayProps {
   /** What failed to open, in the words of the message that says so. */
@@ -18,7 +18,7 @@ interface LazyOverlayProps {
 export function LazyOverlay({ name, onClose, children }: LazyOverlayProps) {
   const fail = () => {
     onClose()
-    toastManager.add({ type: 'error', title: i18n.t('errors.overlay', { name }) })
+    lastingToast({ type: 'error', title: i18n.t('errors.overlay', { name }) })
   }
   return (
     <ErrorBoundary fallback={null} onError={fail}>
