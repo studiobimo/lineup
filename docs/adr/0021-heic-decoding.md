@@ -34,8 +34,10 @@ This repository is proprietary, so this is a licensing decision, not only a tech
   `libheif.wasm` is a separate file served from our own origin, unmodified. It is not inlined into
   application code, so it stays a replaceable library, which is what the LGPL asks of a program
   that links it. Nothing is added to the first load.
-- `script-src` gains **`'wasm-unsafe-eval'`**, which compiles WebAssembly and does not permit
-  `eval()` of text. Nothing else in the policy changes, and nothing is fetched from another origin.
+- The import worker's script gets its own policy, with **`'wasm-unsafe-eval'`** in `script-src`,
+  which compiles WebAssembly and does not permit `eval()` of text. A dedicated worker takes its
+  policy from its script's response, not from the page, so the pages' policy does not change, and
+  nothing is fetched from another origin.
 - The publish and thumbnail copies stay JPEG, made by the same pipeline from the decoded pixels.
   libheif applies the photo's rotation as it decodes.
 - Capture dates and locations are read from the original file, as for any other photo. exifr's
@@ -54,5 +56,7 @@ This repository is proprietary, so this is a licensing decision, not only a tech
 - The app depends on an LGPL library. Changing how it is loaded (inlining it into the app's own
   bundle, or modifying it) needs a new decision here. If its terms ever stop being acceptable, the
   fallback is a clear "convert to JPEG first" message for HEIC in browsers that cannot decode it.
-- The CSP now allows WebAssembly compilation on every page of the app.
+- Only the import worker may compile WebAssembly. Its rule in `_headers` matches the worker's
+  file name, so renaming the worker needs the rule renamed too, and the browser test of a HEIC
+  import fails if they part.
 - A HEIC file holding several images imports its first.
