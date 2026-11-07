@@ -164,12 +164,51 @@ describe('zernio', () => {
                 scheduledFor: null,
                 mediaItems: [{ url: null }],
                 platforms: [{ platformPostUrl: null, publishedAt: null }]
+              },
+              { _id: 'bare', status: 'published', mediaItems: null, platforms: null }
+            ]
+          })
+    )
+    const posts = await provider.publishedPosts('account')
+    expect(posts.map(({ id }) => id)).toEqual(['nulls', 'drafted', 'bare'])
+  })
+
+  it('spots a post from here synced back from elsewhere by its id, before it has a link', async () => {
+    stub.mockImplementation(async (url) =>
+      String(url).includes('source=external')
+        ? respond({ posts: [{ platformPostId: 'ig-1', platformPostUrl: null }] })
+        : respond({
+            posts: [
+              {
+                _id: 'here',
+                status: 'published',
+                platforms: [{ platformPostId: 'ig-1', platformPostUrl: null }]
               }
             ]
           })
     )
     const posts = await provider.publishedPosts('account')
-    expect(posts.map(({ id }) => id)).toEqual(['nulls', 'drafted'])
+    expect(posts.map(({ id }) => id)).toEqual(['ig-1'])
+  })
+
+  it('lists an account whose optional fields Zernio sent as null', async () => {
+    stub.mockResolvedValue(
+      respond({
+        accounts: [
+          {
+            _id: 'a',
+            platform: 'instagram',
+            username: null,
+            displayName: null,
+            isActive: true,
+            needsReconnection: null
+          }
+        ]
+      })
+    )
+    expect(await provider.accounts('profile')).toEqual([
+      { id: 'a', username: 'a', needsReconnection: false }
+    ])
   })
 
   it('schedules one Instagram post with its images in order and the idempotency key', async () => {

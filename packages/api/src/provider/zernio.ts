@@ -24,7 +24,6 @@ const UNUSED_GROUPS = [
   'calendar',
   'files'
 ]
-// Stories and ads are not on the grid.
 const OFF_THE_GRID = ['STORY', 'AD']
 
 const failures: Record<number, ProviderFailure> = {
@@ -39,7 +38,6 @@ const failures: Record<number, ProviderFailure> = {
 
 const errorSchema = z.object({ error: z.string().optional() })
 
-// Zernio sends null for a field it has no value for, so every optional field also takes null.
 const zernioPostSchema = z.object({
   _id: z.string(),
   content: z.string().nullish(),
@@ -50,12 +48,13 @@ const zernioPostSchema = z.object({
   platforms: z
     .array(
       z.object({
+        platformPostId: z.string().nullish(),
         platformPostUrl: z.string().nullish(),
         publishedAt: z.string().nullish(),
         errorMessage: z.string().nullish()
       })
     )
-    .optional()
+    .nullish()
 })
 type ZernioPost = z.infer<typeof zernioPostSchema>
 
@@ -92,12 +91,12 @@ const accountsSchema = z.object({
     z.object({
       _id: z.string(),
       platform: z.string(),
-      username: z.string().optional(),
-      displayName: z.string().optional(),
+      username: z.string().nullish(),
+      displayName: z.string().nullish(),
       profilePicture: z.string().nullish(),
       followersCount: z.number().nullish(),
       isActive: z.boolean(),
-      needsReconnection: z.boolean().optional()
+      needsReconnection: z.boolean().nullish()
     })
   )
 })
@@ -147,7 +146,6 @@ export function zernio(key: string): Provider {
       )
       throw new ProviderError('down')
     })
-    // Logged without the key or the body, so a 502 can be traced to the call that caused it.
     const where = path.split('?')[0]
     if (!response.ok) {
       const error = await failureOf(response)
@@ -212,7 +210,7 @@ export function zernio(key: string): Provider {
         .map((account) => ({
           id: account._id,
           username: account.username ?? account.displayName ?? account._id,
-          displayName: account.displayName,
+          displayName: account.displayName ?? undefined,
           avatarUrl: account.profilePicture ?? undefined,
           followers: account.followersCount ?? undefined,
           needsReconnection: account.needsReconnection ?? false
@@ -241,9 +239,15 @@ export function zernio(key: string): Provider {
           caption: post.content ?? undefined,
           publishedAt: post.publishedAt ?? undefined
         }))
-      // Only a real link can say two posts are the same; a missing one must not hide the other.
-      const seen = new Set(fromElsewhere.flatMap(({ url }) => (url ? [url] : [])))
+      // Zernio syncs its own posts back as external ones, with the id or the link maybe missing.
+      const seen = new Set(fromElsewhere.flatMap(({ id, url }) => (url ? [id, url] : [id])))
       const fromHere = throughHere
+        .filter(({ platforms }) => {
+          const target = platforms?.[0]
+          return ![target?.platformPostId, target?.platformPostUrl].some(
+            (key) => key && seen.has(key)
+          )
+        })
         .map((post) => ({
           id: post._id,
           url: post.platforms?.[0]?.platformPostUrl ?? undefined,
@@ -251,7 +255,6 @@ export function zernio(key: string): Provider {
           caption: post.content ?? undefined,
           publishedAt: post.platforms?.[0]?.publishedAt ?? undefined
         }))
-        .filter(({ url }) => !(url && seen.has(url)))
       return [...fromElsewhere, ...fromHere]
         .toSorted((one, other) => (other.publishedAt ?? '').localeCompare(one.publishedAt ?? ''))
         .slice(0, RECENT_POSTS)
