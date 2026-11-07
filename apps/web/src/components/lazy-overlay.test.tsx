@@ -30,9 +30,13 @@ describe('LazyOverlay', () => {
       </LazyOverlay>
     )
     await waitFor(() => expect(onClose).toHaveBeenCalled())
-    expect(toastManager.add).toHaveBeenCalledWith({
-      type: 'error',
-      title: 'Settings could not be opened. Reload the page and try again.'
-    })
+    // It asks for a reload, so it stays until it is read (WCAG 2.2.1).
+    expect(toastManager.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'error',
+        title: 'Settings could not be opened. Reload the page and try again.',
+        timeout: 0
+      })
+    )
   })
 })
