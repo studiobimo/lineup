@@ -24,7 +24,6 @@ const UNUSED_GROUPS = [
   'calendar',
   'files'
 ]
-// Stories and ads are not on the grid.
 const OFF_THE_GRID = ['STORY', 'AD']
 
 const failures: Record<number, ProviderFailure> = {
@@ -41,22 +40,45 @@ const errorSchema = z.object({ error: z.string().optional() })
 
 const zernioPostSchema = z.object({
   _id: z.string(),
-  content: z.string().optional(),
+  content: z.string().nullish(),
   status: z.string(),
-  scheduledFor: z.string().optional(),
-  timezone: z.string().optional(),
-  mediaItems: z.array(z.object({ url: z.string().optional() })).optional(),
+  scheduledFor: z.string().nullish(),
+  timezone: z.string().nullish(),
+  mediaProductType: z.string().nullish(),
+  mediaItems: z
+    .array(
+      z.object({
+        url: z.string().nullish(),
+        thumbnail: z.string().nullish(),
+        instagramThumbnail: z.string().nullish()
+      })
+    )
+    .nullish(),
   platforms: z
     .array(
       z.object({
+        platformPostId: z.string().nullish(),
         platformPostUrl: z.string().nullish(),
         publishedAt: z.string().nullish(),
         errorMessage: z.string().nullish()
       })
     )
-    .optional()
+    .nullish()
 })
 type ZernioPost = z.infer<typeof zernioPostSchema>
+
+// A video's url is the video, so its picture is the thumbnail.
+function toPublishedPost(post: ZernioPost, id: string) {
+  const [target] = post.platforms ?? []
+  const [media] = post.mediaItems ?? []
+  return {
+    id,
+    url: target?.platformPostUrl ?? undefined,
+    thumbnailUrl: media?.thumbnail ?? media?.instagramThumbnail ?? media?.url ?? undefined,
+    caption: post.content ?? undefined,
+    publishedAt: target?.publishedAt ?? post.scheduledFor ?? undefined
+  }
+}
 
 const statuses: Record<string, PostStatus> = {
   draft: 'scheduled',
@@ -75,9 +97,9 @@ function toScheduledPost(post: ZernioPost): ScheduledPost {
   return {
     id: post._id,
     status: statuses[post.status] ?? 'scheduled',
-    scheduledFor: post.scheduledFor,
-    timeZone: post.timezone,
-    caption: post.content,
+    scheduledFor: post.scheduledFor ?? undefined,
+    timeZone: post.timezone ?? undefined,
+    caption: post.content ?? undefined,
     url: target?.platformPostUrl ?? undefined,
     failure: target?.errorMessage ?? undefined
   }
@@ -91,24 +113,12 @@ const accountsSchema = z.object({
     z.object({
       _id: z.string(),
       platform: z.string(),
-      username: z.string().optional(),
-      displayName: z.string().optional(),
+      username: z.string().nullish(),
+      displayName: z.string().nullish(),
       profilePicture: z.string().nullish(),
       followersCount: z.number().nullish(),
       isActive: z.boolean(),
-      needsReconnection: z.boolean().optional()
-    })
-  )
-})
-const externalPostsSchema = z.object({
-  posts: z.array(
-    z.object({
-      platformPostId: z.string(),
-      platformPostUrl: z.string().optional(),
-      content: z.string().optional(),
-      publishedAt: z.string().optional(),
-      thumbnailUrl: z.string().optional(),
-      mediaProductType: z.string().optional()
+      needsReconnection: z.boolean().nullish()
     })
   )
 })
@@ -129,6 +139,25 @@ async function failureOf(response: Response) {
   return new ProviderError(failure, { detail: body.data?.error, retryAfter })
 }
 
+const at = (value: unknown, path: PropertyKey[]) =>
+  path.reduce<unknown>(
+    (node, step) =>
+      node !== null && typeof node === 'object' ? Reflect.get(node, step) : undefined,
+    value
+  )
+const kindOf = (value: unknown) =>
+  value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value
+
+// Types and field names only, never a value, so the log holds nothing from the account.
+function shapeOf(error: z.ZodError, body: unknown) {
+  const issues = error.issues.slice(0, 5)
+  const holder = issues[0] && at(body, issues[0].path.slice(0, -1))
+  return {
+    shape: issues.map(({ path, code }) => `${path.join('.')}:${code}:${kindOf(at(body, path))}`),
+    fields: holder !== null && typeof holder === 'object' ? Object.keys(holder).sort() : undefined
+  }
+}
+
 export function zernio(key: string): Provider {
   async function call<Schema extends z.ZodType>(
     path: string,
@@ -140,14 +169,27 @@ export function zernio(key: string): Provider {
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', ...headers },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(TIMEOUT_MS)
-    }).catch(() => {
+    }).catch((error: unknown) => {
+      console.error(
+        JSON.stringify({ provider: 'zernio', where: path.split('?')[0], network: String(error) })
+      )
       throw new ProviderError('down')
     })
-    if (!response.ok) throw await failureOf(response)
+    const where = path.split('?')[0]
+    if (!response.ok) {
+      const error = await failureOf(response)
+      if (error.failure === 'down')
+        console.error(JSON.stringify({ provider: 'zernio', where, status: response.status }))
+      throw error
+    }
     if (response.status === 204) return schema.parse(undefined)
-    const parsed = schema.safeParse(await response.json().catch(() => undefined))
+    const answer: unknown = await response.json().catch(() => undefined)
+    const parsed = schema.safeParse(answer)
     // An answer of a shape nobody expected has to fail here, not somewhere it cannot be explained.
-    if (!parsed.success) throw new ProviderError('down')
+    if (!parsed.success) {
+      console.error(JSON.stringify({ provider: 'zernio', where, ...shapeOf(parsed.error, answer) }))
+      throw new ProviderError('down')
+    }
     return parsed.data
   }
 
@@ -197,7 +239,7 @@ export function zernio(key: string): Provider {
         .map((account) => ({
           id: account._id,
           username: account.username ?? account.displayName ?? account._id,
-          displayName: account.displayName,
+          displayName: account.displayName ?? undefined,
           avatarUrl: account.profilePicture ?? undefined,
           followers: account.followersCount ?? undefined,
           needsReconnection: account.needsReconnection ?? false
@@ -213,29 +255,24 @@ export function zernio(key: string): Provider {
     async publishedPosts(accountId) {
       const limit = String(RECENT_POSTS)
       const query = (source: string) => new URLSearchParams({ accountId, limit, source })
+      // Zernio documents posts from elsewhere in another shape, but sends them in this one.
       const [{ posts: elsewhere }, { posts: throughHere }] = await Promise.all([
-        call(`/posts?${query('external')}`, externalPostsSchema),
+        call(`/posts?${query('external')}`, postsSchema),
         call(`/posts?${query('zernio')}&status=published`, postsSchema)
       ])
       const fromElsewhere = elsewhere
         .filter(({ mediaProductType }) => !OFF_THE_GRID.includes(mediaProductType ?? ''))
-        .map((post) => ({
-          id: post.platformPostId,
-          url: post.platformPostUrl,
-          thumbnailUrl: post.thumbnailUrl,
-          caption: post.content,
-          publishedAt: post.publishedAt
-        }))
-      const seen = new Set(fromElsewhere.map(({ url }) => url))
+        .map((post) => toPublishedPost(post, post.platforms?.[0]?.platformPostId ?? post._id))
+      // Zernio syncs its own posts back as external ones, with the id or the link maybe missing.
+      const seen = new Set(fromElsewhere.flatMap(({ id, url }) => (url ? [id, url] : [id])))
       const fromHere = throughHere
-        .map((post) => ({
-          id: post._id,
-          url: post.platforms?.[0]?.platformPostUrl ?? undefined,
-          thumbnailUrl: post.mediaItems?.[0]?.url,
-          caption: post.content,
-          publishedAt: post.platforms?.[0]?.publishedAt ?? undefined
-        }))
-        .filter(({ url }) => !seen.has(url))
+        .filter(({ platforms }) => {
+          const target = platforms?.[0]
+          return ![target?.platformPostId, target?.platformPostUrl].some(
+            (key) => key && seen.has(key)
+          )
+        })
+        .map((post) => toPublishedPost(post, post._id))
       return [...fromElsewhere, ...fromHere]
         .toSorted((one, other) => (other.publishedAt ?? '').localeCompare(one.publishedAt ?? ''))
         .slice(0, RECENT_POSTS)

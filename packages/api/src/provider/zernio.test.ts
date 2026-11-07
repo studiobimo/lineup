@@ -6,6 +6,14 @@ import { zernio } from './zernio'
 const KEY = 'sk_test_key'
 const respond = (body: unknown, status = 200, headers?: HeadersInit) =>
   new Response(body === undefined ? null : JSON.stringify(body), { status, headers })
+// A post synced from Instagram, in the shape Zernio sends rather than the one it documents.
+const external = (platformPostId: string, fields: Record<string, unknown> = {}, target = {}) => ({
+  _id: `zernio-${platformPostId}`,
+  origin: 'external',
+  status: 'published',
+  platforms: [{ platform: 'instagram', platformPostId, ...target }],
+  ...fields
+})
 
 describe('zernio', () => {
   const stub = vi.fn<typeof fetch>()
@@ -101,17 +109,23 @@ describe('zernio', () => {
       String(url).includes('source=external')
         ? respond({
             posts: [
-              {
-                platformPostId: 'old',
-                platformPostUrl: 'https://instagram.com/p/old',
-                publishedAt: '2026-01-01T00:00:00Z'
-              },
-              {
-                platformPostId: 'twice',
-                platformPostUrl: 'https://instagram.com/p/twice',
-                publishedAt: '2026-03-01T00:00:00Z'
-              },
-              { platformPostId: 'story', mediaProductType: 'STORY' }
+              external(
+                'old',
+                {},
+                {
+                  platformPostUrl: 'https://instagram.com/p/old',
+                  publishedAt: '2026-01-01T00:00:00Z'
+                }
+              ),
+              external(
+                'twice',
+                {},
+                {
+                  platformPostUrl: 'https://instagram.com/p/twice',
+                  publishedAt: '2026-03-01T00:00:00Z'
+                }
+              ),
+              external('story', { mediaProductType: 'STORY' })
             ]
           })
         : respond({
@@ -138,6 +152,121 @@ describe('zernio', () => {
     const posts = await provider.publishedPosts('account')
     expect(posts.map(({ id }) => id)).toEqual(['new', 'twice', 'old'])
     expect(posts[0].thumbnailUrl).toBe('https://media.zernio.com/new.jpg')
+  })
+
+  it('keeps posts whose optional fields Zernio sent as null', async () => {
+    stub.mockImplementation(async (url) =>
+      String(url).includes('source=external')
+        ? respond({
+            posts: [
+              external(
+                'nulls',
+                { content: null, mediaItems: [{ url: null }], mediaProductType: null },
+                { platformPostUrl: null, publishedAt: '2026-02-01T00:00:00Z' }
+              )
+            ]
+          })
+        : respond({
+            posts: [
+              {
+                _id: 'drafted',
+                status: 'published',
+                content: null,
+                scheduledFor: null,
+                mediaItems: [{ url: null }],
+                platforms: [{ platformPostUrl: null, publishedAt: null }]
+              },
+              { _id: 'bare', status: 'published', mediaItems: null, platforms: null }
+            ]
+          })
+    )
+    const posts = await provider.publishedPosts('account')
+    expect(posts.map(({ id }) => id)).toEqual(['nulls', 'drafted', 'bare'])
+  })
+
+  it('spots a post from here synced back from elsewhere by its id, before it has a link', async () => {
+    stub.mockImplementation(async (url) =>
+      String(url).includes('source=external')
+        ? respond({ posts: [external('ig-1', {}, { platformPostUrl: null })] })
+        : respond({
+            posts: [
+              {
+                _id: 'here',
+                status: 'published',
+                platforms: [{ platformPostId: 'ig-1', platformPostUrl: null }]
+              }
+            ]
+          })
+    )
+    const posts = await provider.publishedPosts('account')
+    expect(posts.map(({ id }) => id)).toEqual(['ig-1'])
+  })
+
+  it('shows a post from elsewhere with its picture, caption, link and date', async () => {
+    stub.mockImplementation(async (url) =>
+      respond({
+        posts: String(url).includes('source=external')
+          ? [
+              external(
+                'reel',
+                {
+                  content: 'A reel',
+                  mediaProductType: 'REELS',
+                  scheduledFor: '2026-04-01T00:00:00Z',
+                  mediaItems: [
+                    {
+                      type: 'video',
+                      url: 'https://cdn.test/reel.mp4',
+                      thumbnail: 'https://cdn.test/reel.jpg'
+                    }
+                  ]
+                },
+                { platformPostUrl: 'https://instagram.com/reel/reel' }
+              )
+            ]
+          : []
+      })
+    )
+    expect(await provider.publishedPosts('account')).toEqual([
+      {
+        id: 'reel',
+        url: 'https://instagram.com/reel/reel',
+        thumbnailUrl: 'https://cdn.test/reel.jpg',
+        caption: 'A reel',
+        publishedAt: '2026-04-01T00:00:00Z'
+      }
+    ])
+  })
+
+  it('lists an account whose optional fields Zernio sent as null', async () => {
+    stub.mockResolvedValue(
+      respond({
+        accounts: [
+          {
+            _id: 'a',
+            platform: 'instagram',
+            username: null,
+            displayName: null,
+            isActive: true,
+            needsReconnection: null
+          }
+        ]
+      })
+    )
+    expect(await provider.accounts('profile')).toEqual([
+      { id: 'a', username: 'a', needsReconnection: false }
+    ])
+  })
+
+  it('logs the type and the field names of an answer it cannot read, and no value', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    stub.mockResolvedValue(respond({ posts: [{ _id: 'secret-id', content: 'secret caption' }] }))
+    await expect(provider.publishedPosts('account')).rejects.toMatchObject({ failure: 'down' })
+    const line = logged.mock.calls.map(([text]) => String(text)).join('\n')
+    expect(line).toContain('posts.0.status:invalid_type:undefined')
+    expect(line).toContain('"fields":["_id","content"]')
+    expect(line).not.toContain('secret')
+    logged.mockRestore()
   })
 
   it('schedules one Instagram post with its images in order and the idempotency key', async () => {
