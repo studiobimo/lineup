@@ -69,7 +69,8 @@ async function importPhotos(page: Page) {
         const jpeg = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 })
         transfer.items.add(new File([jpeg], `photo-${index}.jpg`, { type: 'image/jpeg' }))
       }
-      const input = document.querySelector<HTMLInputElement>('input[type=file][accept="image/*"]')!
+      // A prefix, not the whole value: the picker also takes video, so its accept list grows.
+      const input = document.querySelector<HTMLInputElement>('input[type=file][accept^="image/"]')!
       input.files = transfer.files
       input.dispatchEvent(new Event('change', { bubbles: true }))
     },
