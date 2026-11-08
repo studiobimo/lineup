@@ -1,6 +1,7 @@
 import type { ImageColour } from '@/features/autosort/colour'
 
 import type { CellPost } from './board-schema'
+import type { VideoInfo } from './video-frame'
 
 /** A cell is an image's id for now. Albums arrive in M3, with a migration. */
 export interface Board {
@@ -25,6 +26,8 @@ export interface ImageRecord {
   takenAt?: string
   /** A city and a country, if the locations setting was on. Coordinates are never kept. */
   place?: string
+  /** A video's type and length. Its publish copy is the video itself (ADR-0022). */
+  video?: VideoInfo
   /** A folder board's original, by its path in the folder. */
   fileName?: string
   /** Worked out on each load, not stored: that original was not in the folder. */
@@ -63,6 +66,7 @@ export const toRecord = ({
   colour,
   takenAt,
   place,
+  video,
   fileName,
   missing
 }: ImageRecord): ImageRecord => ({
@@ -73,6 +77,7 @@ export const toRecord = ({
   colour,
   takenAt,
   place,
+  video,
   fileName,
   missing
 })

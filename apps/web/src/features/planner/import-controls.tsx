@@ -105,7 +105,14 @@ export function ImportButtons() {
 
   return (
     <>
-      <input ref={files} type="file" accept="image/*" multiple hidden onChange={choose} />
+      <input
+        ref={files}
+        type="file"
+        accept="image/*,video/mp4,video/quicktime,.mov,.m4v"
+        multiple
+        hidden
+        onChange={choose}
+      />
       <input ref={folder} type="file" multiple hidden onChange={choose} />
       <Group aria-label={t('addToTray')}>
         <IconButton

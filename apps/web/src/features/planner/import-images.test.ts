@@ -117,4 +117,25 @@ describe('importImages', () => {
     expect(worker.postMessage).toHaveBeenCalledTimes(10)
     expect(worker.terminate).toHaveBeenCalledOnce()
   })
+
+  it('sends the first frame of a video to the worker, and keeps the video itself to publish', async () => {
+    const worker = fakeWorker()
+    const frame = new Blob(['frame'], { type: 'image/jpeg' })
+    const takeFrame = vi.fn(() => Promise.resolve({ frame, duration: 12.5 }))
+    const video = new File(['moov'], 'clip.mov')
+    const { images } = await run([video], { createWorker: create(worker), takeFrame })
+    expect(worker.postMessage).toHaveBeenCalledWith(expect.objectContaining({ file: frame }))
+    expect(images[0].video).toEqual({ type: 'video/quicktime', duration: 12.5 })
+    expect(images[0].publish.type).toBe('video/quicktime')
+    expect(images[0].publish.size).toBe(video.size)
+    expect(images[0].original).toBe(video)
+  })
+
+  it('counts a video with no frame to take as a failed file', async () => {
+    const takeFrame = vi.fn(() => Promise.reject(new Error('no decoder')))
+    const result = await run([new File([''], 'clip.mp4', { type: 'video/mp4' }), new Blob()], {
+      takeFrame
+    })
+    expect(result).toMatchObject({ failed: 1, images: [image] })
+  })
 })

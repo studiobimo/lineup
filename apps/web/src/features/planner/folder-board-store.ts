@@ -101,6 +101,22 @@ async function* walk(
   }
 }
 
+/** A file by its path in the folder, or nothing if it has gone. */
+async function fileAt(folder: FileSystemDirectoryHandle, path: string) {
+  const steps = path.split('/')
+  const name = steps.pop() ?? ''
+  let directory = folder
+  for (const step of steps) {
+    const next = await orUndefined(directory.getDirectoryHandle(step))
+    if (!next) return undefined
+    directory = next
+  }
+  const handle = await orUndefined(directory.getFileHandle(name))
+  return handle && orUndefined(handle.getFile())
+}
+
+const VIDEO_EXTENSION = { 'video/mp4': 'mp4', 'video/quicktime': 'mov' } as const
+
 /** `photo.jpg`, or `photo (2).jpg` if that is taken: a person's file is never overwritten. */
 async function freeName(folder: FileSystemDirectoryHandle, name: string) {
   const dot = name.lastIndexOf('.')
@@ -146,11 +162,12 @@ export async function createFolderBoardStore(
   const writeTo = async (directory: FileSystemDirectoryHandle, id: string, bytes: Blob) =>
     writeFile(await directory.getFileHandle(`${id}.jpg`, { create: true }), bytes)
 
-  async function keepOriginal({ id, original, publish }: StoredImage) {
+  async function keepOriginal({ id, original, publish, video }: StoredImage) {
     const known = (original && alreadyHere.get(original)) ?? records.get(id)?.fileName
     if (known) return known
     // A backup holds no originals, so its copy is the best this image will ever have.
-    const name = original instanceof File ? original.name : `${id}.jpg`
+    const extension = video ? VIDEO_EXTENSION[video.type] : 'jpg'
+    const name = original instanceof File ? original.name : `${id}.${extension}`
     const free = await freeName(folder, name)
     await writeFile(await folder.getFileHandle(free, { create: true }), original ?? publish)
     return free
@@ -159,7 +176,8 @@ export async function createFolderBoardStore(
   async function add(image: StoredImage) {
     const fileName = await keepOriginal(image)
     await writeTo(thumbnails, image.id, image.thumbnail)
-    await writeTo(publishCopies, image.id, image.publish)
+    // A video's original is its publish copy, and it is too big to keep twice (ADR-0022).
+    if (!image.video) await writeTo(publishCopies, image.id, image.publish)
     records.set(image.id, { ...toRecord(image), fileName })
     await saveRecords()
   }
@@ -202,7 +220,12 @@ export async function createFolderBoardStore(
     },
 
     getThumbnail: (id) => readFrom(thumbnails, id),
-    getPublishCopy: (id) => readFrom(publishCopies, id),
+    async getPublishCopy(id) {
+      const record = records.get(id)
+      if (!record?.video) return readFrom(publishCopies, id)
+      const original = record.fileName && (await fileAt(folder, record.fileName))
+      return original ? original.slice(0, original.size, record.video.type) : undefined
+    },
 
     /** The app's copies go. The original stays, and is not offered again. */
     async deleteImages(ids) {

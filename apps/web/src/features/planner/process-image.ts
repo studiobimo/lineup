@@ -3,6 +3,7 @@ import { extractColour, type ImageColour } from '@/features/autosort/colour'
 import type { ImportSettings } from './import-settings'
 import { looksLikeHeif } from './looks-like-heif'
 import { type PhotoMetadata, readMetadata } from './photo-metadata'
+import type { VideoInfo } from './video-frame'
 
 const PUBLISH_MAX_WIDTH = 1440
 const PUBLISH_QUALITY = 0.9
@@ -23,6 +24,8 @@ export interface ProcessedImage extends Size, PhotoMetadata {
   /** Added back on the main thread, which still has the file: the worker never returns it. */
   original?: Blob
   colour: ImageColour
+  /** Set on the main thread, which took the frame this was made from. */
+  video?: VideoInfo
 }
 
 /** Scales down by `factor`, and never up. */

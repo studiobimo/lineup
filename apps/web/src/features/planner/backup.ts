@@ -73,15 +73,16 @@ export async function readBackup(file: Blob): Promise<Backup> {
   const { version, board, images } = manifestSchema.parse(
     JSON.parse(await file.slice(HEADER_BYTES, bytesStart).text())
   )
-  const slice = ([offset, size]: [number, number]) => {
+  const slice = ([offset, size]: [number, number], type = IMAGE_TYPE) => {
     const start = bytesStart + offset
     if (start + size > file.size) throw new Error(`Cut short, in a version ${version} backup`)
-    return file.slice(start, start + size, IMAGE_TYPE)
+    return file.slice(start, start + size, type)
   }
+  // A video's publish copy is the video itself (ADR-0022).
   const stored = images.map(({ thumbnail, publish, ...record }) => ({
     ...record,
     thumbnail: slice(thumbnail),
-    publish: slice(publish)
+    publish: slice(publish, record.video?.type)
   }))
 
   const known = new Set(images.map(({ id }) => id))
