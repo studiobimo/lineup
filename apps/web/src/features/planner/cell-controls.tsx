@@ -37,12 +37,15 @@ interface CellActionsProps {
 interface CellBadgeProps {
   icon: LucideIcon
   label?: string
+  /** Shown beside the icon. `label` says it in full to a screen reader. */
+  text?: string
 }
 
-export function CellBadge({ icon: Icon, label }: CellBadgeProps) {
+export function CellBadge({ icon: Icon, label, text }: CellBadgeProps) {
   return (
     <span className="flex items-center gap-0.5 rounded-sm bg-background p-1 text-xs/3 text-foreground shadow-xs">
       <Icon aria-hidden className="size-3" />
+      {text && <span aria-hidden={label ? true : undefined}>{text}</span>}
       {label && <span className="sr-only">{label}</span>}
     </span>
   )

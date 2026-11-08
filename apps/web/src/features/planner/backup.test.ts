@@ -60,6 +60,19 @@ describe('a backup', () => {
     expect(await file.text()).not.toContain('holiday')
   })
 
+  it('gives a video back its type', async () => {
+    const source = {
+      ...store(['a', 'b']),
+      listImages: async () => [
+        record('a'),
+        { ...record('b'), video: { type: 'video/mp4' as const, duration: 4 } }
+      ]
+    }
+    const { images } = await readBackup(await createBackup(source, board))
+    expect(images.map(({ publish }) => publish.type)).toEqual(['image/jpeg', 'video/mp4'])
+    expect(images[1].video).toEqual({ type: 'video/mp4', duration: 4 })
+  })
+
   it('carries albums, and every image in them', async () => {
     const withAlbum: Board = { tray: ['album'], grid: [], albums: { album: ['a', 'b'] } }
     const backup = await readBackup(await createBackup(store(), withAlbum))

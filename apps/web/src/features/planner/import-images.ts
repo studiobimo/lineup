@@ -1,5 +1,6 @@
 import { importSettings, type ImportSettings } from './import-settings'
 import type { ProcessedImage } from './process-image'
+import { firstFrame, videoTypeOf } from './video-frame'
 
 export interface ImportResult {
   failed: number
@@ -10,6 +11,8 @@ interface ImportOptions {
   onBatch: (images: ProcessedImage[]) => Promise<void>
   onProgress?: (done: number, total: number) => void
   createWorker?: () => Worker
+  /** For tests, which have no video decoder. */
+  takeFrame?: typeof firstFrame
 }
 
 // Bounds how many processed images wait in memory and how many writes run at once, and lets a
@@ -37,7 +40,7 @@ export function runInWorker<Result>(worker: Worker, task: ImageTask) {
 /** One image at a time, so a large import holds one decoded image and one small batch at most. */
 export async function importImages(
   files: Blob[],
-  { onBatch, onProgress, createWorker = createImageWorker }: ImportOptions
+  { onBatch, onProgress, createWorker = createImageWorker, takeFrame = firstFrame }: ImportOptions
 ): Promise<ImportResult> {
   const worker = createWorker()
   const read = importSettings()
@@ -51,8 +54,22 @@ export async function importImages(
   try {
     for (const [index, file] of files.entries()) {
       try {
-        const image = await runInWorker<ProcessedImage>(worker, { kind: 'process', file, read })
-        batch.push({ ...image, original: file })
+        const type = videoTypeOf(file)
+        if (type) {
+          // The worker has no <video>, so a video's picture is taken here and goes in as a photo.
+          const { frame, duration } = await takeFrame(file)
+          const image = await runInWorker<ProcessedImage>(worker, {
+            kind: 'process',
+            file: frame,
+            read
+          })
+          // The video is kept as it is, which the browser cannot re-encode (ADR-0022).
+          const publish = file.slice(0, file.size, type)
+          batch.push({ ...image, publish, video: { type, duration }, original: file })
+        } else {
+          const image = await runInWorker<ProcessedImage>(worker, { kind: 'process', file, read })
+          batch.push({ ...image, original: file })
+        }
       } catch {
         failed += 1
       }

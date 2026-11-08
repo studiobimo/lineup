@@ -7,7 +7,7 @@ import { loadStrings } from '@/i18n/load-strings'
 import i18n from '@/i18n/config'
 
 import { copyBoard, createFolderBoardStore, type FolderBoardStore } from './folder-board-store'
-import { fromFiles, isImage } from './import-source'
+import { fromFiles, isPlannable } from './import-source'
 import { runImport } from './import-store'
 import { openBoard } from './open-board'
 import { boardStore, plannerStore, setFolderStore } from './planner'
@@ -72,7 +72,7 @@ let standingOffer: string | undefined
 
 /** Stays up until it is answered, because the photos will still be there if it is not. */
 export async function offerNewFiles() {
-  const files = (await openFolder?.newFiles())?.filter(isImage) ?? []
+  const files = (await openFolder?.newFiles())?.filter(isPlannable) ?? []
   if (files.length === 0) return
   await loadStrings('settings')
   // It would be out of date, and two offers would add the same files twice.

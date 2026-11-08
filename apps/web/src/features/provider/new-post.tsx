@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { toastManager } from '@/components/ui/toast'
 import { provider } from '@/config/provider'
 import { imagesOf } from '@/features/planner/board'
+import { instagram } from '@/features/planner/network-profile'
 import { plannerStore } from '@/features/planner/planner'
 
 import { PostForm, type PostFormValues } from './post-form'
@@ -16,7 +17,7 @@ import {
   toFieldTime
 } from './post-time'
 import { PROVIDER_KEY } from './queries'
-import { MissingCopyError, sendPost } from './send-post'
+import { MissingCopyError, sendPost, VideoLimitError } from './send-post'
 import { useProblemText } from './use-problem-text'
 
 interface NewPostProps {
@@ -48,7 +49,17 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
     onSettled: () => setSending(0)
   })
 
-  const missing = send.error instanceof MissingCopyError
+  const { error } = send
+  const problem =
+    error instanceof MissingCopyError
+      ? t('post.missingCopy')
+      : error instanceof VideoLimitError
+        ? t(`post.videoLimit.${error.limit}`, {
+            size: instagram.videoSizeLimit / 1024 / 1024,
+            minutes: instagram.reelLengthLimit / 60,
+            count: instagram.videosPerPost
+          })
+        : problemText(error)
 
   return (
     <PostForm
@@ -60,7 +71,7 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
           : t('post.schedule')
       }
       pending={send.isPending}
-      problem={missing ? t('post.missingCopy') : problemText(send.error)}
+      problem={problem}
       onSubmit={send.mutateAsync}
     >
       <p className="text-sm text-muted-foreground">

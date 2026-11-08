@@ -2,6 +2,8 @@ import { postStatusSchema } from 'lineup-contract'
 import { z } from 'zod'
 
 // What is read back from a file a person can reach, so none of it is taken on trust.
+export const videoTypeSchema = z.enum(['video/mp4', 'video/quicktime'])
+
 const oklch = z.object({ lightness: z.number(), chroma: z.number(), hue: z.number() })
 
 /** What the board remembers of a cell's post, so that it still shows offline (ADR-0018). */
@@ -44,5 +46,6 @@ export const imageRecordSchema = z.object({
     })
     .optional(),
   takenAt: z.string().optional(),
-  place: z.string().optional()
+  place: z.string().optional(),
+  video: z.object({ type: videoTypeSchema, duration: z.number().nonnegative() }).optional()
 })

@@ -141,5 +141,8 @@
   "unreadable_one": "{{count}} image could not be read.",
   "unreadable_other": "{{count}} images could not be read.",
   "overLimit_one": "{{count}} image was left out: a board holds {{limit}}.",
-  "overLimit_other": "{{count}} images were left out: a board holds {{limit}}."
+  "overLimit_other": "{{count}} images were left out: a board holds {{limit}}.",
+  "videoCell": "Video {{position}}",
+  "videoLength": "Video, {{length}} long",
+  "videoUnavailable": "This video cannot be played here."
 }
