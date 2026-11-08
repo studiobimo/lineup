@@ -3,7 +3,6 @@ import { getPlatformProxy } from 'wrangler'
 
 import app from './index'
 
-// wrangler.jsonc's bindings and .dev.vars, run locally as vite dev runs them.
 const platform = await getPlatformProxy<Env>()
 afterAll(() => platform.dispose())
 
