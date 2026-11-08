@@ -16,6 +16,11 @@ const postFormSchema = z.object({
   caption: z.string().max(instagram.captionLimit),
   when: z.string().refine((time) => Date.parse(time) > Date.now())
 })
+const fields = [
+  ['caption', CaptionField],
+  ['when', TimeField]
+] as const
+
 export type PostFormValues = z.infer<typeof postFormSchema>
 
 interface PostFormProps {
@@ -57,26 +62,18 @@ export function PostForm({
         void form.handleSubmit()
       }}
     >
-      <form.Field name="caption">
-        {(field) => (
-          <CaptionField
-            value={field.state.value}
-            invalid={field.state.meta.errors.length > 0}
-            onBlur={field.handleBlur}
-            onChange={field.handleChange}
-          />
-        )}
-      </form.Field>
-      <form.Field name="when">
-        {(field) => (
-          <TimeField
-            value={field.state.value}
-            invalid={field.state.meta.errors.length > 0}
-            onBlur={field.handleBlur}
-            onChange={field.handleChange}
-          />
-        )}
-      </form.Field>
+      {fields.map(([name, Input]) => (
+        <form.Field key={name} name={name}>
+          {(field) => (
+            <Input
+              value={field.state.value}
+              invalid={field.state.meta.errors.length > 0}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+            />
+          )}
+        </form.Field>
+      ))}
       {misordered && (
         <Alert variant="warning">
           <AlertDescription>{t('post.outOfOrder')}</AlertDescription>

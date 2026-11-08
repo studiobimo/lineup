@@ -29,6 +29,22 @@ const METHODS = new Set(['get', 'put', 'post', 'patch', 'delete'])
 const typeOf = ({ type, anyOf }: Schema) =>
   JSON.stringify(type ?? anyOf?.map(({ type }) => type) ?? null)
 
+type Compare = (before: Schema, after: Schema, at: string, found: string[]) => void
+
+function compareProperties(
+  before: Schema,
+  after: Schema,
+  at: string,
+  found: string[],
+  compare: Compare
+) {
+  for (const [field, schema] of Object.entries(before.properties ?? {})) {
+    const next = after.properties?.[field]
+    if (!next) found.push(`${at}.${field}: removed`)
+    else compare(schema, next, `${at}.${field}`, found)
+  }
+}
+
 function compareRequest(before: Schema, after: Schema, at: string, found: string[]) {
   if (typeOf(before) !== typeOf(after)) found.push(`${at}: the type changed`)
   const gone = (before.enum ?? []).filter((value) => !after.enum?.includes(value))
@@ -36,11 +52,7 @@ function compareRequest(before: Schema, after: Schema, at: string, found: string
   for (const field of after.required ?? []) {
     if (!before.required?.includes(field)) found.push(`${at}.${field}: newly required`)
   }
-  for (const [field, schema] of Object.entries(before.properties ?? {})) {
-    const next = after.properties?.[field]
-    if (!next) found.push(`${at}.${field}: removed`)
-    else compareRequest(schema, next, `${at}.${field}`, found)
-  }
+  compareProperties(before, after, at, found, compareRequest)
 }
 
 function compareResponse(before: Schema, after: Schema, at: string, found: string[]) {
@@ -48,11 +60,7 @@ function compareResponse(before: Schema, after: Schema, at: string, found: strin
   for (const field of before.required ?? []) {
     if (!after.required?.includes(field)) found.push(`${at}.${field}: no longer always there`)
   }
-  for (const [field, schema] of Object.entries(before.properties ?? {})) {
-    const next = after.properties?.[field]
-    if (!next) found.push(`${at}.${field}: removed`)
-    else compareResponse(schema, next, `${at}.${field}`, found)
-  }
+  compareProperties(before, after, at, found, compareResponse)
   if (before.items && after.items) compareResponse(before.items, after.items, `${at}[]`, found)
 }
 

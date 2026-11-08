@@ -118,6 +118,7 @@
       translate: 0 0;
     }
   }
+  /* jscpd:ignore-start */
   @keyframes toast-success-even {
     0% {
       scale: 1;
@@ -149,6 +150,7 @@
       translate: 0 0;
     }
   }
+  /* jscpd:ignore-end */
 }
 
 :root {

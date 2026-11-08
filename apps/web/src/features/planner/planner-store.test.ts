@@ -76,6 +76,13 @@ async function loaded(board: Board = start) {
 
 beforeEach(() => localStorage.clear())
 
+async function loadedStore(...args: Parameters<typeof fakeBoardStore>) {
+  const boardStore = fakeBoardStore(...args)
+  const store = createPlannerStore(boardStore)
+  await store.getState().load()
+  return { boardStore, store }
+}
+
 describe('the planner store', () => {
   describe('after a reload', () => {
     const reopened = async (boardStore: ReturnType<typeof fakeBoardStore>) => {
@@ -391,9 +398,7 @@ describe('the planner store', () => {
 
   it('opens a board saved before albums exactly as it was', async () => {
     const saved = { tray: ['a'], grid: ['b'], locked: ['b'] }
-    const boardStore = fakeBoardStore(saved, ['a', 'b'])
-    const store = createPlannerStore(boardStore)
-    await store.getState().load()
+    const { boardStore, store } = await loadedStore(saved, ['a', 'b'])
 
     expect(store.getState().board).toStrictEqual(saved)
     expect(store.getState().past).toEqual([])
@@ -402,9 +407,7 @@ describe('the planner store', () => {
 
   it('counts an image in an album as placed, and keeps it', async () => {
     const saved = { tray: ['album'], grid: [], albums: { album: ['a', 'b'] } }
-    const boardStore = fakeBoardStore(saved, ['a', 'b'])
-    const store = createPlannerStore(boardStore)
-    await store.getState().load()
+    const { boardStore, store } = await loadedStore(saved, ['a', 'b'])
 
     expect(store.getState().board).toEqual(saved)
     expect(boardStore.deleteImages).not.toHaveBeenCalled()
@@ -412,9 +415,7 @@ describe('the planner store', () => {
 
   it('holds an image on as long as a snapshot of its album can bring it back', async () => {
     const saved = { tray: ['album', 'c'], grid: [], albums: { album: ['a', 'b'] } }
-    const boardStore = fakeBoardStore(saved, ['a', 'b', 'c'])
-    const store = createPlannerStore(boardStore)
-    await store.getState().load()
+    const { boardStore, store } = await loadedStore(saved, ['a', 'b', 'c'])
 
     store.getState().remove(['album'])
     expect(boardStore.deleteImages).not.toHaveBeenCalled()
@@ -425,9 +426,7 @@ describe('the planner store', () => {
   it('sorts an album by its cover, and keeps it one cell', async () => {
     const tone = (lightness: number) => ({ ...colour, dominant: { ...colour.dominant, lightness } })
     const saved = { tray: ['album', 'c'], grid: [], albums: { album: ['a', 'b'] } }
-    const boardStore = fakeBoardStore(saved, ['a', 'b', 'c'])
-    const store = createPlannerStore(boardStore)
-    await store.getState().load()
+    const { store } = await loadedStore(saved, ['a', 'b', 'c'])
     store.getState().setColour('a', tone(0.1))
     store.getState().setColour('b', tone(0.9))
     store.getState().setColour('c', tone(0.5))
@@ -590,9 +589,7 @@ describe('the planner store', () => {
   })
 
   it('puts an image no board reaches in the tray, as a step that can be undone', async () => {
-    const boardStore = fakeBoardStore({ tray: ['a'], grid: [] }, ['a', 'stranded'])
-    const store = createPlannerStore(boardStore)
-    await store.getState().load()
+    const { boardStore, store } = await loadedStore({ tray: ['a'], grid: [] }, ['a', 'stranded'])
 
     expect(store.getState().board.tray).toEqual(['stranded', 'a'])
     expect(boardStore.deleteImages).not.toHaveBeenCalled()
@@ -726,9 +723,7 @@ describe('the planner store', () => {
   })
 
   it('drops a cell whose image is gone, so nothing renders it', async () => {
-    const boardStore = fakeBoardStore({ tray: ['a', 'gone'], grid: [] }, ['a'])
-    const store = createPlannerStore(boardStore)
-    await store.getState().load()
+    const { store } = await loadedStore({ tray: ['a', 'gone'], grid: [] }, ['a'])
     expect(store.getState().board.tray).toEqual(['a'])
   })
 
