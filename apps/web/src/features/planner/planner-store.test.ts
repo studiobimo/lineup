@@ -83,48 +83,48 @@ async function loadedStore(...args: Parameters<typeof fakeBoardStore>) {
   return { boardStore, store }
 }
 
-describe('the planner store', () => {
-  describe('after a reload', () => {
-    const reopened = async (boardStore: ReturnType<typeof fakeBoardStore>) => {
-      const store = createPlannerStore(boardStore)
-      await store.getState().load()
-      return store.getState
-    }
+describe('the planner store, after a reload', () => {
+  const reopened = async (boardStore: ReturnType<typeof fakeBoardStore>) => {
+    const store = createPlannerStore(boardStore)
+    await store.getState().load()
+    return store.getState
+  }
 
-    it('still undoes and redoes', async () => {
-      const { boardStore, state } = await loaded()
-      state().swap('c', 'd')
-      state().move('a', 'grid')
-      state().undo()
+  it('still undoes and redoes', async () => {
+    const { boardStore, state } = await loaded()
+    state().swap('c', 'd')
+    state().move('a', 'grid')
+    state().undo()
 
-      const after = await reopened(boardStore)
-      expect(after().past).toHaveLength(1)
-      after().redo()
-      expect(after().board.grid).toContain('a')
-      after().undo()
-      after().undo()
-      expect(after().board).toEqual(start)
-    })
-
-    it('keeps an image a stored step can still bring back', async () => {
-      const { boardStore, state } = await loaded()
-      state().remove(['a'])
-      const after = await reopened(boardStore)
-      expect(boardStore.deleteImages).not.toHaveBeenCalled()
-      after().undo()
-      expect(after().board.tray).toEqual(['a', 'b'])
-      expect(after().images.a).toBeDefined()
-    })
-
-    it('forgets a step for an image that is gone, and keeps the rest of it', async () => {
-      const { boardStore, state } = await loaded()
-      state().swap('c', 'd')
-      boardStore.history.past[0].grid.push('gone')
-      const after = await reopened(boardStore)
-      expect(after().past[0].grid).toEqual(start.grid)
-    })
+    const after = await reopened(boardStore)
+    expect(after().past).toHaveLength(1)
+    after().redo()
+    expect(after().board.grid).toContain('a')
+    after().undo()
+    after().undo()
+    expect(after().board).toEqual(start)
   })
 
+  it('keeps an image a stored step can still bring back', async () => {
+    const { boardStore, state } = await loaded()
+    state().remove(['a'])
+    const after = await reopened(boardStore)
+    expect(boardStore.deleteImages).not.toHaveBeenCalled()
+    after().undo()
+    expect(after().board.tray).toEqual(['a', 'b'])
+    expect(after().images.a).toBeDefined()
+  })
+
+  it('forgets a step for an image that is gone, and keeps the rest of it', async () => {
+    const { boardStore, state } = await loaded()
+    state().swap('c', 'd')
+    boardStore.history.past[0].grid.push('gone')
+    const after = await reopened(boardStore)
+    expect(after().past[0].grid).toEqual(start.grid)
+  })
+})
+
+describe('the planner store', () => {
   it('sorts, shuffles and clears around a locked cell, and keeps it through a reload', async () => {
     const { boardStore, state } = await loaded()
     state().toggleLock('d')
@@ -136,115 +136,117 @@ describe('the planner store', () => {
     expect(state().board.grid).toEqual(['d'])
     expect(boardStore.saved.locked).toEqual(['d'])
   })
+})
 
-  describe('sorting by colour', () => {
-    const shade = (hue: number, lightness = 0.6) => {
-      const dominant = { lightness, chroma: 0.2, hue }
-      return { dominant, palette: [dominant], tone: lightness, vivid: 0.5 }
-    }
+describe('the planner store, sorting by colour', () => {
+  const shade = (hue: number, lightness = 0.6) => {
+    const dominant = { lightness, chroma: 0.2, hue }
+    return { dominant, palette: [dominant], tone: lightness, vivid: 0.5 }
+  }
 
-    async function coloured() {
-      const opened = await loaded({ tray: ['grey'], grid: ['blue', 'red', 'green'] })
-      opened.state().setColour('blue', shade(264))
-      opened.state().setColour('red', shade(29))
-      opened.state().setColour('green', shade(142))
-      return opened
-    }
+  async function coloured() {
+    const opened = await loaded({ tray: ['grey'], grid: ['blue', 'red', 'green'] })
+    opened.state().setColour('blue', shade(264))
+    opened.state().setColour('red', shade(29))
+    opened.state().setColour('green', shade(142))
+    return opened
+  }
 
-    it('is one undo step that restores the exact order, and redoes', async () => {
-      const { boardStore, state } = await coloured()
-      await state().sortByColour('grid', 'rainbow')
-      expect(state().board.grid).toEqual(['red', 'green', 'blue'])
-      expect(boardStore.saved.grid).toEqual(['red', 'green', 'blue'])
-      expect(state().past).toHaveLength(1)
+  it('is one undo step that restores the exact order, and redoes', async () => {
+    const { boardStore, state } = await coloured()
+    await state().sortByColour('grid', 'rainbow')
+    expect(state().board.grid).toEqual(['red', 'green', 'blue'])
+    expect(boardStore.saved.grid).toEqual(['red', 'green', 'blue'])
+    expect(state().past).toHaveLength(1)
 
-      state().undo()
-      expect(state().board.grid).toEqual(['blue', 'red', 'green'])
-      state().redo()
-      expect(state().board.grid).toEqual(['red', 'green', 'blue'])
-    })
-
-    it('leaves the other container alone', async () => {
-      const { state } = await coloured()
-      await state().sortByColour('grid', 'rainbow')
-      expect(state().board.tray).toEqual(['grey'])
-    })
-
-    it('is not a mode: the next manual move stays where it is put', async () => {
-      const { state } = await coloured()
-      await state().sortByColour('grid', 'rainbow')
-      state().swap('red', 'blue')
-      expect(state().board.grid).toEqual(['blue', 'green', 'red'])
-    })
-
-    it('drops an order that a newer change has overtaken', async () => {
-      const { state } = await coloured()
-      const sorting = state().sortByColour('grid', 'rainbow')
-      state().swap('blue', 'green')
-      await sorting
-      expect(state().board.grid).toEqual(['green', 'red', 'blue'])
-      expect(state().past).toHaveLength(1)
-    })
-
-    it('adds no undo step when the order is already right', async () => {
-      const { state } = await coloured()
-      await state().sortByColour('grid', 'rainbow')
-      await state().sortByColour('grid', 'rainbow')
-      expect(state().past).toHaveLength(1)
-    })
+    state().undo()
+    expect(state().board.grid).toEqual(['blue', 'red', 'green'])
+    state().redo()
+    expect(state().board.grid).toEqual(['red', 'green', 'blue'])
   })
 
-  describe('every action can be undone and redone exactly', () => {
-    const actions: [string, (state: PlannerState) => void | Promise<void>][] = [
-      ['import', (state) => state.addImages([processed, processed])],
-      ['move', (state) => state.move('a', 'grid')],
-      ['insert', (state) => state.move('a', 'grid', 1)],
-      ['swap', (state) => state.swap('a', 'd')],
-      ['move all', (state) => state.moveAll('tray')],
-      ['shuffle', (state) => state.shuffle('grid')],
-      ['lock', (state) => state.toggleLock('d')],
-      [
-        'restore',
-        (state) =>
-          state.restore({
-            board: { tray: ['a'], grid: ['z'], locked: ['z'] },
-            images: [
-              {
-                id: 'z',
-                width: 1,
-                height: 1,
-                createdAt: '2026-11-01T12:00:00Z',
-                thumbnail: new Blob(),
-                publish: new Blob()
-              }
-            ]
-          })
-      ],
-      ['delete', (state) => state.remove(['a', 'd'])],
-      ['clear', (state) => state.clear(['tray', 'grid'])]
-    ]
-
-    beforeEach(() => {
-      vi.spyOn(Math, 'random').mockReturnValue(0)
-    })
-
-    it.each(actions)('%s', async (_name, act) => {
-      const { boardStore, state } = await loaded()
-      await act(state())
-      const changed = state().board
-      expect(changed).not.toEqual(start)
-      expect(boardStore.saved).toEqual(changed)
-
-      state().undo()
-      expect(state().board).toEqual(start)
-      expect(boardStore.saved).toEqual(start)
-
-      state().redo()
-      expect(state().board).toEqual(changed)
-      expect(boardStore.saved).toEqual(changed)
-    })
+  it('leaves the other container alone', async () => {
+    const { state } = await coloured()
+    await state().sortByColour('grid', 'rainbow')
+    expect(state().board.tray).toEqual(['grey'])
   })
 
+  it('is not a mode: the next manual move stays where it is put', async () => {
+    const { state } = await coloured()
+    await state().sortByColour('grid', 'rainbow')
+    state().swap('red', 'blue')
+    expect(state().board.grid).toEqual(['blue', 'green', 'red'])
+  })
+
+  it('drops an order that a newer change has overtaken', async () => {
+    const { state } = await coloured()
+    const sorting = state().sortByColour('grid', 'rainbow')
+    state().swap('blue', 'green')
+    await sorting
+    expect(state().board.grid).toEqual(['green', 'red', 'blue'])
+    expect(state().past).toHaveLength(1)
+  })
+
+  it('adds no undo step when the order is already right', async () => {
+    const { state } = await coloured()
+    await state().sortByColour('grid', 'rainbow')
+    await state().sortByColour('grid', 'rainbow')
+    expect(state().past).toHaveLength(1)
+  })
+})
+
+describe('the planner store, every action can be undone and redone exactly', () => {
+  const actions: [string, (state: PlannerState) => void | Promise<void>][] = [
+    ['import', (state) => state.addImages([processed, processed])],
+    ['move', (state) => state.move('a', 'grid')],
+    ['insert', (state) => state.move('a', 'grid', 1)],
+    ['swap', (state) => state.swap('a', 'd')],
+    ['move all', (state) => state.moveAll('tray')],
+    ['shuffle', (state) => state.shuffle('grid')],
+    ['lock', (state) => state.toggleLock('d')],
+    [
+      'restore',
+      (state) =>
+        state.restore({
+          board: { tray: ['a'], grid: ['z'], locked: ['z'] },
+          images: [
+            {
+              id: 'z',
+              width: 1,
+              height: 1,
+              createdAt: '2026-11-01T12:00:00Z',
+              thumbnail: new Blob(),
+              publish: new Blob()
+            }
+          ]
+        })
+    ],
+    ['delete', (state) => state.remove(['a', 'd'])],
+    ['clear', (state) => state.clear(['tray', 'grid'])]
+  ]
+
+  beforeEach(() => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+  })
+
+  it.each(actions)('%s', async (_name, act) => {
+    const { boardStore, state } = await loaded()
+    await act(state())
+    const changed = state().board
+    expect(changed).not.toEqual(start)
+    expect(boardStore.saved).toEqual(changed)
+
+    state().undo()
+    expect(state().board).toEqual(start)
+    expect(boardStore.saved).toEqual(start)
+
+    state().redo()
+    expect(state().board).toEqual(changed)
+    expect(boardStore.saved).toEqual(changed)
+  })
+})
+
+describe('the planner store', () => {
   it('clears redo on a new change', async () => {
     const { state } = await loaded()
     state().move('a', 'grid')
@@ -286,77 +288,79 @@ describe('the planner store', () => {
     expect(JSON.stringify(state())).not.toContain('thumbnail')
     expect(boardStore.putImage).toHaveBeenCalledOnce()
   })
+})
 
-  describe('an import in batches', () => {
-    it('is one undo step however many batches there are, and redo brings it all back', async () => {
-      const { state } = await loaded()
-      const importing = state().beginImport()
-      await importing.add([processed, processed])
-      await importing.add([processed])
-      expect(state().board).toEqual(start)
-      importing.finish()
+describe('the planner store, an import in batches', () => {
+  it('is one undo step however many batches there are, and redo brings it all back', async () => {
+    const { state } = await loaded()
+    const importing = state().beginImport()
+    await importing.add([processed, processed])
+    await importing.add([processed])
+    expect(state().board).toEqual(start)
+    importing.finish()
 
-      expect(state().board.tray).toHaveLength(start.tray.length + 3)
-      expect(state().past).toHaveLength(1)
-      const imported = state().board
-      state().undo()
-      expect(state().board).toEqual(start)
-      state().redo()
-      expect(state().board).toEqual(imported)
-    })
-
-    it('is placed once when the board is loaded again while it is under way', async () => {
-      const { state } = await loaded()
-      const importing = state().beginImport()
-      await importing.add([processed])
-      state().suspend()
-      await state().load()
-      await importing.add([processed])
-      importing.finish()
-
-      const { tray } = state().board
-      expect(tray).toHaveLength(start.tray.length + 2)
-      expect(new Set(tray).size).toBe(tray.length)
-    })
-
-    it('is not purged by a change to the board while it is under way', async () => {
-      const { boardStore, state } = await loaded()
-      const importing = state().beginImport()
-      await importing.add([processed])
-      const [staged] = Object.keys(state().images).filter(
-        (id) => ![...start.tray, ...start.grid].includes(id)
-      )
-
-      state().move('a', 'grid')
-      state().remove(['b'])
-      expect(boardStore.deleteImages).not.toHaveBeenCalledWith(expect.arrayContaining([staged]))
-      expect(state().images[staged]).toBeDefined()
-
-      importing.finish()
-      expect(state().board.tray).toContain(staged)
-    })
-
-    it('stops at a batch that cannot be stored, keeps the earlier ones, and says why', async () => {
-      const { boardStore, state } = await loaded()
-      const importing = state().beginImport()
-      await importing.add([processed])
-      boardStore.putImage.mockRejectedValueOnce(new Error('the disk is full'))
-      await expect(importing.add([processed, processed])).rejects.toThrow('the disk is full')
-
-      expect(() => importing.finish()).toThrow('the disk is full')
-      expect(state().board.tray).toHaveLength(start.tray.length + 2)
-    })
-
-    it('adds nothing, and leaves no stray image, if it is never finished with a board', async () => {
-      const { state } = await loaded()
-      const importing = state().beginImport()
-      await importing.add([processed])
-      state().suspend()
-      expect(() => importing.finish()).not.toThrow()
-      expect(state().board).toEqual(start)
-    })
+    expect(state().board.tray).toHaveLength(start.tray.length + 3)
+    expect(state().past).toHaveLength(1)
+    const imported = state().board
+    state().undo()
+    expect(state().board).toEqual(start)
+    state().redo()
+    expect(state().board).toEqual(imported)
   })
 
+  it('is placed once when the board is loaded again while it is under way', async () => {
+    const { state } = await loaded()
+    const importing = state().beginImport()
+    await importing.add([processed])
+    state().suspend()
+    await state().load()
+    await importing.add([processed])
+    importing.finish()
+
+    const { tray } = state().board
+    expect(tray).toHaveLength(start.tray.length + 2)
+    expect(new Set(tray).size).toBe(tray.length)
+  })
+
+  it('is not purged by a change to the board while it is under way', async () => {
+    const { boardStore, state } = await loaded()
+    const importing = state().beginImport()
+    await importing.add([processed])
+    const [staged] = Object.keys(state().images).filter(
+      (id) => ![...start.tray, ...start.grid].includes(id)
+    )
+
+    state().move('a', 'grid')
+    state().remove(['b'])
+    expect(boardStore.deleteImages).not.toHaveBeenCalledWith(expect.arrayContaining([staged]))
+    expect(state().images[staged]).toBeDefined()
+
+    importing.finish()
+    expect(state().board.tray).toContain(staged)
+  })
+
+  it('stops at a batch that cannot be stored, keeps the earlier ones, and says why', async () => {
+    const { boardStore, state } = await loaded()
+    const importing = state().beginImport()
+    await importing.add([processed])
+    boardStore.putImage.mockRejectedValueOnce(new Error('the disk is full'))
+    await expect(importing.add([processed, processed])).rejects.toThrow('the disk is full')
+
+    expect(() => importing.finish()).toThrow('the disk is full')
+    expect(state().board.tray).toHaveLength(start.tray.length + 2)
+  })
+
+  it('adds nothing, and leaves no stray image, if it is never finished with a board', async () => {
+    const { state } = await loaded()
+    const importing = state().beginImport()
+    await importing.add([processed])
+    state().suspend()
+    expect(() => importing.finish()).not.toThrow()
+    expect(state().board).toEqual(start)
+  })
+})
+
+describe('the planner store', () => {
   it('keeps a deleted image until no step can bring it back', async () => {
     const { boardStore, state } = await loaded({ tray: ['a', 'b'], grid: [] })
     state().remove(['a'])
@@ -434,160 +438,164 @@ describe('the planner store', () => {
     await store.getState().sortByColour('tray', 'lightToDark')
     expect(store.getState().board.tray).toEqual(['c', 'album'])
   })
+})
 
-  describe('with a post on the board', () => {
-    const post: CellPost = {
-      id: 'post',
-      accountId: 'account',
-      scheduledFor: '2030-01-01T10:00:00.000Z',
-      timeZone: 'Europe/London',
-      caption: 'Hello',
-      status: 'scheduled'
-    }
+const post: CellPost = {
+  id: 'post',
+  accountId: 'account',
+  scheduledFor: '2030-01-01T10:00:00.000Z',
+  timeZone: 'Europe/London',
+  caption: 'Hello',
+  status: 'scheduled'
+}
 
-    it('keeps the post through undo and redo, and it is never a step of its own', async () => {
-      const { boardStore, state } = await loaded()
-      state().move('a', 'grid')
-      const steps = state().past.length
+describe('the planner store, with a post on the board', () => {
+  it('keeps the post through undo and redo, and it is never a step of its own', async () => {
+    const { boardStore, state } = await loaded()
+    state().move('a', 'grid')
+    const steps = state().past.length
 
-      state().linkPost('d', post)
-      expect(state().past).toHaveLength(steps)
-      expect(boardStore.saved.posts).toEqual({ d: post })
+    state().linkPost('d', post)
+    expect(state().past).toHaveLength(steps)
+    expect(boardStore.saved.posts).toEqual({ d: post })
 
-      state().undo()
-      expect(state().board.tray).toEqual(['a', 'b'])
-      expect(state().board.posts).toEqual({ d: post })
-      state().redo()
-      expect(state().board.grid).toContain('a')
-      expect(state().board.posts).toEqual({ d: post })
-    })
-
-    it('holds a posted cell where it is when an undo would move it', async () => {
-      const { state } = await loaded()
-      state().swap('c', 'd')
-      state().linkPost('c', post)
-      state().undo()
-      expect(state().board.grid).toEqual(['d', 'c', 'e'])
-    })
-
-    it('loses only the steps that had the cell another way', async () => {
-      const { state } = await loaded()
-      const album = state().group(['a', 'b'])!
-      state().move(album, 'grid')
-      state().swap('c', 'd')
-      state().linkPost(album, post)
-      expect(state().past).toHaveLength(1)
-
-      state().undo()
-      expect(state().board.albums?.[album]).toEqual(['a', 'b'])
-      expect(state().past).toHaveLength(0)
-    })
-
-    it('frees the cell when nothing takes the post’s place', async () => {
-      const { boardStore, state } = await loaded()
-      state().linkPost('d', post)
-      expect(isLocked(state().board, 'd')).toBe(true)
-
-      state().updatePosts({ d: undefined })
-      expect(isLocked(state().board, 'd')).toBe(false)
-      expect(boardStore.saved.posts).toEqual({})
-    })
-
-    it('changes nothing and saves nothing for news that is not new', async () => {
-      const { boardStore, state } = await loaded()
-      state().linkPost('d', post)
-      const { board } = state()
-      const saves = boardStore.saveBoard.mock.calls.length
-
-      state().updatePosts({ d: { ...post } })
-      expect(state().board).toBe(board)
-      expect(boardStore.saveBoard.mock.calls).toHaveLength(saves)
-    })
-
-    it('writes the latest on a post without touching the history', async () => {
-      const { state } = await loaded()
-      state().linkPost('d', post)
-      const { past } = state()
-      state().updatePosts({ d: { ...post, status: 'published' } })
-      expect(state().board.posts?.d.status).toBe('published')
-      expect(state().past).toBe(past)
-    })
-
-    it('comes back after a reload', async () => {
-      const { boardStore, state } = await loaded()
-      state().linkPost('d', post)
-      const reopened = createPlannerStore(boardStore)
-      await reopened.getState().load()
-      expect(reopened.getState().board.posts).toEqual({ d: post })
-    })
+    state().undo()
+    expect(state().board.tray).toEqual(['a', 'b'])
+    expect(state().board.posts).toEqual({ d: post })
+    state().redo()
+    expect(state().board.grid).toContain('a')
+    expect(state().board.posts).toEqual({ d: post })
   })
 
-  describe('with an album on the board', () => {
-    const saved = { tray: ['a', 'b', 'c'], grid: [] }
-    const grouped = async () => {
-      const boardStore = fakeBoardStore(saved, ['a', 'b', 'c'])
-      const store = createPlannerStore(boardStore)
-      await store.getState().load()
-      const album = store.getState().group(['a', 'b'])!
-      return { boardStore, store, album }
-    }
-
-    it('undoes and redoes grouping, ungrouping and reordering, each as one step', async () => {
-      const { store, album } = await grouped()
-      const { getState: state } = store
-      expect(state().board.tray).toEqual([album, 'c'])
-
-      state().reorderAlbum(album, ['b', 'a'])
-      state().ungroup(album)
-      expect(state().board.tray).toEqual(['b', 'a', 'c'])
-
-      state().undo()
-      expect(state().board.albums?.[album]).toEqual(['b', 'a'])
-      state().undo()
-      expect(state().board.albums?.[album]).toEqual(['a', 'b'])
-      state().undo()
-      expect(state().board).toEqual(saved)
-      state().redo()
-      expect(state().board.tray).toEqual([album, 'c'])
-    })
-
-    it('deletes it in one step, and undo brings every image back', async () => {
-      const { boardStore, store, album } = await grouped()
-      store.getState().remove([album])
-      expect(store.getState().board.tray).toEqual(['c'])
-      expect(boardStore.deleteImages).not.toHaveBeenCalled()
-      store.getState().undo()
-      expect(store.getState().board.albums?.[album]).toEqual(['a', 'b'])
-    })
-
-    it('clears it, and undo brings it back', async () => {
-      const { store, album } = await grouped()
-      store.getState().clear(['tray'])
-      expect(store.getState().board.tray).toEqual([])
-      store.getState().undo()
-      expect(store.getState().board.tray).toEqual([album, 'c'])
-    })
-
-    it('saves it, and a save that never finished brings it back', async () => {
-      const { boardStore, album } = await grouped()
-      await vi.waitFor(() => expect(boardStore.saved.albums?.[album]).toEqual(['a', 'b']))
-
-      const journal = memoryJournal()
-      journal.write(boardStore.saved)
-      boardStore.saved = saved
-      const reopened = createPlannerStore(boardStore, journal)
-      await reopened.getState().load()
-      expect(reopened.getState().board.albums?.[album]).toEqual(['a', 'b'])
-    })
-
-    it('refuses what groupProblem refuses, and changes nothing', async () => {
-      const { store } = await grouped()
-      const before = store.getState().board
-      expect(store.getState().group(['c'])).toBeUndefined()
-      expect(store.getState().board).toBe(before)
-    })
+  it('holds a posted cell where it is when an undo would move it', async () => {
+    const { state } = await loaded()
+    state().swap('c', 'd')
+    state().linkPost('c', post)
+    state().undo()
+    expect(state().board.grid).toEqual(['d', 'c', 'e'])
   })
 
+  it('loses only the steps that had the cell another way', async () => {
+    const { state } = await loaded()
+    const album = state().group(['a', 'b'])!
+    state().move(album, 'grid')
+    state().swap('c', 'd')
+    state().linkPost(album, post)
+    expect(state().past).toHaveLength(1)
+
+    state().undo()
+    expect(state().board.albums?.[album]).toEqual(['a', 'b'])
+    expect(state().past).toHaveLength(0)
+  })
+
+  it('frees the cell when nothing takes the post’s place', async () => {
+    const { boardStore, state } = await loaded()
+    state().linkPost('d', post)
+    expect(isLocked(state().board, 'd')).toBe(true)
+
+    state().updatePosts({ d: undefined })
+    expect(isLocked(state().board, 'd')).toBe(false)
+    expect(boardStore.saved.posts).toEqual({})
+  })
+
+  it('changes nothing and saves nothing for news that is not new', async () => {
+    const { boardStore, state } = await loaded()
+    state().linkPost('d', post)
+    const { board } = state()
+    const saves = boardStore.saveBoard.mock.calls.length
+
+    state().updatePosts({ d: { ...post } })
+    expect(state().board).toBe(board)
+    expect(boardStore.saveBoard.mock.calls).toHaveLength(saves)
+  })
+})
+
+describe('the planner store, with a post on the board, after a reload', () => {
+  it('writes the latest on a post without touching the history', async () => {
+    const { state } = await loaded()
+    state().linkPost('d', post)
+    const { past } = state()
+    state().updatePosts({ d: { ...post, status: 'published' } })
+    expect(state().board.posts?.d.status).toBe('published')
+    expect(state().past).toBe(past)
+  })
+
+  it('comes back after a reload', async () => {
+    const { boardStore, state } = await loaded()
+    state().linkPost('d', post)
+    const reopened = createPlannerStore(boardStore)
+    await reopened.getState().load()
+    expect(reopened.getState().board.posts).toEqual({ d: post })
+  })
+})
+
+describe('the planner store, with an album on the board', () => {
+  const saved = { tray: ['a', 'b', 'c'], grid: [] }
+  const grouped = async () => {
+    const boardStore = fakeBoardStore(saved, ['a', 'b', 'c'])
+    const store = createPlannerStore(boardStore)
+    await store.getState().load()
+    const album = store.getState().group(['a', 'b'])!
+    return { boardStore, store, album }
+  }
+
+  it('undoes and redoes grouping, ungrouping and reordering, each as one step', async () => {
+    const { store, album } = await grouped()
+    const { getState: state } = store
+    expect(state().board.tray).toEqual([album, 'c'])
+
+    state().reorderAlbum(album, ['b', 'a'])
+    state().ungroup(album)
+    expect(state().board.tray).toEqual(['b', 'a', 'c'])
+
+    state().undo()
+    expect(state().board.albums?.[album]).toEqual(['b', 'a'])
+    state().undo()
+    expect(state().board.albums?.[album]).toEqual(['a', 'b'])
+    state().undo()
+    expect(state().board).toEqual(saved)
+    state().redo()
+    expect(state().board.tray).toEqual([album, 'c'])
+  })
+
+  it('deletes it in one step, and undo brings every image back', async () => {
+    const { boardStore, store, album } = await grouped()
+    store.getState().remove([album])
+    expect(store.getState().board.tray).toEqual(['c'])
+    expect(boardStore.deleteImages).not.toHaveBeenCalled()
+    store.getState().undo()
+    expect(store.getState().board.albums?.[album]).toEqual(['a', 'b'])
+  })
+
+  it('clears it, and undo brings it back', async () => {
+    const { store, album } = await grouped()
+    store.getState().clear(['tray'])
+    expect(store.getState().board.tray).toEqual([])
+    store.getState().undo()
+    expect(store.getState().board.tray).toEqual([album, 'c'])
+  })
+
+  it('saves it, and a save that never finished brings it back', async () => {
+    const { boardStore, album } = await grouped()
+    await vi.waitFor(() => expect(boardStore.saved.albums?.[album]).toEqual(['a', 'b']))
+
+    const journal = memoryJournal()
+    journal.write(boardStore.saved)
+    boardStore.saved = saved
+    const reopened = createPlannerStore(boardStore, journal)
+    await reopened.getState().load()
+    expect(reopened.getState().board.albums?.[album]).toEqual(['a', 'b'])
+  })
+
+  it('refuses what groupProblem refuses, and changes nothing', async () => {
+    const { store } = await grouped()
+    const before = store.getState().board
+    expect(store.getState().group(['c'])).toBeUndefined()
+    expect(store.getState().board).toBe(before)
+  })
+})
+
+describe('the planner store', () => {
   it('puts an image no board reaches in the tray, as a step that can be undone', async () => {
     const { boardStore, store } = await loadedStore({ tray: ['a'], grid: [] }, ['a', 'stranded'])
 
@@ -604,48 +612,50 @@ describe('the planner store', () => {
     await store.getState().load()
     expect(store.getState().board.tray).toEqual(['a', 'b'])
   })
+})
 
-  describe('a change whose save never finished', () => {
-    const unfinished = (board: Board) => {
-      const journal = memoryJournal()
-      journal.write(board)
-      return journal
-    }
+describe('the planner store, a change whose save never finished', () => {
+  const unfinished = (board: Board) => {
+    const journal = memoryJournal()
+    journal.write(board)
+    return journal
+  }
 
-    it('comes back on load, as a step that can be undone', async () => {
-      const boardStore = fakeBoardStore({ tray: ['a', 'b'], grid: [] }, ['a', 'b'])
-      const journal = unfinished({ tray: ['b'], grid: ['a'] })
-      const store = createPlannerStore(boardStore, journal)
-      await store.getState().load()
+  it('comes back on load, as a step that can be undone', async () => {
+    const boardStore = fakeBoardStore({ tray: ['a', 'b'], grid: [] }, ['a', 'b'])
+    const journal = unfinished({ tray: ['b'], grid: ['a'] })
+    const store = createPlannerStore(boardStore, journal)
+    await store.getState().load()
 
-      expect(store.getState().board).toEqual({ tray: ['b'], grid: ['a'] })
-      await vi.waitFor(() => expect(boardStore.saved.grid).toEqual(['a']))
-      await vi.waitFor(() => expect(journal.read()).toBeUndefined())
+    expect(store.getState().board).toEqual({ tray: ['b'], grid: ['a'] })
+    await vi.waitFor(() => expect(boardStore.saved.grid).toEqual(['a']))
+    await vi.waitFor(() => expect(journal.read()).toBeUndefined())
 
-      store.getState().undo()
-      expect(store.getState().board).toEqual({ tray: ['a', 'b'], grid: [] })
-    })
-
-    it('adds nothing when the save did finish', async () => {
-      const board = { tray: ['a'], grid: [] }
-      const journal = unfinished(board)
-      const store = createPlannerStore(fakeBoardStore(board, ['a']), journal)
-      await store.getState().load()
-
-      expect(store.getState().past).toEqual([])
-      expect(journal.read()).toBeUndefined()
-    })
-
-    it('is ignored if it names an image this store does not hold', async () => {
-      const journal = unfinished({ tray: ['from-another-board'], grid: [] })
-      const store = createPlannerStore(fakeBoardStore({ tray: ['a'], grid: [] }, ['a']), journal)
-      await store.getState().load()
-
-      expect(store.getState().board.tray).toEqual(['a'])
-      expect(journal.read()).toBeUndefined()
-    })
+    store.getState().undo()
+    expect(store.getState().board).toEqual({ tray: ['a', 'b'], grid: [] })
   })
 
+  it('adds nothing when the save did finish', async () => {
+    const board = { tray: ['a'], grid: [] }
+    const journal = unfinished(board)
+    const store = createPlannerStore(fakeBoardStore(board, ['a']), journal)
+    await store.getState().load()
+
+    expect(store.getState().past).toEqual([])
+    expect(journal.read()).toBeUndefined()
+  })
+
+  it('is ignored if it names an image this store does not hold', async () => {
+    const journal = unfinished({ tray: ['from-another-board'], grid: [] })
+    const store = createPlannerStore(fakeBoardStore({ tray: ['a'], grid: [] }, ['a']), journal)
+    await store.getState().load()
+
+    expect(store.getState().board.tray).toEqual(['a'])
+    expect(journal.read()).toBeUndefined()
+  })
+})
+
+describe('the planner store', () => {
   it('keeps a change in the journal until its save has finished', async () => {
     const journal = memoryJournal()
     const boardStore = fakeBoardStore({ tray: ['a'], grid: [] }, ['a'])
@@ -673,37 +683,39 @@ describe('the planner store', () => {
     await Promise.resolve()
     expect(state().saveFailed).toBe(true)
   })
+})
 
-  describe('images that arrive before the board has opened', () => {
-    const opening = () => {
-      const boardStore = fakeBoardStore(start, ['a', 'b', 'c', 'd', 'e'])
-      return { boardStore, store: createPlannerStore(boardStore) }
-    }
+describe('the planner store, images that arrive before the board has opened', () => {
+  const opening = () => {
+    const boardStore = fakeBoardStore(start, ['a', 'b', 'c', 'd', 'e'])
+    return { boardStore, store: createPlannerStore(boardStore) }
+  }
 
-    it('are added once it has', async () => {
-      const { store } = opening()
-      const adding = store.getState().addImages([processed])
-      await store.getState().load()
-      await adding
-      expect(store.getState().board.tray).toHaveLength(start.tray.length + 1)
-    })
-
-    it('are refused out loud if the board opened in another tab', async () => {
-      const { store } = opening()
-      const adding = store.getState().addImages([processed])
-      store.getState().suspend()
-      await expect(adding).rejects.toThrow('not open')
-    })
-
-    it('are refused out loud if the board could not be read', async () => {
-      const { boardStore, store } = opening()
-      boardStore.loadBoard.mockRejectedValueOnce(new Error('unreadable'))
-      const adding = store.getState().addImages([processed])
-      await store.getState().load()
-      await expect(adding).rejects.toThrow('not open')
-    })
+  it('are added once it has', async () => {
+    const { store } = opening()
+    const adding = store.getState().addImages([processed])
+    await store.getState().load()
+    await adding
+    expect(store.getState().board.tray).toHaveLength(start.tray.length + 1)
   })
 
+  it('are refused out loud if the board opened in another tab', async () => {
+    const { store } = opening()
+    const adding = store.getState().addImages([processed])
+    store.getState().suspend()
+    await expect(adding).rejects.toThrow('not open')
+  })
+
+  it('are refused out loud if the board could not be read', async () => {
+    const { boardStore, store } = opening()
+    boardStore.loadBoard.mockRejectedValueOnce(new Error('unreadable'))
+    const adding = store.getState().addImages([processed])
+    await store.getState().load()
+    await expect(adding).rejects.toThrow('not open')
+  })
+})
+
+describe('the planner store', () => {
   it('keeps the images that were stored when others could not be', async () => {
     const { boardStore, state } = await loaded()
     boardStore.putImage.mockRejectedValueOnce(new Error('the disk is full'))

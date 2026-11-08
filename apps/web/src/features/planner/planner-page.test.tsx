@@ -25,14 +25,25 @@ async function oneImageOnGrid() {
   return plannerStore.getState().board.grid[0]
 }
 
-describe('PlannerPage', () => {
-  beforeEach(async () => {
-    await boardStore.deleteImages((await boardStore.listImages()).map(({ id }) => id))
-    await boardStore.saveBoard({ tray: [], grid: [] })
-    await boardStore.saveHistory({ past: [], future: [] })
-    plannerStore.setState({ images: {}, past: [], future: [], ready: false, session: 'starting' })
-  })
+beforeEach(async () => {
+  await boardStore.deleteImages((await boardStore.listImages()).map(({ id }) => id))
+  await boardStore.saveBoard({ tray: [], grid: [] })
+  await boardStore.saveHistory({ past: [], future: [] })
+  plannerStore.setState({ images: {}, past: [], future: [], ready: false, session: 'starting' })
+})
 
+async function boardOf(tray: number, grid: number) {
+  await waitFor(() => expect(plannerStore.getState().session).toBe('active'))
+  await act(async () => {
+    plannerStore.getState().clear(['tray', 'grid'])
+    await plannerStore.getState().addImages(Array.from({ length: grid }, () => processed))
+    plannerStore.getState().moveAll('tray')
+    await plannerStore.getState().addImages(Array.from({ length: tray }, () => processed))
+  })
+  return plannerStore.getState().board
+}
+
+describe('PlannerPage', () => {
   it('says what to do with an empty grid', async () => {
     render(<PlannerPage />)
     expect(await screen.findByText('Move images here to plan your feed.')).toBeInTheDocument()
@@ -82,17 +93,6 @@ describe('PlannerPage', () => {
     expect(plannerStore.getState().board.grid).toEqual([id])
   })
 
-  const boardOf = async (tray: number, grid: number) => {
-    await waitFor(() => expect(plannerStore.getState().session).toBe('active'))
-    await act(async () => {
-      plannerStore.getState().clear(['tray', 'grid'])
-      await plannerStore.getState().addImages(Array.from({ length: grid }, () => processed))
-      plannerStore.getState().moveAll('tray')
-      await plannerStore.getState().addImages(Array.from({ length: tray }, () => processed))
-    })
-    return plannerStore.getState().board
-  }
-
   it('moves everything across, and undoes it', async () => {
     const user = userEvent.setup()
     render(<PlannerPage />)
@@ -115,7 +115,9 @@ describe('PlannerPage', () => {
     expect(screen.getByRole('button', { name: 'Shuffle the tray' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Shuffle the grid' })).toBeDisabled()
   })
+})
 
+describe('PlannerPage, shuffling and clearing', () => {
   it('says how many images each choice clears, and undoes it', async () => {
     const user = userEvent.setup()
     render(<PlannerPage />)

@@ -88,7 +88,9 @@ describe('sortByColour', () => {
     const twin = { ...cell('red'), id: 'a-twin' }
     expect(await sortByColour([cell('red'), twin], 'rainbow')).toEqual(['a-twin', 'red'])
   })
+})
 
+describe('sortByColour, images with no colour and the limits', () => {
   it('leaves an image with no colour yet at the end', async () => {
     expect(await sortByColour([{ id: 'unread' }, cell('black')], 'lightToDark')).toEqual([
       'black',

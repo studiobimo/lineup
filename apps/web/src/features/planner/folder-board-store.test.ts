@@ -78,7 +78,9 @@ describe('a folder board', () => {
     expect(await store.listImages()).toEqual([])
     expect(await store.getThumbnail('nothing')).toBeUndefined()
   })
+})
 
+describe('a folder board, its originals and what it forgets', () => {
   it('refuses to open on a file of its own that it cannot trust', async () => {
     const { handle } = fakeDirectory()
     const store = await createFolderBoardStore(handle)
@@ -131,7 +133,9 @@ describe('a folder board', () => {
     const reopened = await createFolderBoardStore(handle)
     expect((await reopened.newFiles()).map(({ name }) => name)).toEqual(['a.jpg'])
   })
+})
 
+describe('a folder board, new files and forgetting', () => {
   it('deletes only the files it was told to forget, and counts them', async () => {
     const { handle, files, store } = await storeWith(['a', 'b', 'c'])
     await store.deleteImages(['a', 'b'])
@@ -179,7 +183,9 @@ describe('a folder board', () => {
     await store.putImage(image('a'))
     expect(await files.get('a.jpg')?.text()).toBe('publish copy of a')
   })
+})
 
+describe('a folder board, video and copies', () => {
   it('keeps a video once, as its original, and publishes from that file', async () => {
     const { handle, files } = fakeDirectory()
     const store = await createFolderBoardStore(handle)
