@@ -6,7 +6,6 @@ import { usePlanner } from '@/features/planner/planner'
 import { liveAccount, useConnection } from './connection'
 import { accountsQuery, publishedQuery } from './queries'
 
-/** What is live, less any post that is already on the board as a cell of its own (ADR-0018). */
 export function usePublishedPosts(accountId: string | undefined) {
   const query = useQuery({ ...publishedQuery(accountId ?? ''), enabled: accountId !== undefined })
   const linked = usePlanner(({ board }) => board.posts)
@@ -19,7 +18,6 @@ export function usePublishedPosts(accountId: string | undefined) {
   return { posts, error, refetch }
 }
 
-/** The account being planned for, with no request at all when this browser has no key. */
 export function useConnectedAccount() {
   const accountId = liveAccount(useConnection())
   const { data: accounts } = useQuery({ ...accountsQuery, enabled: accountId !== undefined })

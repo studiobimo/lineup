@@ -38,7 +38,6 @@ function ConnectedKey() {
   const forget = useForgetKey()
   const { data: status, error } = useQuery(keyQuery)
 
-  // The browser dropped the cookie, or the Worker can no longer open it: this hint is out of date.
   useEffect(() => {
     if (error instanceof ProviderRequestError && error.problem?.status === 404) forgetConnection()
   }, [error])
