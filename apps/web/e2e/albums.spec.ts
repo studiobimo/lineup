@@ -99,7 +99,6 @@ test('an album opens, reorders from the keyboard, and undo puts it back', async 
   await dialog.getByRole('group', { name: 'Album image 1', exact: true }).focus()
   await page.keyboard.press('Space')
   await expect(page.getByText('Picked up Album image 1.')).toBeAttached()
-  // The sensor starts listening a tick after the pick-up, which no hand on a keyboard can beat.
   await page.waitForTimeout(50)
   await page.keyboard.press('ArrowRight')
   await expect(page.getByText('Over Album image 2.')).toBeAttached()

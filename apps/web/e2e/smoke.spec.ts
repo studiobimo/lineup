@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 
 test('the shell runs under the content security policy', async ({ page }) => {
-  // The browser reports a blocked script, style, font or image as a console error.
   const errors: string[] = []
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(message.text())

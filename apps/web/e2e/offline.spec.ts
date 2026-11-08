@@ -4,7 +4,6 @@ import { expect, type Page, test } from '@playwright/test'
 
 import { addImages, image, watchErrors } from './fixtures'
 
-/** The worker controls the page only once it has cached what it needs. */
 async function readyForOffline(page: Page) {
   await page.evaluate(() => navigator.serviceWorker.ready)
   await expect
@@ -23,7 +22,6 @@ test('it works with the network off after the first visit', async ({ page, conte
   await page.reload()
   await expect(page.getByRole('img')).toHaveCount(1)
 
-  // Lazy on purpose: these load their own chunks, which the worker has to have cached.
   await page.getByRole('button', { name: 'Settings' }).click()
   await page.getByRole('tab', { name: 'Photos' }).click()
   await expect(page.getByRole('switch', { name: 'Read locations' })).toBeVisible()

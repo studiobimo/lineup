@@ -13,15 +13,12 @@ const photo = (name: string) => ({
   buffer: readFileSync(join(import.meta.dirname, '../../../test-images', name))
 })
 
-// The origin's private file system is a real folder with real handles, which survive a reload in
-// IndexedDB as a chosen one does. Only the picker, which a test cannot click, is replaced.
 const replacePicker = (page: Page) =>
   page.addInitScript(() => {
     window.showDirectoryPicker = async () =>
       (await navigator.storage.getDirectory()).getDirectoryHandle('photos', { create: true })
   })
 
-/** Every file in the folder, with its size. */
 const folderFiles = (page: Page) =>
   page.evaluate(async () => {
     const found: Record<string, number> = {}
@@ -42,7 +39,6 @@ const folderFiles = (page: Page) =>
     return found
   })
 
-/** The board as the folder has it, or null as a write swaps the file in, which outlives a click. */
 const folderBoard = (page: Page) =>
   page.evaluate(async () => {
     const root = await navigator.storage.getDirectory()
@@ -56,7 +52,6 @@ const folderBoard = (page: Page) =>
     }
   })
 
-/** What a person's file manager would do, with folders on the way made as it goes. */
 const addToFolder = (page: Page, path: string, bytes: Buffer) =>
   page.evaluate(
     async ({ path, bytes }) => {
@@ -109,7 +104,6 @@ test('a folder keeps the original at full size, and the board comes back', async
 
   await page.reload()
   await expect(page.getByRole('img')).toHaveCount(1)
-  // The browser's own board was never touched.
   expect(await savedBoard(page)).toBeUndefined()
 
   const later = await page.context().newPage()
@@ -263,7 +257,6 @@ test('a step whose write never finished comes back, and can be undone', async ({
   await expect(page.locator('aside').getByRole('img')).toHaveCount(1)
   await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
 
-  // As a tab that closes mid-write leaves things: the change made, and the file never swapped in.
   await page.evaluate(() => {
     FileSystemFileHandle.prototype.createWritable = () => new Promise(() => {})
   })

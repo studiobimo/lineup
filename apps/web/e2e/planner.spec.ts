@@ -28,7 +28,6 @@ test('imports, arranges, undoes and comes back after a reload', async ({ page })
   const images = page.getByRole('img')
   await expect(images).toHaveCount(3)
   await expect(page.getByText('1 image could not be read.')).toBeVisible()
-  // An empty canvas is 300 wide, and it counts as an image before anything is drawn.
   await expect(images.first()).toHaveJSProperty('width', 2)
 
   await page.getByRole('button', { name: 'Move to the grid' }).first().click()
@@ -50,7 +49,6 @@ test('imports, arranges, undoes and comes back after a reload', async ({ page })
 test('a HEIC photo imports in a browser that cannot decode it', async ({ page }) => {
   const errors = watchErrors(page)
   await page.goto('/')
-  // Chromium has no HEIC decoder, so this is the fallback: the real file, the real WASM, the real CSP.
   const buffer = readFileSync(new URL('./fixtures/photo.heic', import.meta.url))
 
   await addImages(page, [{ name: 'IMG_0001.HEIC', mimeType: 'image/heic', buffer }])
@@ -89,7 +87,6 @@ test('one tab at a time changes a board', async ({ context, page }) => {
   await expect(second.getByRole('heading', { name: notice })).toBeVisible()
   await expect(second.getByRole('img')).toHaveCount(0)
 
-  // Opening a second tab must not have touched the first one's board or its images.
   await page.getByRole('button', { name: 'Delete' }).first().click()
   await expect(page.getByRole('img')).toHaveCount(1)
   await page.getByRole('button', { name: 'Undo' }).click()
@@ -102,12 +99,10 @@ test('one tab at a time changes a board', async ({ context, page }) => {
   await second.close()
   await expect(page.getByRole('img')).toHaveCount(2)
 
-  // The history moved between the tabs with the board, so the delete undone above can be redone.
   await page.getByRole('button', { name: 'Redo' }).click()
   await expect(page.getByRole('img')).toHaveCount(1)
 })
 
-// Builds real files in the page, because a drop or a paste can only be dispatched from inside it.
 const fileData = (page: Page, base64: string, names: string[]) =>
   page.evaluateHandle(
     ([data, list]) => {
@@ -142,14 +137,12 @@ test('pasting an image adds it', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Move images here to plan your feed.')).toBeVisible()
   const data = await fileData(page, png.toString('base64'), ['pasted.png'])
-  // dispatchEvent sends a paste as a plain Event, which would drop clipboardData.
   await data.evaluate((clipboardData) => {
     window.dispatchEvent(new ClipboardEvent('paste', { clipboardData }))
   })
   await expect(page.getByRole('img')).toHaveCount(1)
 })
 
-// A real mouse, in steps, because the drag only starts once the pointer has travelled.
 async function drag(
   page: Page,
   from: Locator,
@@ -164,11 +157,9 @@ async function drag(
   await page.mouse.move(start.x + start.width / 2 + 10, start.y + start.height / 2, { steps: 3 })
   await page.mouse.move(end.x + end.width * x, end.y + end.height * y, { steps: 5 })
   if (shift) await page.keyboard.down('Shift')
-  // The next frame, so the indicator is up when a test looks at it.
   await page.mouse.move(end.x + end.width * x + 1, end.y + end.height * y)
 }
 
-/** The sensor starts listening for arrow keys on the tick after a cell is picked up. */
 async function pickUpWithKeyboard(page: Page) {
   await page.getByRole('group', { name: 'Image 1' }).last().focus()
   await page.keyboard.press('Space')
@@ -198,7 +189,6 @@ test('dragging a cell onto another swaps them, and undo puts them back', async (
   await page.mouse.up()
   await expect.poll(async () => (await savedBoard(page)).grid).toEqual([c, b, a])
 
-  // The library swallows clicks for 50 ms after a drag, which only a script can be fast enough for.
   await page.waitForTimeout(100)
   await page.getByRole('button', { name: 'Undo' }).click()
   await expect.poll(async () => (await savedBoard(page)).grid).toEqual([a, b, c])
@@ -245,7 +235,6 @@ test('an image opens full size, steps along, zooms, and closes', async ({ page }
   await cells.nth(0).dblclick()
   await expect(dialog.getByText('1 of 3')).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Previous image' })).toBeDisabled()
-  // A canvas with nothing drawn on it is 300 wide, and these images are 2.
   await expect
     .poll(() => dialog.locator('canvas').evaluate((c: HTMLCanvasElement) => c.width))
     .toBe(2)
@@ -258,11 +247,9 @@ test('an image opens full size, steps along, zooms, and closes', async ({ page }
   await dialog.getByRole('button', { name: 'Zoom out' }).click()
   await expect(zoom).toHaveAttribute('data-zoom', '1')
 
-  // Zoom out is disabled now, and focus was on it. The keyboard has to keep working regardless.
   await page.keyboard.press('ArrowLeft')
   await expect(dialog.getByText('1 of 3')).toBeVisible()
 
-  // Undo belongs to the board, which the lightbox covers. Give a save the time to land if it ran.
   await page.keyboard.press('Control+z')
   await page.waitForTimeout(200)
   expect((await savedBoard(page)).grid).toHaveLength(3)
@@ -306,7 +293,6 @@ test('a handle and name from Settings fill the phone preview, and survive a relo
   await expect(phone.getByText('Some Name')).toBeVisible()
 })
 
-// What a full device does to a write, so the app's own handling of it runs for real.
 const fillStorage = (page: Page) =>
   page.evaluateHandle(() => {
     const { put } = IDBObjectStore.prototype
@@ -352,7 +338,6 @@ test('dropping a folder takes the images in it and its subfolders', async ({ pag
   await page.goto('/')
   await expect(page.getByText('Move images here to plan your feed.')).toBeVisible()
 
-  // A script cannot make a real folder drag, so these stand in for the entries the browser gives.
   await page.evaluate((base64) => {
     const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0))
     const file = (name: string, type: string) => ({
