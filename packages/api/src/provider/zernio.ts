@@ -165,173 +165,196 @@ function shapeOf(error: z.ZodError, body: unknown) {
   }
 }
 
-export function zernio(key: string): Provider {
-  async function call<Schema extends z.ZodType>(
-    path: string,
-    schema: Schema,
-    { body, headers, method }: { body?: unknown; headers?: HeadersInit; method?: string } = {}
-  ): Promise<z.output<Schema>> {
-    const response = await fetch(`${BASE_URL}${path}`, {
-      method,
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', ...headers },
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(TIMEOUT_MS)
-    }).catch((error: unknown) => {
-      console.error(
-        JSON.stringify({ provider: 'zernio', where: path.split('?')[0], network: String(error) })
-      )
-      throw new ProviderError('down')
-    })
-    const where = path.split('?')[0]
-    if (!response.ok) {
-      const error = await failureOf(response)
-      if (error.failure === 'down')
-        console.error(JSON.stringify({ provider: 'zernio', where, status: response.status }))
+type Call = <Schema extends z.ZodType>(
+  path: string,
+  schema: Schema,
+  options?: { body?: unknown; headers?: HeadersInit; method?: string }
+) => Promise<z.output<Schema>>
+
+async function request<Schema extends z.ZodType>(
+  key: string,
+  path: string,
+  schema: Schema,
+  { body, headers, method }: { body?: unknown; headers?: HeadersInit; method?: string } = {}
+): Promise<z.output<Schema>> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', ...headers },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    signal: AbortSignal.timeout(TIMEOUT_MS)
+  }).catch((error: unknown) => {
+    console.error(
+      JSON.stringify({ provider: 'zernio', where: path.split('?')[0], network: String(error) })
+    )
+    throw new ProviderError('down')
+  })
+  const where = path.split('?')[0]
+  if (!response.ok) {
+    const error = await failureOf(response)
+    if (error.failure === 'down')
+      console.error(JSON.stringify({ provider: 'zernio', where, status: response.status }))
+    throw error
+  }
+  if (response.status === 204) return schema.parse(undefined)
+  const answer: unknown = await response.json().catch(() => undefined)
+  const parsed = schema.safeParse(answer)
+  if (!parsed.success) {
+    console.error(JSON.stringify({ provider: 'zernio', where, ...shapeOf(parsed.error, answer) }))
+    throw new ProviderError('down')
+  }
+  return parsed.data
+}
+
+const keyMethods = (
+  call: Call
+): Pick<Provider, 'profiles' | 'narrowed' | 'canPost' | 'upload'> => ({
+  async profiles() {
+    const { profiles } = await call('/profiles', profilesSchema)
+    return profiles.map(({ _id, name }) => ({ id: _id, name }))
+  },
+
+  async narrowed(profileId, days) {
+    const body = {
+      name: 'Lineup',
+      scope: 'profiles',
+      profileIds: [profileId],
+      expiresIn: days,
+      disabledResourceGroups: UNUSED_GROUPS
+    }
+    try {
+      const { apiKey } = await call('/api-keys', createdKeySchema, { method: 'POST', body })
+      return apiKey.key
+    } catch (error) {
+      if (refusedThis(error, ['forbidden', 'refused', 'key'])) return undefined
       throw error
     }
-    if (response.status === 204) return schema.parse(undefined)
-    const answer: unknown = await response.json().catch(() => undefined)
-    const parsed = schema.safeParse(answer)
-    if (!parsed.success) {
-      console.error(JSON.stringify({ provider: 'zernio', where, ...shapeOf(parsed.error, answer) }))
-      throw new ProviderError('down')
+  },
+
+  async canPost() {
+    const body = { filename: 'lineup-check.jpg', contentType: 'image/jpeg', size: 1 }
+    try {
+      await call('/media/presign', presignSchema, { method: 'POST', body })
+      return true
+    } catch (error) {
+      if (refusedThis(error, ['forbidden', 'key'])) return false
+      throw error
     }
-    return parsed.data
+  },
+
+  async upload({ fileName, contentType, size }) {
+    const body = { filename: fileName, contentType, size }
+    const { uploadUrl, publicUrl } = await call('/media/presign', presignSchema, {
+      method: 'POST',
+      body
+    })
+    return { uploadUrl, mediaUrl: publicUrl }
   }
+})
 
+const accountMethods = (call: Call): Pick<Provider, 'accounts' | 'connectUrl'> => ({
+  async accounts(profileId) {
+    const query = new URLSearchParams({ profileId })
+    const { accounts } = await call(`/accounts?${query}`, accountsSchema)
+    return accounts
+      .filter(({ platform, isActive }) => platform === PLATFORM && isActive)
+      .map((account) => ({
+        id: account._id,
+        username: account.username ?? account.displayName ?? account._id,
+        displayName: account.displayName ?? undefined,
+        avatarUrl: account.profilePicture ?? undefined,
+        followers: account.followersCount ?? undefined,
+        needsReconnection: account.needsReconnection ?? false
+      }))
+  },
+
+  async connectUrl(profileId, returnTo) {
+    const query = new URLSearchParams({ profileId, redirect_url: returnTo })
+    const { authUrl } = await call(`/connect/${PLATFORM}?${query}`, connectSchema)
+    return authUrl
+  }
+})
+
+const readMethods = (call: Call): Pick<Provider, 'publishedPosts' | 'scheduledPosts'> => ({
+  async publishedPosts(accountId) {
+    const limit = String(RECENT_POSTS)
+    const query = (source: string) => new URLSearchParams({ accountId, limit, source })
+    const [{ posts: elsewhere }, { posts: throughHere }] = await Promise.all([
+      call(`/posts?${query('external')}`, postsSchema),
+      call(`/posts?${query('zernio')}&status=published`, postsSchema)
+    ])
+    const fromElsewhere = elsewhere
+      .filter(({ mediaProductType }) => !OFF_THE_GRID.includes(mediaProductType ?? ''))
+      .map((post) => toPublishedPost(post, post.platforms?.[0]?.platformPostId ?? post._id))
+    const seen = new Set(fromElsewhere.flatMap(({ id, url }) => (url ? [id, url] : [id])))
+    const fromHere = throughHere
+      .filter(({ platforms }) => {
+        const target = platforms?.[0]
+        return ![target?.platformPostId, target?.platformPostUrl].some(
+          (key) => key && seen.has(key)
+        )
+      })
+      .map((post) => toPublishedPost(post, post._id))
+    return [...fromElsewhere, ...fromHere]
+      .toSorted((one, other) => (other.publishedAt ?? '').localeCompare(one.publishedAt ?? ''))
+      .slice(0, RECENT_POSTS)
+  },
+
+  async scheduledPosts(accountId) {
+    const query = new URLSearchParams({
+      accountId,
+      limit: String(SCHEDULED_POSTS),
+      sortBy: 'created-desc'
+    })
+    const { posts } = await call(`/posts?${query}`, postsSchema)
+    return posts.map(toScheduledPost)
+  }
+})
+
+const writeMethods = (call: Call): Pick<Provider, 'schedule' | 'update' | 'cancel'> => ({
+  async schedule(
+    { accountId, caption, scheduledFor, timeZone, mediaUrls, mediaTypes },
+    idempotencyKey
+  ) {
+    const { post } = await call('/posts', postSchema, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': idempotencyKey },
+      body: {
+        content: caption,
+        scheduledFor,
+        timezone: timeZone,
+        mediaItems: mediaUrls.map((url, index) => ({
+          type: mediaTypes?.[index] ?? 'image',
+          url
+        })),
+        platforms: [{ platform: PLATFORM, accountId }]
+      }
+    })
+    return toScheduledPost(post)
+  },
+
+  async update(id, { scheduledFor, timeZone, caption }) {
+    const { post } = await call(`/posts/${encodeURIComponent(id)}`, postSchema, {
+      method: 'PUT',
+      body: { scheduledFor, timezone: timeZone, content: caption }
+    })
+    return toScheduledPost(post)
+  },
+
+  async cancel(id) {
+    await call(`/posts/${encodeURIComponent(id)}`, nothing, { method: 'DELETE' }).catch(
+      (error: unknown) => {
+        if (!(error instanceof ProviderError && error.failure === 'missing')) throw error
+      }
+    )
+  }
+})
+
+export function zernio(key: string): Provider {
+  const call: Call = (path, schema, options) => request(key, path, schema, options)
   return {
-    async profiles() {
-      const { profiles } = await call('/profiles', profilesSchema)
-      return profiles.map(({ _id, name }) => ({ id: _id, name }))
-    },
-
-    async narrowed(profileId, days) {
-      const body = {
-        name: 'Lineup',
-        scope: 'profiles',
-        profileIds: [profileId],
-        expiresIn: days,
-        disabledResourceGroups: UNUSED_GROUPS
-      }
-      try {
-        const { apiKey } = await call('/api-keys', createdKeySchema, { method: 'POST', body })
-        return apiKey.key
-      } catch (error) {
-        if (refusedThis(error, ['forbidden', 'refused', 'key'])) return undefined
-        throw error
-      }
-    },
-
-    async canPost() {
-      const body = { filename: 'lineup-check.jpg', contentType: 'image/jpeg', size: 1 }
-      try {
-        await call('/media/presign', presignSchema, { method: 'POST', body })
-        return true
-      } catch (error) {
-        if (refusedThis(error, ['forbidden', 'key'])) return false
-        throw error
-      }
-    },
-
-    async accounts(profileId) {
-      const query = new URLSearchParams({ profileId })
-      const { accounts } = await call(`/accounts?${query}`, accountsSchema)
-      return accounts
-        .filter(({ platform, isActive }) => platform === PLATFORM && isActive)
-        .map((account) => ({
-          id: account._id,
-          username: account.username ?? account.displayName ?? account._id,
-          displayName: account.displayName ?? undefined,
-          avatarUrl: account.profilePicture ?? undefined,
-          followers: account.followersCount ?? undefined,
-          needsReconnection: account.needsReconnection ?? false
-        }))
-    },
-
-    async connectUrl(profileId, returnTo) {
-      const query = new URLSearchParams({ profileId, redirect_url: returnTo })
-      const { authUrl } = await call(`/connect/${PLATFORM}?${query}`, connectSchema)
-      return authUrl
-    },
-
-    async publishedPosts(accountId) {
-      const limit = String(RECENT_POSTS)
-      const query = (source: string) => new URLSearchParams({ accountId, limit, source })
-      const [{ posts: elsewhere }, { posts: throughHere }] = await Promise.all([
-        call(`/posts?${query('external')}`, postsSchema),
-        call(`/posts?${query('zernio')}&status=published`, postsSchema)
-      ])
-      const fromElsewhere = elsewhere
-        .filter(({ mediaProductType }) => !OFF_THE_GRID.includes(mediaProductType ?? ''))
-        .map((post) => toPublishedPost(post, post.platforms?.[0]?.platformPostId ?? post._id))
-      const seen = new Set(fromElsewhere.flatMap(({ id, url }) => (url ? [id, url] : [id])))
-      const fromHere = throughHere
-        .filter(({ platforms }) => {
-          const target = platforms?.[0]
-          return ![target?.platformPostId, target?.platformPostUrl].some(
-            (key) => key && seen.has(key)
-          )
-        })
-        .map((post) => toPublishedPost(post, post._id))
-      return [...fromElsewhere, ...fromHere]
-        .toSorted((one, other) => (other.publishedAt ?? '').localeCompare(one.publishedAt ?? ''))
-        .slice(0, RECENT_POSTS)
-    },
-
-    async upload({ fileName, contentType, size }) {
-      const body = { filename: fileName, contentType, size }
-      const { uploadUrl, publicUrl } = await call('/media/presign', presignSchema, {
-        method: 'POST',
-        body
-      })
-      return { uploadUrl, mediaUrl: publicUrl }
-    },
-
-    async scheduledPosts(accountId) {
-      const query = new URLSearchParams({
-        accountId,
-        limit: String(SCHEDULED_POSTS),
-        sortBy: 'created-desc'
-      })
-      const { posts } = await call(`/posts?${query}`, postsSchema)
-      return posts.map(toScheduledPost)
-    },
-
-    async schedule(
-      { accountId, caption, scheduledFor, timeZone, mediaUrls, mediaTypes },
-      idempotencyKey
-    ) {
-      const { post } = await call('/posts', postSchema, {
-        method: 'POST',
-        headers: { 'Idempotency-Key': idempotencyKey },
-        body: {
-          content: caption,
-          scheduledFor,
-          timezone: timeZone,
-          mediaItems: mediaUrls.map((url, index) => ({
-            type: mediaTypes?.[index] ?? 'image',
-            url
-          })),
-          platforms: [{ platform: PLATFORM, accountId }]
-        }
-      })
-      return toScheduledPost(post)
-    },
-
-    async update(id, { scheduledFor, timeZone, caption }) {
-      const { post } = await call(`/posts/${encodeURIComponent(id)}`, postSchema, {
-        method: 'PUT',
-        body: { scheduledFor, timezone: timeZone, content: caption }
-      })
-      return toScheduledPost(post)
-    },
-
-    async cancel(id) {
-      await call(`/posts/${encodeURIComponent(id)}`, nothing, { method: 'DELETE' }).catch(
-        (error: unknown) => {
-          if (!(error instanceof ProviderError && error.failure === 'missing')) throw error
-        }
-      )
-    }
+    ...keyMethods(call),
+    ...accountMethods(call),
+    ...readMethods(call),
+    ...writeMethods(call)
   }
 }
