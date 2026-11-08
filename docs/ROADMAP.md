@@ -114,7 +114,7 @@ Not scheduled. Each needs its own ADR before it starts.
 - Import from Google Photos through its Picker API; then Google Drive and Dropbox pickers on the
   same import-source interface. Open: can the browser fetch picked images directly, and does the
   scope need Google's app verification?
-- Video and Reels, which are a large share of a real profile grid
+- Stories, and trimming a video or choosing its cover ([ADR-0022](adr/0022-video.md) covers Reels)
 - Multiple boards
 - Grid-aware sort layouts: column gradients, row bands, checkerboard
 - Export the plan as an image

@@ -180,6 +180,32 @@ describe('a folder board', () => {
     expect(await files.get('a.jpg')?.text()).toBe('publish copy of a')
   })
 
+  it('keeps a video once, as its original, and publishes from that file', async () => {
+    const { handle, files } = fakeDirectory()
+    const store = await createFolderBoardStore(handle)
+    const clip = new File(['the video'], 'clip.mov', { type: 'video/quicktime' })
+    const video = { type: 'video/quicktime', duration: 3 } as const
+    await store.putImage({ ...image('a', clip), publish: clip, video })
+
+    const data = await handle.getDirectoryHandle('.lineup')
+    const publish = await data.getDirectoryHandle('publish')
+    const kept: string[] = []
+    for await (const [name] of publish.entries()) kept.push(name)
+    expect(kept).toEqual([])
+    const copy = await store.getPublishCopy('a')
+    expect(copy?.type).toBe('video/quicktime')
+    expect(await copy?.text()).toBe('the video')
+    files.delete('clip.mov')
+    expect(await store.getPublishCopy('a')).toBeUndefined()
+  })
+
+  it('names a restored video by its type', async () => {
+    const { handle, files } = fakeDirectory()
+    const store = await createFolderBoardStore(handle)
+    await store.putImage({ ...image('a'), video: { type: 'video/mp4', duration: 3 } })
+    expect(await files.get('a.mp4')?.text()).toBe('publish copy of a')
+  })
+
   it('copies a board in whole, and leaves the one it came from as it was', async () => {
     const from = await createFolderBoardStore(fakeDirectory('browser').handle)
     await from.putImage(image('a'))

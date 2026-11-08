@@ -1,3 +1,5 @@
+import { videoTypeOf } from './video-frame'
+
 /** Anywhere images can come from. A new source is a small adapter in front of the same pipeline. */
 export interface ImportSource {
   files(): Promise<File[]>
@@ -8,9 +10,12 @@ export const IMAGE_LIMIT = 300
 // Browsers that cannot decode these leave the type empty, and a browser that can should get to try.
 const IMAGE_EXTENSION = /\.(hei[cf]|avif)$/i
 
-export function isImage(file: File) {
+function isImage(file: File) {
   return file.type.startsWith('image/') || IMAGE_EXTENSION.test(file.name)
 }
+
+/** What can be planned: an image, or a video Instagram would take (ADR-0022). */
+export const isPlannable = (file: File) => isImage(file) || videoTypeOf(file) !== undefined
 
 export interface ImportPlan {
   accepted: File[]
@@ -20,7 +25,7 @@ export interface ImportPlan {
 
 /** One check for every path: nothing about a limit or a file type lives in a source. */
 export function planImport(files: File[], boardSize: number): ImportPlan {
-  const images = files.filter(isImage)
+  const images = files.filter(isPlannable)
   const room = Math.max(0, IMAGE_LIMIT - boardSize)
   return {
     accepted: images.slice(0, room),

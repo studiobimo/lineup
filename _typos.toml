@@ -8,3 +8,7 @@ extend-exclude = [
   # Spanish, which an English checker reads as typos.
   "apps/web/src/locales/es/",
 ]
+
+[default.extend-words]
+# The media event that fires when a seek finishes.
+seeked = "seeked"

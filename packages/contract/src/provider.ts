@@ -36,15 +36,21 @@ export const connectUrlSchema = z.object({ url: z.url() })
 export const publishedPostSchema = z.object({
   id,
   url: z.url().optional(),
+  /** A picture only: a video's own file is `videoUrl`. */
   thumbnailUrl: z.url().optional(),
+  /** Only on a video, for its first frame where the provider has no thumbnail. */
+  videoUrl: z.url().optional(),
   caption: z.string().optional(),
   publishedAt: z.iso.datetime({ offset: true }).optional()
 })
 export type PublishedPost = z.infer<typeof publishedPostSchema>
 
+export const mediaTypeSchema = z.enum(['image', 'video'])
+export type MediaType = z.infer<typeof mediaTypeSchema>
+
 export const uploadRequestSchema = z.object({
   fileName: z.string().min(1).max(255),
-  contentType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+  contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime']),
   size: z.number().int().positive()
 })
 export type UploadRequest = z.infer<typeof uploadRequestSchema>
@@ -79,7 +85,9 @@ export const newPostSchema = z.object({
   ...when,
   accountId: id,
   caption: z.string(),
-  mediaUrls: z.array(z.url()).min(1)
+  mediaUrls: z.array(z.url()).min(1),
+  /** What each of `mediaUrls` is, in the same order. Without it, every one is an image. */
+  mediaTypes: z.array(mediaTypeSchema).optional()
 })
 export type NewPost = z.infer<typeof newPostSchema>
 

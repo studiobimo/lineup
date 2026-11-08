@@ -64,7 +64,13 @@
     "schedule": "Schedule",
     "sending": "Sending {{position}} of {{count}}",
     "scheduled": "Scheduled for {{time}}",
-    "missingCopy": "This image's full copy is no longer on this device, so it cannot be sent."
+    "missingCopy": "This image's full copy is no longer on this device, so it cannot be sent.",
+    "videoLimit": {
+      "size": "Instagram takes a video of up to {{size}} MB.",
+      "length": "Instagram takes a Reel of up to {{minutes}} minutes.",
+      "count_one": "A carousel can hold one video.",
+      "count_other": "A carousel can hold {{count}} videos."
+    }
   },
   "published": {
     "cell": "Published post",

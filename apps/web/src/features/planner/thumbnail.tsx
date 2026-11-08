@@ -1,4 +1,5 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 
@@ -33,6 +34,60 @@ export function Thumbnail(props: ImageProps) {
 export function CellThumbnail({ id, label }: ImageProps) {
   const cover = usePlanner(({ board }) => coverOf(board, id))
   return <Thumbnail id={cover} label={label} />
+}
+
+/**
+ * A video plays from its own bytes, through a URL that lives only while it is shown. Unlike an
+ * <img>, a <video> lets go of what it loaded once its source is taken away. Keyed by its id where
+ * it is used, so that another video starts from nothing.
+ */
+export function StoredVideo({ id, label, className }: ImageProps & { className?: string }) {
+  const { t } = useTranslation('planner')
+  const player = useRef<HTMLVideoElement>(null)
+  const [state, setState] = useState<'loading' | 'ready' | 'gone'>('loading')
+  useEffect(() => {
+    const element = player.current
+    let url: string | undefined
+    let live = true
+    void readFullSize(id).then(
+      (copy) => {
+        if (!live) return
+        if (!copy || !element) return setState('gone')
+        url = URL.createObjectURL(copy)
+        element.src = url
+        setState('ready')
+      },
+      () => live && setState('gone')
+    )
+    return () => {
+      live = false
+      if (element) {
+        element.removeAttribute('src')
+        element.load()
+      }
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [id])
+  return (
+    <>
+      {state === 'gone' && (
+        <p role="alert" className="text-sm text-muted-foreground">
+          {t('videoUnavailable')}
+        </p>
+      )}
+      <video
+        ref={player}
+        aria-label={label}
+        controls
+        muted
+        autoPlay
+        playsInline
+        hidden={state === 'gone'}
+        onError={() => setState('gone')}
+        className={cn('object-contain', className)}
+      />
+    </>
+  )
 }
 
 export function FullSizeImage({ className, ...props }: ImageProps & { className?: string }) {

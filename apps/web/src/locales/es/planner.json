@@ -141,5 +141,8 @@
   "unreadable_one": "No se pudo leer {{count}} imagen.",
   "unreadable_other": "No se pudieron leer {{count}} imágenes.",
   "overLimit_one": "Se dejó fuera {{count}} imagen: un tablero admite {{limit}}.",
-  "overLimit_other": "Se dejaron fuera {{count}} imágenes: un tablero admite {{limit}}."
+  "overLimit_other": "Se dejaron fuera {{count}} imágenes: un tablero admite {{limit}}.",
+  "videoCell": "Video {{position}}",
+  "videoLength": "Video de {{length}}",
+  "videoUnavailable": "Este video no se puede reproducir aquí."
 }

@@ -15,6 +15,13 @@ describe('planImport', () => {
     expect(planImport([heic], 0).accepted).toEqual([heic])
   })
 
+  it('takes the videos Instagram would take, by type or by name, and no other', () => {
+    const mp4 = new File(['x'], 'clip.mp4', { type: 'video/mp4' })
+    const mov = new File(['x'], 'clip.MOV', { type: '' })
+    const webm = new File(['x'], 'clip.webm', { type: 'video/webm' })
+    expect(planImport([mp4, mov, webm], 0)).toMatchObject({ accepted: [mp4, mov], ignored: 1 })
+  })
+
   it('stops at 300 across tray and grid, in the order the files came', () => {
     const files = [image('1.jpg'), image('2.jpg'), image('3.jpg')]
     const plan = planImport(files, 298)
