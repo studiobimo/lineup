@@ -30,6 +30,94 @@ const OVERLAP = -112
 const neighbourOf = (cell: HTMLElement) =>
   (cell.nextElementSibling ?? cell.previousElementSibling) as HTMLElement | null
 
+function PostItems({
+  id,
+  toTray,
+  canSchedule,
+  posted,
+  locked
+}: {
+  id: string
+  toTray: boolean
+  canSchedule: boolean
+  posted: boolean
+  locked: boolean
+}) {
+  const { t } = useTranslation('planner')
+  const LockToggle = locked ? LockOpen : Lock
+  return (
+    <>
+      {posted && (
+        <MenuItem onClick={() => openPost(id)}>
+          <CalendarClock />
+          {t('postDetails')}
+        </MenuItem>
+      )}
+      {toTray && canSchedule && !posted && (
+        <MenuItem onClick={() => openPost(id)}>
+          <CalendarClock />
+          {t('schedule')}
+        </MenuItem>
+      )}
+      {toTray && !posted && (
+        <MenuItem onClick={() => plannerStore.getState().toggleLock(id)}>
+          <LockToggle />
+          {t(locked ? 'unlock' : 'lock')}
+        </MenuItem>
+      )}
+    </>
+  )
+}
+
+function EditItems({
+  id,
+  album,
+  toTray,
+  earlier,
+  later,
+  leave
+}: {
+  id: string
+  album: boolean
+  toTray: boolean
+  earlier?: string
+  later?: string
+  leave: (action: () => void) => void
+}) {
+  const { t } = useTranslation('planner')
+  const swapWith = (other?: string) => {
+    if (other) plannerStore.getState().swap(id, other)
+  }
+  return (
+    <>
+      <MenuItem disabled={!earlier} onClick={() => swapWith(earlier)}>
+        <ArrowLeft />
+        {t('moveEarlier')}
+      </MenuItem>
+      <MenuItem disabled={!later} onClick={() => swapWith(later)}>
+        <ArrowRight />
+        {t('moveLater')}
+      </MenuItem>
+      {album && (
+        <MenuItem onClick={() => leave(() => plannerStore.getState().ungroup(id))}>
+          <Ungroup />
+          {t('ungroup')}
+        </MenuItem>
+      )}
+      <MenuItem
+        onClick={() => leave(() => plannerStore.getState().move(id, toTray ? 'tray' : 'grid'))}
+      >
+        <ArrowRightLeft />
+        {t(toTray ? 'moveToTray' : 'moveToGrid')}
+      </MenuItem>
+      <MenuItem onClick={() => leave(() => plannerStore.getState().remove([id]))}>
+        <Trash2 />
+        {t('remove')}
+      </MenuItem>
+    </>
+  )
+}
+
 function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
   const { t } = useTranslation('planner')
   const returnTo = useRef<HTMLElement | null>(cell)
@@ -39,12 +127,8 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
   const locked = isLocked(board, id)
   const album = board.albums?.[id] !== undefined
   const posted = board.posts?.[id] !== undefined
-  const LockToggle = locked ? LockOpen : Lock
   const earlier = neighbour(board, id, -1)
   const later = neighbour(board, id, 1)
-  const swapWith = (other?: string) => {
-    if (other) plannerStore.getState().swap(id, other)
-  }
   const leave = (action: () => void) => {
     returnTo.current = neighbourOf(cell)
     action()
@@ -66,53 +150,22 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
           <Check />
           {t(selectedCells().includes(id) ? 'deselect' : 'select')}
         </MenuItem>
-        {posted && (
-          <MenuItem onClick={() => openPost(id)}>
-            <CalendarClock />
-            {t('postDetails')}
-          </MenuItem>
-        )}
-        {toTray && canSchedule && !posted && (
-          <MenuItem onClick={() => openPost(id)}>
-            <CalendarClock />
-            {t('schedule')}
-          </MenuItem>
-        )}
-        {toTray && !posted && (
-          <MenuItem onClick={() => plannerStore.getState().toggleLock(id)}>
-            <LockToggle />
-            {t(locked ? 'unlock' : 'lock')}
-          </MenuItem>
-        )}
+        <PostItems
+          id={id}
+          toTray={toTray}
+          canSchedule={canSchedule}
+          posted={posted}
+          locked={locked}
+        />
         {!locked && (
-          <>
-            <MenuItem disabled={!earlier} onClick={() => swapWith(earlier)}>
-              <ArrowLeft />
-              {t('moveEarlier')}
-            </MenuItem>
-            <MenuItem disabled={!later} onClick={() => swapWith(later)}>
-              <ArrowRight />
-              {t('moveLater')}
-            </MenuItem>
-            {album && (
-              <MenuItem onClick={() => leave(() => plannerStore.getState().ungroup(id))}>
-                <Ungroup />
-                {t('ungroup')}
-              </MenuItem>
-            )}
-            <MenuItem
-              onClick={() =>
-                leave(() => plannerStore.getState().move(id, toTray ? 'tray' : 'grid'))
-              }
-            >
-              <ArrowRightLeft />
-              {t(toTray ? 'moveToTray' : 'moveToGrid')}
-            </MenuItem>
-            <MenuItem onClick={() => leave(() => plannerStore.getState().remove([id]))}>
-              <Trash2 />
-              {t('remove')}
-            </MenuItem>
-          </>
+          <EditItems
+            id={id}
+            album={album}
+            toTray={toTray}
+            earlier={earlier}
+            later={later}
+            leave={leave}
+          />
         )}
       </MenuPopup>
     </Menu>
