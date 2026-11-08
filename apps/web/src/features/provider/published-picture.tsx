@@ -10,11 +10,14 @@ interface PublishedPictureProps {
 }
 
 /** A signed link at Instagram can lapse, and it is no reason to leave a broken image in the feed. */
-export function PublishedPicture({ post: { thumbnailUrl }, label }: PublishedPictureProps) {
+export function PublishedPicture({
+  post: { thumbnailUrl, videoUrl },
+  label
+}: PublishedPictureProps) {
   const holder = useRef<HTMLDivElement>(null)
   const near = useNearViewport(holder)
   const [broken, setBroken] = useState(false)
-  if (!thumbnailUrl || broken) {
+  if ((!thumbnailUrl && !videoUrl) || broken) {
     return (
       <div
         role="img"
@@ -27,7 +30,21 @@ export function PublishedPicture({ post: { thumbnailUrl }, label }: PublishedPic
   }
   return (
     <div ref={holder} className="size-full">
-      {near && (
+      {near && !thumbnailUrl && videoUrl && (
+        // Its first frame, from as little of the file as the browser can get it from.
+        <video
+          src={`${videoUrl}#t=0.1`}
+          aria-label={label}
+          muted
+          playsInline
+          preload="metadata"
+          disablePictureInPicture
+          disableRemotePlayback
+          className="pointer-events-none size-full object-cover"
+          onError={() => setBroken(true)}
+        />
+      )}
+      {near && thumbnailUrl && (
         <img
           src={thumbnailUrl}
           alt={label}
