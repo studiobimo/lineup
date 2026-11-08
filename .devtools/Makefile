@@ -36,7 +36,8 @@ deploy: deploy-branch
 
 deploy-branch:
 	$(require-deploy-env)
-	@branch=$$(git branch --show-current); [ "$$branch" = "$(DEPLOY_BRANCH_$(ENV))" ] || { \
+	@# Workers Builds checks out a detached HEAD, so git has no branch; it names it in WORKERS_CI_BRANCH.
+	@branch=$$(git branch --show-current); branch=$${branch:-$$WORKERS_CI_BRANCH}; [ "$$branch" = "$(DEPLOY_BRANCH_$(ENV))" ] || { \
 		echo "$(GLYPH_FAIL) $(ENV) ships from $(DEPLOY_BRANCH_$(ENV)), and this is $$branch" >&2; exit 1; }
 
 e2e: build playwright-install ## Playwright, against the built app
