@@ -1,8 +1,9 @@
-import { ImageOff, Layers, Lock } from 'lucide-react'
+import { ImageOff, Layers, Lock, Play } from 'lucide-react'
 import { m, useMotionValue } from 'motion/react'
 import { memo, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { durationText } from '@/i18n/format'
 import { onButton } from '@/lib/dom'
 import { cn } from '@/lib/utils'
 
@@ -43,6 +44,8 @@ export const BoardCell = memo(function BoardCell({
   const albumSize = usePlanner(({ board }) => board.albums?.[id]?.length)
   const post = usePlanner(({ board }) => board.posts?.[id])
   const missing = usePlanner(({ images }) => images[cover]?.missing)
+  const duration = usePlanner(({ images }) => images[cover]?.video?.duration)
+  const video = duration !== undefined
   const selected = useIsSelected(id)
   const {
     ref: dragRef,
@@ -82,7 +85,7 @@ export const BoardCell = memo(function BoardCell({
       onDoubleClick={(event) => {
         if (!onButton(event.target)) openLightbox(cover)
       }}
-      aria-label={t('cell', { position })}
+      aria-label={t(video && !albumSize ? 'videoCell' : 'cell', { position })}
       {...dropArea}
       data-mark={mark}
       layout={!airborne}
@@ -129,6 +132,13 @@ export const BoardCell = memo(function BoardCell({
       <div className="pointer-events-none absolute bottom-1 left-1 flex flex-wrap gap-1">
         {albumSize && <AlbumButton id={id} size={albumSize} />}
         {post && <PostBadge id={id} post={post} />}
+        {video && (
+          <CellBadge
+            icon={Play}
+            text={durationText(duration)}
+            label={t('videoLength', { length: durationText(duration) })}
+          />
+        )}
         {locked && !post && <CellBadge icon={Lock} />}
         {missing && <CellBadge icon={ImageOff} label={t('missingOriginal')} />}
       </div>

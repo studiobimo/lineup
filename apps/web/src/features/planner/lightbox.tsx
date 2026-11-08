@@ -30,7 +30,7 @@ import { cellOf, containerOf, imagesOf } from './board'
 import { ImageDetails, Pill } from './lightbox-details'
 import { closeLightbox, openLightbox } from './lightbox-store'
 import { usePlanner } from './planner'
-import { FullSizeImage } from './thumbnail'
+import { FullSizeImage, StoredVideo } from './thumbnail'
 import { useZoom } from './use-zoom'
 
 // How far a drag at normal size has to go to count as a swipe to the next image, in pixels.
@@ -59,6 +59,7 @@ export function Lightbox({ id }: { id: string }) {
   const previous = images[stepIndex - 1]
   const next = images[stepIndex + 1]
   const album = board.albums?.[cell]
+  const video = usePlanner(({ images }) => images[id]?.video !== undefined)
 
   const { zoom, zoomed, canZoomIn, motion, reach, zoomIn, zoomOut, reset, wheel, pan } = useZoom()
   const popup = useRef<HTMLDivElement>(null)
@@ -70,7 +71,9 @@ export function Lightbox({ id }: { id: string }) {
     openLightbox(cell)
   }
 
-  const keydown = ({ key }: KeyboardEvent) => {
+  const keydown = ({ key, target }: KeyboardEvent) => {
+    // A player's own controls seek with the arrow keys.
+    if (target instanceof HTMLVideoElement) return
     // As with a drag, a zoomed picture is looked around and not left.
     if (zoomed) return pan(key)
     if (key === 'ArrowLeft') step(previous)
@@ -130,7 +133,7 @@ export function Lightbox({ id }: { id: string }) {
                 <IconButton
                   variant="outline"
                   label={t('zoomOut')}
-                  disabled={!zoomed}
+                  disabled={video || !zoomed}
                   onClick={zoomOut}
                 >
                   <ZoomOut />
@@ -138,7 +141,7 @@ export function Lightbox({ id }: { id: string }) {
                 <IconButton
                   variant="outline"
                   label={t('zoomIn')}
-                  disabled={!canZoomIn}
+                  disabled={video || !canZoomIn}
                   onClick={zoomIn}
                 >
                   <ZoomIn />
@@ -152,12 +155,13 @@ export function Lightbox({ id }: { id: string }) {
           <div
             data-outside
             className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden"
-            onWheel={wheel}
+            onWheel={video ? undefined : wheel}
           >
             <m.div
               data-outside
               className="flex size-full items-center justify-center p-4"
-              drag
+              // A drag on a video would fight its scrubber, so it steps with the buttons and keys.
+              drag={!video}
               dragMomentum={false}
               dragElastic={zoomed ? 0.1 : 0.4}
               dragSnapToOrigin={!zoomed}
@@ -172,11 +176,20 @@ export function Lightbox({ id }: { id: string }) {
               style={motion}
               data-zoom={zoom}
             >
-              <FullSizeImage
-                id={id}
-                label={t('cell', { position: index + 1 })}
-                className="max-h-full max-w-full"
-              />
+              {video ? (
+                <StoredVideo
+                  key={id}
+                  id={id}
+                  label={t('videoCell', { position: index + 1 })}
+                  className="max-h-full max-w-full"
+                />
+              ) : (
+                <FullSizeImage
+                  id={id}
+                  label={t('cell', { position: index + 1 })}
+                  className="max-h-full max-w-full"
+                />
+              )}
             </m.div>
             <IconButton
               variant="outline"
