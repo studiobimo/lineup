@@ -1,9 +1,4 @@
 #!/usr/bin/env node
-// Fails when the first load outgrows the PRD's limit: the script a visit downloads before any lazy
-// route, which is what index.html names. The bundle budget cannot catch this, because lazy code
-// counts the same there. Run it after the build.
-//
-//   first-load.mjs --dir dist/client --limit-kb 200
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
