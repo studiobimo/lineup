@@ -1,4 +1,3 @@
-/** Lightness from 0 to 1, chroma from 0, hue in degrees. */
 export interface Oklch {
   lightness: number
   chroma: number
@@ -8,9 +7,7 @@ export interface Oklch {
 export interface ImageColour {
   dominant: Oklch
   palette: Oklch[]
-  /** The photo's mean lightness, which the dominant colour alone does not tell. */
   tone: number
-  /** The share of its pixels, from 0 to 1, that are strongly coloured. */
   vivid: number
 }
 
@@ -23,14 +20,10 @@ interface Cluster {
 
 const CLUSTERS = 4
 const ITERATIONS = 8
-// Added to chroma when clusters compete, so a large grey sky can still beat a small red sign.
-// Tuned by the fixtures in colour.test.ts.
 const CHROMA_FLOOR = 0.05
 const VIVID_CHROMA = 0.09
 
-// Below this a photo reads as black, white or grey, and its hue is noise.
 export const NEUTRAL_CHROMA = 0.04
-// The hue the rainbow opens on, so that the reds are not split between its two ends.
 const RAINBOW_START = 10
 
 export const fromRed = (hue: number) => (hue - RAINBOW_START + 360) % 360
@@ -40,7 +33,6 @@ const toLinear = (channel: number) => {
   return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
 }
 
-/** Björn Ottosson's matrices, from https://bottosson.github.io/posts/oklab/ */
 function toOklab(red: number, green: number, blue: number): Oklab {
   const [r, g, b] = [toLinear(red), toLinear(green), toLinear(blue)]
   const long = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
@@ -71,7 +63,6 @@ const nearest = (pixel: Oklab, centres: Oklab[]) =>
     0
   )
 
-/** Farthest-first rather than random, so an image always gives the same colour. */
 function chooseCentres(pixels: Oklab[]) {
   const centres = [pixels[0]]
   while (centres.length < CLUSTERS) {
@@ -108,7 +99,6 @@ function cluster(pixels: Oklab[]): Cluster[] {
   return centres.map((centre, index) => ({ centre, size: sizes[index] }))
 }
 
-/** The colour an image reads as, from its RGBA pixels. It runs on a small sample, in the worker. */
 export function extractColour(pixels: Uint8ClampedArray): ImageColour {
   const lab: Oklab[] = []
   for (let offset = 0; offset < pixels.length; offset += 4) {

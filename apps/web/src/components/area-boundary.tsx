@@ -17,7 +17,6 @@ function AreaError({ resetErrorBoundary, className }: FallbackProps & { classNam
   )
 }
 
-/** Keeps a crash inside one part of the page, so the rest stays usable. */
 export function AreaBoundary({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <ErrorBoundary fallbackRender={(props) => <AreaError {...props} className={className} />}>

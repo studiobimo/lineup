@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import { type BandCell, bands, type BandsRequest } from './bands'
 
-/** Half dark, half light, every fifth one vivid, and a hue that varies. */
 const feed = (size: number): BandCell[] =>
   Array.from({ length: size }, (_, index) => ({
     id: String(index).padStart(3, '0'),

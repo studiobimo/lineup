@@ -74,7 +74,6 @@ function AlbumTile({ album, image, position, count, locked }: AlbumTileProps) {
       )}
       {!locked && (
         <>
-          {/* For a pointer that cannot drag (WCAG 2.5.7). The keyboard has Space on the tile. */}
           <div className="absolute top-1 left-1 flex gap-1">
             {position > 1 && (
               <IconButton
@@ -121,7 +120,6 @@ export function AlbumDialog({ id }: { id: string }) {
   const { t: planner } = useTranslation('planner')
   const { dialog, close } = useDialogPresence(closeAlbum)
   const album = usePlanner(({ board }) => board.albums?.[id])
-  // What goes on showing while it closes, because closing finishes only once its exit has played.
   const [images, setImages] = useState(album)
   if (album && album !== images) setImages(album)
   const locked = usePlanner(({ board }) => isLocked(board, id))
@@ -137,7 +135,6 @@ export function AlbumDialog({ id }: { id: string }) {
     }
   }, [id, t, planner])
 
-  // Taking out the last image but one leaves no album to edit.
   useEffect(() => {
     if (!album) close()
   }, [album, close])
@@ -152,7 +149,6 @@ export function AlbumDialog({ id }: { id: string }) {
 
   return (
     <Dialog {...dialog}>
-      {/* It keeps arrow keys inside, and a keyboard drag listens for them on the document. */}
       <DialogPopup onKeyDown={(event) => event.preventBaseUIHandler()}>
         <DialogHeader>
           <DialogTitle>{t('planner:albumOf', { count: images.length })}</DialogTitle>

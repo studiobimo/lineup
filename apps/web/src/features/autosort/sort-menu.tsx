@@ -34,7 +34,6 @@ export function SortMenu({ container, disabled }: SortMenuProps) {
       },
       onClose: () => stopWatching()
     })
-    // Undo takes back the latest change, so after any other change this offer would be a lie.
     const stopWatching = plannerStore.subscribe(({ board }, { board: previous }) => {
       if (board !== previous) anchoredToastManager.close(id)
     })
