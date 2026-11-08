@@ -7,7 +7,6 @@ import { isStorageFull } from './import-store'
 
 const isCancelled = (error: unknown) => error instanceof DOMException && error.name === 'AbortError'
 
-/** Everything a person does to a folder can fail, and closing the picker is not a failure. */
 export function useFolderAction() {
   const { t } = useTranslation('settings')
   const [busy, setBusy] = useState(false)

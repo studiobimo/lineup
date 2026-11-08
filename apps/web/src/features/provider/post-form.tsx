@@ -24,14 +24,11 @@ interface PostFormProps {
   submitLabel: string
   pending: boolean
   problem?: string
-  /** Between the fields and the buttons. */
   children?: ReactNode
-  /** Beside the submit button. */
   actions?: ReactNode
   onSubmit: (values: PostFormValues) => Promise<unknown>
 }
 
-/** The caption and the time, for a new post and for one being changed. */
 export function PostForm({
   cell,
   initial,

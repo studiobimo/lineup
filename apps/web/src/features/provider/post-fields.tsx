@@ -64,7 +64,6 @@ export function TimeField({ value, invalid, onBlur, onChange }: FieldProps) {
         onBlur={onBlur}
         onChange={({ target }) => onChange(target.value)}
       />
-      {/* The same element all along, because a live region only speaks when its text changes. */}
       <p
         id={TIME_NOTE}
         aria-live="polite"

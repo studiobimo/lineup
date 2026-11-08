@@ -2,7 +2,6 @@ import { hc } from 'hono/client'
 import type { ApiRoutes } from 'lineup-api'
 import { type Problem, problemSchema } from 'lineup-contract'
 
-/** A refused request has a problem to read. One that never arrived has none: it is offline. */
 export class ProviderRequestError extends Error {
   readonly problem?: Problem
 
@@ -23,7 +22,6 @@ interface Answer<Body> {
 
 const NO_CONTENT = 204
 
-/** The body of what came back, or the failure as a ProviderRequestError. */
 export async function answer<Body>(request: Promise<Answer<Body>>) {
   const response = await request.catch(() => {
     throw new ProviderRequestError()
@@ -35,7 +33,6 @@ export async function answer<Body>(request: Promise<Answer<Body>>) {
   throw new ProviderRequestError(data)
 }
 
-/** The same request again helps only when it never arrived or the provider had a bad moment. */
 export const worthRetrying = (failures: number, error: Error) => {
   const status = error instanceof ProviderRequestError ? error.problem?.status : undefined
   return failures < 2 && (status === undefined || status >= 500)

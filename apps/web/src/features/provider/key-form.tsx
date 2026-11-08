@@ -20,7 +20,6 @@ import { useProblemText } from './use-problem-text'
 const KEY_FIELD = 'provider-key'
 const KEY_ERROR = 'provider-key-error'
 
-/** The key stays in this form until it is sent, and goes when the form does. */
 export function KeyForm({ onSaved, onCancel }: { onSaved?: () => void; onCancel?: () => void }) {
   const { t } = useTranslation('provider')
   const queryClient = useQueryClient()
@@ -35,7 +34,6 @@ export function KeyForm({ onSaved, onCancel }: { onSaved?: () => void; onCancel?
       onSaved?.()
     },
     onError: (error) => {
-      // The form's error, not a failure: the same key goes again with the choice.
       if (error instanceof ProviderRequestError && error.problem?.profiles) {
         setProfiles(error.problem.profiles)
       }

@@ -55,7 +55,6 @@ function CancelPost({ cell, post, onDone }: PostProps) {
     mutationFn: () =>
       answer(providerApi['scheduled-posts'][':id'].$delete({ param: { id: post.id } })),
     onSuccess: free,
-    // Already gone at the provider, and that is what was asked for.
     onError: (error) => {
       if (error instanceof ProviderRequestError && error.problem?.status === NOT_FOUND) free()
     }
@@ -134,7 +133,6 @@ function ChangePost({ cell, post, onDone }: PostProps) {
   )
 }
 
-/** For a link that cannot be changed from here, so that the cell is never stuck. */
 function FreeCell({ cell, onDone, note }: Pick<PostProps, 'cell' | 'onDone'> & { note: string }) {
   const { t } = useTranslation('provider')
   return (
