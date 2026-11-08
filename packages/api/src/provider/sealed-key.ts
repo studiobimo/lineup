@@ -5,14 +5,12 @@ const IV_BYTES = 12
 
 export interface SealedKey {
   key: string
-  /** Of the key that was pasted, the one a person can recognise. */
   last4: string
   expiresAt: string
   profileId: string
   canPost: boolean
 }
 
-/** The Worker's secrets by version. Old ones stay for 30 days, so a rotation drops no one's key. */
 export type SecretEnv = { [name: `${typeof SECRET_PREFIX}${number}`]: string | undefined }
 
 const secretVersion = (env: SecretEnv) =>
@@ -33,7 +31,6 @@ function cipherKey(env: SecretEnv, version: number) {
 
 const additionalData = (version: number) => new TextEncoder().encode(`v${version}`)
 
-/** AES-256-GCM, so that changing any part of the value, the expiry included, breaks the seal. */
 export async function seal(sealed: SealedKey, env: SecretEnv) {
   const version = secretVersion(env)
   const key = await cipherKey(env, version)
@@ -47,7 +44,6 @@ export async function seal(sealed: SealedKey, env: SecretEnv) {
   return [version, encodeBase64Url(iv.buffer), encodeBase64Url(cipher)].join('.')
 }
 
-/** Nothing for a value that is altered, expired, or under a secret that has been retired. */
 export async function unseal(value: string, env: SecretEnv): Promise<SealedKey | undefined> {
   const [version, iv, cipher] = value.split('.')
   const key = await cipherKey(env, Number(version))

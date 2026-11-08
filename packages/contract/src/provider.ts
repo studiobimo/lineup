@@ -7,7 +7,6 @@ export type Profile = z.infer<typeof profileSchema>
 
 export const keyInputSchema = z.object({
   key: z.string().trim().min(8).max(512),
-  /** Sent once a key that sees several profiles has been answered with the choice. */
   profileId: id.optional()
 })
 export type KeyInput = z.infer<typeof keyInputSchema>
@@ -15,7 +14,6 @@ export type KeyInput = z.infer<typeof keyInputSchema>
 export const keyStatusSchema = z.object({
   last4: z.string(),
   expiresAt: z.iso.datetime(),
-  /** False for a read-only key, which still reads the account's posts. */
   canPost: z.boolean()
 })
 export type KeyStatus = z.infer<typeof keyStatusSchema>
@@ -25,7 +23,6 @@ export const accountSchema = z.object({
   username: z.string(),
   displayName: z.string().optional(),
   avatarUrl: z.url().optional(),
-  /** Only where the provider's plan includes it. */
   followers: z.number().optional(),
   needsReconnection: z.boolean()
 })
@@ -36,9 +33,7 @@ export const connectUrlSchema = z.object({ url: z.url() })
 export const publishedPostSchema = z.object({
   id,
   url: z.url().optional(),
-  /** A picture only: a video's own file is `videoUrl`. */
   thumbnailUrl: z.url().optional(),
-  /** Only on a video, for its first frame where the provider has no thumbnail. */
   videoUrl: z.url().optional(),
   caption: z.string().optional(),
   publishedAt: z.iso.datetime({ offset: true }).optional()
@@ -74,7 +69,6 @@ export const scheduledPostSchema = z.object({
   timeZone: z.string().optional(),
   caption: z.string().optional(),
   url: z.url().optional(),
-  /** Why it failed, in the provider's words, for a post with that status. */
   failure: z.string().optional()
 })
 export type ScheduledPost = z.infer<typeof scheduledPostSchema>
@@ -86,7 +80,6 @@ export const newPostSchema = z.object({
   accountId: id,
   caption: z.string(),
   mediaUrls: z.array(z.url()).min(1),
-  /** What each of `mediaUrls` is, in the same order. Without it, every one is an image. */
   mediaTypes: z.array(mediaTypeSchema).optional()
 })
 export type NewPost = z.infer<typeof newPostSchema>
@@ -94,5 +87,4 @@ export type NewPost = z.infer<typeof newPostSchema>
 export const postChangesSchema = z.object({ ...when, caption: z.string().optional() })
 export type PostChanges = z.infer<typeof postChangesSchema>
 
-/** Every list is in an envelope, as docs/API.md says. */
 export const listOf = <Item extends z.ZodType>(item: Item) => z.object({ items: z.array(item) })
