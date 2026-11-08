@@ -25,12 +25,14 @@
       "ratelimits": [
         { "name": "KEY_RATE_LIMIT", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }
       ],
+      "vars": { "NODE_VERSION": "24.21.0", "PNPM_VERSION": "12.14.0" },
       "routes": [{ "pattern": "lineup-dev.bimo.dev", "custom_domain": true }]
     },
     "production": {
       "ratelimits": [
         { "name": "KEY_RATE_LIMIT", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } }
       ],
+      "vars": { "NODE_VERSION": "24.21.0", "PNPM_VERSION": "12.14.0" },
       "routes": [{ "pattern": "lineup.bimo.dev", "custom_domain": true }]
     }
   }
