@@ -16,14 +16,12 @@ const bandRows = { bands2: 2, bands4: 4 } as const
 
 type Cell = Pick<ImageRecord, 'id' | 'colour' | 'takenAt' | 'place'>
 
-/** Compared in order, the first difference deciding. */
 type SortKey = [rank: number, ...rest: number[]]
 
 const NEUTRALS = 1
 const NO_COLOUR = 2
 
 const FAMILY_SPAN = 60
-// With a smaller share of vivid pixels a photo's hue is noise, whatever its dominant colour says.
 const MUTED = 0.05
 
 const keys: Record<(typeof keyedStrategies)[number], (colour: Oklch) => SortKey> = {
@@ -61,7 +59,6 @@ function compare(one: SortKey, other: SortKey) {
   return 0
 }
 
-/** The new order of `cells`. An image with no colour yet goes last, so it is never lost in the rest. */
 export async function sortByColour(cells: Cell[], strategy: SortStrategy) {
   if (strategy === 'bands2' || strategy === 'bands4') {
     const order = await arrangeBands({

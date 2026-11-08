@@ -15,7 +15,6 @@ const SKELETON_CELLS = 6
 interface CellsProps {
   container: Container
   className?: string
-  /** What carries on after the cells, in the same columns. */
   after?: ReactNode
 }
 

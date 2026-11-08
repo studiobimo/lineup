@@ -14,7 +14,6 @@ interface BoardGateProps {
   children: ReactNode
 }
 
-/** Stands in for the board when it cannot be shown, and says what would bring it back. */
 export function BoardGate({ title, description, children }: BoardGateProps) {
   return (
     <Empty className="min-h-[calc(100dvh-3.5rem)]">

@@ -4,11 +4,8 @@ import { imagesOn } from './board'
 import { boardSchema, imageRecordSchema } from './board-schema'
 import type { Board, BoardStore, ImageRecord, StoredImage } from './board-store'
 
-// The file format is in ADR-0013. A signature, the manifest's length and the manifest come first,
-// and then every image's bytes, which the manifest finds by offset from where they start.
 const SIGNATURE = 'LINEUPBK'
 const HEADER_BYTES = SIGNATURE.length + Uint32Array.BYTES_PER_ELEMENT
-// 1 had no albums, and reads as a board that has none.
 const FORMAT_VERSION = 2
 const READABLE_VERSIONS = [1, FORMAT_VERSION] as const
 const IMAGE_TYPE = 'image/jpeg'
@@ -30,10 +27,6 @@ export interface Backup {
 
 type BackupSource = Pick<BoardStore, 'listImages' | 'getThumbnail' | 'getPublishCopy'>
 
-/**
- * One file, of any size, with no image in memory: a Blob made of Blobs only refers to them. The
- * history stays behind, so an image only a past step could bring back is not in the file.
- */
 export async function createBackup(store: BackupSource, board: Board) {
   const onBoard = new Set(imagesOn(board))
   const records = (await store.listImages()).filter(({ id }) => onBoard.has(id))
@@ -53,7 +46,6 @@ export async function createBackup(store: BackupSource, board: Board) {
     images.push({ ...record, thumbnail, publish })
   }
 
-  // Parsed, so that what a store knows beyond the format, such as a file's name, stays behind.
   const manifest = new TextEncoder().encode(
     JSON.stringify(manifestSchema.parse({ version: FORMAT_VERSION, board, images }))
   )
@@ -62,7 +54,6 @@ export async function createBackup(store: BackupSource, board: Board) {
   return new Blob([SIGNATURE, length, manifest, ...bytes], { type: 'application/octet-stream' })
 }
 
-/** Throws on anything that is not a whole backup. The images stay in the file until they are put. */
 export async function readBackup(file: Blob): Promise<Backup> {
   const header = await file.slice(0, HEADER_BYTES).arrayBuffer()
   const signature = new TextDecoder().decode(header.slice(0, SIGNATURE.length))
@@ -78,7 +69,6 @@ export async function readBackup(file: Blob): Promise<Backup> {
     if (start + size > file.size) throw new Error(`Cut short, in a version ${version} backup`)
     return file.slice(start, start + size, type)
   }
-  // A video's publish copy is the video itself (ADR-0022).
   const stored = images.map(({ thumbnail, publish, ...record }) => ({
     ...record,
     thumbnail: slice(thumbnail),

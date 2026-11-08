@@ -27,7 +27,6 @@ export function BackupActions({ onRestored }: { onRestored: () => void }) {
 
   const restore = async ({ target }: ChangeEvent<HTMLInputElement>) => {
     const file = target.files?.[0]
-    // Cleared, or choosing the same file again would change nothing and do nothing.
     target.value = ''
     if (!file) return
     try {

@@ -25,11 +25,9 @@ interface BoardCellProps {
   id: string
   container: Container
   position: number
-  /** Whether Tab lands here. A container is one stop however many cells it has. */
   tabStop: boolean
 }
 
-/** Memoised, so that moving focus renders the two cells it touches and not all 300. */
 export const BoardCell = memo(function BoardCell({
   id,
   container,
@@ -75,7 +73,6 @@ export const BoardCell = memo(function BoardCell({
       ref={ref}
       {...attributes}
       {...listeners}
-      // Not the library's disabled: a locked cell's own buttons still work.
       aria-disabled={undefined}
       tabIndex={tabStop ? 0 : -1}
       onFocus={() => setTabStop(container, id)}
