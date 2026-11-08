@@ -33,10 +33,8 @@ import { usePlanner } from './planner'
 import { FullSizeImage, StoredVideo } from './thumbnail'
 import { useZoom } from './use-zoom'
 
-// How far a drag at normal size has to go to count as a swipe to the next image, in pixels.
 const SWIPE_DISTANCE = 80
 
-// For a pointer that cannot drag (WCAG 2.5.7). Each does what its arrow key does.
 const PAN_BUTTONS = [
   { key: 'ArrowLeft', label: 'panLeft', icon: ArrowLeft },
   { key: 'ArrowUp', label: 'panUp', icon: ArrowUp },
@@ -51,7 +49,6 @@ export function Lightbox({ id }: { id: string }) {
   const { cells, cell, images } = useMemo(() => {
     const cell = cellOf(board, id)
     const cells = board[containerOf(board, cell)]
-    // An album's images come one after another, so that stepping goes through it and out again.
     return { cells, cell, images: cells.flatMap((each) => imagesOf(board, each)) }
   }, [board, id])
   const index = cells.indexOf(cell)
@@ -72,9 +69,7 @@ export function Lightbox({ id }: { id: string }) {
   }
 
   const keydown = ({ key, target }: KeyboardEvent) => {
-    // A player's own controls seek with the arrow keys.
     if (target instanceof HTMLVideoElement) return
-    // As with a drag, a zoomed picture is looked around and not left.
     if (zoomed) return pan(key)
     if (key === 'ArrowLeft') step(previous)
     if (key === 'ArrowRight') step(next)
@@ -86,12 +81,10 @@ export function Lightbox({ id }: { id: string }) {
     if (offset.x < -SWIPE_DISTANCE) step(next)
   }
 
-  // Letting go of a drag is a click too, wherever it ends.
   const closeOutside = ({ target }: MouseEvent) => {
     if (!dragged.current && 'outside' in (target as HTMLElement).dataset) close()
   }
 
-  // A button disabled under focus takes the keyboard with it, and these keys are handled up here.
   useEffect(() => {
     const focused = document.activeElement
     if (!focused || focused === document.body || focused.matches(':disabled')) {
@@ -160,7 +153,6 @@ export function Lightbox({ id }: { id: string }) {
             <m.div
               data-outside
               className="flex size-full items-center justify-center p-4"
-              // A drag on a video would fight its scrubber, so it steps with the buttons and keys.
               drag={!video}
               dragMomentum={false}
               dragElastic={zoomed ? 0.1 : 0.4}

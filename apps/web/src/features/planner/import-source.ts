@@ -1,20 +1,17 @@
 import { videoTypeOf } from './video-frame'
 
-/** Anywhere images can come from. A new source is a small adapter in front of the same pipeline. */
 export interface ImportSource {
   files(): Promise<File[]>
 }
 
 export const IMAGE_LIMIT = 300
 
-// Browsers that cannot decode these leave the type empty, and a browser that can should get to try.
 const IMAGE_EXTENSION = /\.(hei[cf]|avif)$/i
 
 function isImage(file: File) {
   return file.type.startsWith('image/') || IMAGE_EXTENSION.test(file.name)
 }
 
-/** What can be planned: an image, or a video Instagram would take (ADR-0022). */
 export const isPlannable = (file: File) => isImage(file) || videoTypeOf(file) !== undefined
 
 export interface ImportPlan {
@@ -23,7 +20,6 @@ export interface ImportPlan {
   overLimit: number
 }
 
-/** One check for every path: nothing about a limit or a file type lives in a source. */
 export function planImport(files: File[], boardSize: number): ImportPlan {
   const images = files.filter(isPlannable)
   const room = Math.max(0, IMAGE_LIMIT - boardSize)
@@ -41,7 +37,6 @@ export function fromFiles(list: Iterable<File>): ImportSource {
 const entryFile = (entry: FileSystemFileEntry) =>
   new Promise<File>((resolve, reject) => entry.file(resolve, reject))
 
-/** readEntries gives a batch at a time, and an empty one at the end. */
 async function directoryEntries(directory: FileSystemDirectoryEntry) {
   const reader = directory.createReader()
   const entries: FileSystemEntry[] = []
@@ -60,9 +55,7 @@ async function walk(entry: FileSystemEntry): Promise<File[]> {
   return (await Promise.all(entries.map(walk))).flat()
 }
 
-/** A dropped folder arrives as one nameless file, so the entries are what has to be read. */
 export function fromDrop(items: DataTransferItemList): ImportSource {
-  // The list empties as soon as the drop event ends, so this has to happen before any await.
   const dropped = [...items]
     .filter((item) => item.kind === 'file')
     .map((item) => ({ entry: item.webkitGetAsEntry(), file: item.getAsFile() }))
