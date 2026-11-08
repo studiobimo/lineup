@@ -1,9 +1,11 @@
 {
-  "path": ["apps/web/src", "apps/web/e2e", "apps/web/worker"],
-  "ignore": ["**/components/ui/**", "**/routeTree.gen.ts", "**/locales/**"],
-  "minLines": 6,
-  "minTokens": 50,
-  "threshold": 2,
-  "reporters": ["console"],
-  "absolute": false
+  "ignore": [
+    "**/*lock.json",
+    "**/*lock.yaml",
+    "**/*.lock",
+    "**/.mise/locks/**",
+    "**/src/routeTree.gen.ts",
+    "**/src/components/ui/**",
+    "**/.template/profiles/**"
+  ]
 }
