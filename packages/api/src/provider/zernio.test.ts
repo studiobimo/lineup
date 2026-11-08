@@ -232,11 +232,31 @@ describe('zernio', () => {
         id: 'reel',
         url: 'https://instagram.com/reel/reel',
         thumbnailUrl: 'https://cdn.test/reel.jpg',
+        videoUrl: 'https://cdn.test/reel.mp4',
         caption: 'A reel',
         publishedAt: '2026-04-01T00:00:00Z'
       }
     ])
   })
+
+  it.each([
+    ['says it is a video', { type: 'video', url: 'https://cdn.test/clip' }],
+    ['ends in .mp4', { url: 'https://cdn.test/clip.mp4?signed=1' }]
+  ])(
+    'gives a video with no thumbnail no picture but its file, when its media %s',
+    async (_, media) => {
+      stub.mockImplementation(async (url) =>
+        respond({
+          posts: String(url).includes('source=external')
+            ? [external('clip', { mediaProductType: 'REELS', mediaItems: [media] })]
+            : []
+        })
+      )
+      const [post] = await provider.publishedPosts('account')
+      expect(post.thumbnailUrl).toBeUndefined()
+      expect(post.videoUrl).toBe(media.url)
+    }
+  )
 
   it('lists an account whose optional fields Zernio sent as null', async () => {
     stub.mockResolvedValue(
@@ -295,6 +315,27 @@ describe('zernio', () => {
       ]
     })
     expect(body).not.toHaveProperty('publishNow')
+  })
+
+  it('sends a video as one, beside the images of its carousel', async () => {
+    stub.mockResolvedValue(respond({ post: { _id: 'post', status: 'scheduled' } }, 201))
+    await provider.schedule(
+      {
+        accountId: 'account',
+        caption: '',
+        scheduledFor: '2030-01-01T10:00:00Z',
+        timeZone: 'Europe/Madrid',
+        mediaUrls: ['https://media.zernio.com/1.jpg', 'https://media.zernio.com/2.mp4'],
+        mediaTypes: ['image', 'video']
+      },
+      'once'
+    )
+    expect(sent().body).toMatchObject({
+      mediaItems: [
+        { type: 'image', url: 'https://media.zernio.com/1.jpg' },
+        { type: 'video', url: 'https://media.zernio.com/2.mp4' }
+      ]
+    })
   })
 
   it.each([

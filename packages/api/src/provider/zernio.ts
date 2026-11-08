@@ -48,6 +48,7 @@ const zernioPostSchema = z.object({
   mediaItems: z
     .array(
       z.object({
+        type: z.string().nullish(),
         url: z.string().nullish(),
         thumbnail: z.string().nullish(),
         instagramThumbnail: z.string().nullish()
@@ -67,14 +68,24 @@ const zernioPostSchema = z.object({
 })
 type ZernioPost = z.infer<typeof zernioPostSchema>
 
-// A video's url is the video, so its picture is the thumbnail.
+const VIDEO_FILE = /\.(mp4|mov|m4v)(\?|#|$)/i
+
+type ZernioMedia = NonNullable<ZernioPost['mediaItems']>[number]
+
+const isVideo = (media: ZernioMedia | undefined) =>
+  media?.type === 'video' || VIDEO_FILE.test(media?.url ?? '')
+
+// A video's url is the video, which an <img> cannot show, and Zernio often sends no thumbnail.
 function toPublishedPost(post: ZernioPost, id: string) {
   const [target] = post.platforms ?? []
   const [media] = post.mediaItems ?? []
+  const video = isVideo(media)
+  const picture = media?.thumbnail ?? media?.instagramThumbnail
   return {
     id,
     url: target?.platformPostUrl ?? undefined,
-    thumbnailUrl: media?.thumbnail ?? media?.instagramThumbnail ?? media?.url ?? undefined,
+    thumbnailUrl: picture ?? (video ? undefined : media?.url) ?? undefined,
+    videoUrl: (video && media?.url) || undefined,
     caption: post.content ?? undefined,
     publishedAt: target?.publishedAt ?? post.scheduledFor ?? undefined
   }
@@ -297,7 +308,10 @@ export function zernio(key: string): Provider {
       return posts.map(toScheduledPost)
     },
 
-    async schedule({ accountId, caption, scheduledFor, timeZone, mediaUrls }, idempotencyKey) {
+    async schedule(
+      { accountId, caption, scheduledFor, timeZone, mediaUrls, mediaTypes },
+      idempotencyKey
+    ) {
       const { post } = await call('/posts', postSchema, {
         method: 'POST',
         headers: { 'Idempotency-Key': idempotencyKey },
@@ -305,7 +319,11 @@ export function zernio(key: string): Provider {
           content: caption,
           scheduledFor,
           timezone: timeZone,
-          mediaItems: mediaUrls.map((url) => ({ type: 'image', url })),
+          // Instagram posts a lone video as a Reel, shown on the grid unless told otherwise.
+          mediaItems: mediaUrls.map((url, index) => ({
+            type: mediaTypes?.[index] ?? 'image',
+            url
+          })),
           platforms: [{ platform: PLATFORM, accountId }]
         }
       })

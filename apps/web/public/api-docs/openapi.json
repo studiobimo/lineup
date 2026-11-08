@@ -1690,6 +1690,10 @@
                             "type": "string",
                             "format": "uri"
                           },
+                          "videoUrl": {
+                            "type": "string",
+                            "format": "uri"
+                          },
                           "caption": {
                             "type": "string"
                           },
@@ -2730,7 +2734,9 @@
                     "enum": [
                       "image/jpeg",
                       "image/png",
-                      "image/webp"
+                      "image/webp",
+                      "video/mp4",
+                      "video/quicktime"
                     ]
                   },
                   "size": {
@@ -4062,6 +4068,16 @@
                     "items": {
                       "type": "string",
                       "format": "uri"
+                    }
+                  },
+                  "mediaTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "image",
+                        "video"
+                      ]
                     }
                   }
                 },
