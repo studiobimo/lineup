@@ -1,4 +1,3 @@
-/** Enough of the File System Access API to test a folder store, which jsdom does not have. */
 export function fakeDirectory(name = 'photos') {
   const files = new Map<string, File>()
   const directories = new Map<string, FileSystemDirectoryHandle>()

@@ -20,7 +20,6 @@ export function Pill({ className, children }: { className?: string; children: Re
   )
 }
 
-/** When and where the photo was taken, for an image that says. Most say nothing. */
 export function ImageDetails({ id }: { id: string }) {
   const { t } = useTranslation('planner')
   const takenAt = usePlanner(({ images }) => images[id]?.takenAt)

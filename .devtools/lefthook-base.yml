@@ -101,6 +101,10 @@ pre-commit:
       file_types: text
       run: mise exec -- editorconfig-checker {staged_files}
 
+    - name: uncomment
+      file_types: text
+      run: mise exec -- uncomment --check {staged_files}
+
 pre-push:
   jobs:
     - name: lychee

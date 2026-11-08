@@ -1,17 +1,9 @@
-// Numbers in and ids out, with no imports, so this file can move to the Worker as it is. The app
-// reaches it only through arrange-bands.ts.
-
 export interface BandCell {
   id: string
-  /** Mean lightness, from 0 to 1. */
   tone: number
-  /** The share of pixels, from 0 to 1, that are strongly coloured. */
   vivid: number
-  /** Degrees from the start of the rainbow. Null for a neutral, whose hue is noise. */
   hue: number | null
-  /** When the photo was taken, in milliseconds, if that is known. */
   takenAt?: number
-  /** Where it was taken, if that is known. Only compared, so any label for a place would do. */
   place?: string
 }
 
@@ -21,27 +13,19 @@ export interface BandsRequest {
   columns: number
 }
 
-// With this share of vivid pixels a photo is the accent of its row.
 const ACCENT = 0.15
-// Past every hue, so the neutrals follow the colours.
 const AFTER_HUES = 360
 
 const isAccent = ({ vivid }: BandCell) => vivid > ACCENT
 
 const colourKey = ({ hue, tone }: BandCell) => hue ?? AFTER_HUES + tone
 
-/** Ties go by id, so the same images always give the same order, whatever order they came in. */
 const sortedBy = (cells: BandCell[], key: (cell: BandCell) => number) =>
   [...cells].sort((one, other) => key(one) - key(other) || (one.id < other.id ? -1 : 1))
 
-/** Newest first, then anything undated by colour. Dated keys are negative, so they come first. */
 const inShootOrder = (cells: BandCell[]) =>
   sortedBy(cells, (cell) => (cell.takenAt === undefined ? colourKey(cell) : -cell.takenAt))
 
-/**
- * Photos of one place stay together, and each place goes by its newest photo, so that a shoot
- * lands in one band. A dated photo with no place stands alone. Photos with neither follow by colour.
- */
 function inBandOrder(pool: BandCell[]) {
   const shoots = new Map<string, BandCell[]>()
   const unknown: BandCell[] = []
@@ -63,7 +47,6 @@ function chunks(cells: BandCell[], size: number) {
   )
 }
 
-/** One accent to a row, walking across the columns, so they read as a diagonal and not a stripe. */
 function layOut(band: BandCell[], columns: number) {
   const accents = sortedBy(band.filter(isAccent), ({ vivid }) => -vivid)
   const plain = sortedBy(
@@ -86,10 +69,6 @@ function layOut(band: BandCell[], columns: number) {
   })
 }
 
-/**
- * Night and day: bands of dark rows and light rows in turn, each band close in colour. The darkest
- * cells take the first band and every other one, because a feed reads best opening dark.
- */
 export function bands({ cells, rowsPerBand, columns }: BandsRequest) {
   const size = rowsPerBand * columns
   const dark = Math.ceil(Math.ceil(cells.length / size) / 2) * size

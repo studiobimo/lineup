@@ -8,9 +8,7 @@ import { settle } from './motion'
 import { plannerStore } from './planner'
 import { Thumbnail } from './thumbnail'
 
-// A bulk move should not start hundreds of flights, and most of them would be off screen anyway.
 const MAX_FLIGHTS = 24
-// How far the cell an album forms on gives way as the others land on it.
 const RECEIVING_SCALE = 0.94
 
 interface Flight {
@@ -21,7 +19,6 @@ interface Flight {
   toBox: Box
   width: number
   height: number
-  /** What is on screen now, as reading the image again would start the flight blank. */
   picture?: HTMLCanvasElement
 }
 
@@ -51,7 +48,6 @@ function FlightPicture({ image, picture }: Pick<Flight, 'image' | 'picture'>) {
   return <div className="size-full" ref={(node) => void node?.append(picture)} />
 }
 
-/** The tray scrolls, so it clips its cells. A cell changing container flies above it instead. */
 export function CellFlights() {
   const reduced = useReducedMotion()
   const [flights, setFlights] = useState<Flight[]>([])
@@ -72,7 +68,6 @@ export function CellFlights() {
           return [{ ...flight, fromBox, picture: showing ? copyOfPicture(flight.from) : undefined }]
         })
       launch(departures.map(({ to }) => to))
-      // The board has changed but the page has not, until React has committed it.
       requestAnimationFrame(() => {
         const arrivals = departures.flatMap((departure) => {
           const toBox = cellBox(departure.to)
@@ -85,8 +80,6 @@ export function CellFlights() {
           inbound.current.set(departure.to, count + 1)
           return [{ ...departure, toBox, width, height }]
         })
-        // In this frame, or the cells that left show a gap before the flights replace them. The one
-        // that stays put goes last, so that it is on top of what lands on it.
         flushSync(() => {
           setFlights((current) => [
             ...current.map(heading),

@@ -1,4 +1,3 @@
-// What Chromium has and TypeScript's DOM library leaves out, because no other engine ships it.
 type FolderAccess = 'granted' | 'denied' | 'prompt'
 
 interface FileSystemHandle {

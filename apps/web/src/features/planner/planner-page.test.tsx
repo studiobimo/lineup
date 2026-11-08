@@ -14,12 +14,10 @@ const processed = {
   publish: new Uint8Array([2])
 } as unknown as ProcessedImage
 
-// The route loads these before it renders the page.
 beforeAll(() => loadStrings('planner'))
 
 describe('PlannerPage', () => {
   beforeEach(async () => {
-    // The page does the loading, so a test cannot seed a board that a late load then overwrites.
     await boardStore.deleteImages((await boardStore.listImages()).map(({ id }) => id))
     await boardStore.saveBoard({ tray: [], grid: [] })
     await boardStore.saveHistory({ past: [], future: [] })

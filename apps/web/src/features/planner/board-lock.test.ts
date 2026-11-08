@@ -4,7 +4,6 @@ import { holdBoard } from './board-lock'
 
 const settled = () => new Promise((resolve) => setTimeout(resolve))
 
-/** One lock with a queue, stealing included, as far as holdBoard reaches into the real one. */
 function fakeLocks() {
   type Callback = (lock: Lock | null) => unknown
   interface Holder {

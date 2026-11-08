@@ -18,22 +18,14 @@ export const GHOST_WIDTH = 192
 export const GHOST_HEIGHT = (GHOST_WIDTH * height) / width
 
 const GHOST_OPACITY = 0.65
-// A cell dropped into an album goes in behind its cover, which stays what the cell shows.
 const MERGED_SCALE = 0.6
-// On a phone the full size would cover most of the grid.
 const MAX_VIEWPORT_SHARE = 0.4
 const MAX_LEAN_DEGREES = 10
-// The pointer speed, in px/s, at which the ghost reaches its full lean.
 const FULL_LEAN_SPEED = 1600
 const LEAN_SPRING = { stiffness: 320, damping: 24, mass: 0.6 }
 
 const restingScale = () => Math.min(1, (window.innerWidth * MAX_VIEWPORT_SHARE) / GHOST_WIDTH)
 
-/**
- * One element from pick-up to landing, so nothing is handed over at the moment of a drop. It sits at
- * the pointer plus an offset: the offset is what lifts it off a cell and lands it on one, which
- * leaves the pointer's speed, and so the lean, to the pointer alone.
- */
 export function useDragGhost() {
   const reduced = useReducedMotion()
   const [id, setId] = useState<string | null>(null)
@@ -60,7 +52,6 @@ export function useDragGhost() {
 
   const landed = useRef<(() => void) | null>(null)
 
-  /** A new drag can start before a landing has finished. */
   const finishLanding = useCallback(() => {
     const done = landed.current
     landed.current = null
@@ -95,7 +86,6 @@ export function useDragGhost() {
     [pointerX, pointerY]
   )
 
-  /** A key press jumps from cell to cell, so the ghost travels there instead. */
   const glide = useCallback(
     ({ x, y }: Point) => {
       animate(pointerX, x, settle)

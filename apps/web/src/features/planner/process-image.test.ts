@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { decodeHeif } from './heic-decode'
 import { processImage, publishSize, thumbnailSize } from './process-image'
 
-// The real decoder is a WASM file, which is proved in the browser tests.
 vi.mock('./heic-decode', () => ({ decodeHeif: vi.fn() }))
 
 const readNothing = { readCaptureDates: false, readLocations: false }

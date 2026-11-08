@@ -14,17 +14,12 @@ export interface MockProvider {
   profiles?: { id: string; name: string }[]
   published: object[]
   scheduled: Record<string, unknown>[]
-  /** Answers requests to a path ending like this with a problem, until it is taken out. */
   failures: Map<string, { status: number; code: string; detail?: string; once?: boolean }>
-  /** Every request, in order, as `METHOD /path`. */
   requests: string[]
   bodies: Record<string, unknown>[]
   headers: Record<string, string>[]
-  /** Makes the post, then drops the answer, as a connection can. */
   loseNextAnswer?: boolean
-  /** Whether the key is read-only. */
   readOnly?: boolean
-  /** Whether storage turns down what is sent to it. */
   storageFails?: boolean
 }
 
@@ -38,7 +33,6 @@ const problem = (route: Route, status: number, code: string, extra: object = {})
     json: { type: 'about:blank', title: code, status, code, requestId: 'test', ...extra }
   })
 
-/** The Worker's provider routes, held in memory, so a test never reaches a real provider. */
 export async function mockProvider(page: Page, seed: Partial<MockProvider> = {}) {
   const state: MockProvider = {
     accounts: [{ id: 'account-1', username: 'studio' }],

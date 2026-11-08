@@ -8,6 +8,7 @@ import { imagesOn } from './board'
 import { importImages } from './import-images'
 import { IMAGE_LIMIT, type ImportSource, planImport } from './import-source'
 import { boardStore, plannerStore } from './planner'
+import { bestEffort } from '@/lib/best-effort'
 
 interface ImportState {
   progress: { done: number; total: number } | null
@@ -20,7 +21,6 @@ const importStore = createStore<ImportState>((set, get) => ({
   async run(source) {
     if (get().progress) return
     try {
-      // Files first: a drop's are only there for as long as the event is.
       const files = await source.files()
       await plannerStore.getState().opened()
       const plan = planImport(files, imagesOn(plannerStore.getState().board).length)
@@ -35,16 +35,10 @@ const importStore = createStore<ImportState>((set, get) => ({
           })
           failed = result.failed
         } catch (error) {
-          // What was stored before this stopped is kept, and not left in storage with no cell.
-          try {
-            adding.finish()
-          } catch {
-            // The first error is the one to report.
-          }
+          bestEffort(() => adding.finish())
           throw error
         }
         adding.finish()
-        // After an import, when the browser has a reason to say yes. A no changes nothing.
         void boardStore.requestPersistence().catch(() => undefined)
       }
 
@@ -68,7 +62,6 @@ const importStore = createStore<ImportState>((set, get) => ({
           : { type: 'error', title: i18n.t('planner:importFailed') }
       )
     } finally {
-      // A failed import must not leave the progress set, because that blocks every later one.
       set({ progress: null })
     }
   }

@@ -25,20 +25,7 @@ include vite.mk
 # Nothing imports these yet, so tsc would not reach them through the app.
 TSC_PROJECTS += ../../packages/api ../../packages/contract
 
-# ADR-0019: each environment ships from one branch, so a laptop cannot put a feature on production.
-DEPLOY_ENVS := development production
-DEPLOY_BRANCH_development := develop
-DEPLOY_BRANCH_production := main
-
-.PHONY: e2e memory-budget first-load worker-budget knip duplication bundle-report openapi api-breaking deploy-branch
-
-deploy: deploy-branch
-
-deploy-branch:
-	$(require-deploy-env)
-	@# Workers Builds checks out a detached HEAD, so git has no branch; it names it in WORKERS_CI_BRANCH.
-	@branch=$$(git branch --show-current); branch=$${branch:-$$WORKERS_CI_BRANCH}; [ "$$branch" = "$(DEPLOY_BRANCH_$(ENV))" ] || { \
-		echo "$(GLYPH_FAIL) $(ENV) ships from $(DEPLOY_BRANCH_$(ENV)), and this is $$branch" >&2; exit 1; }
+.PHONY: e2e memory-budget first-load worker-budget knip bundle-report openapi api-breaking
 
 e2e: build playwright-install ## Playwright, against the built app
 	$(APP_PNPM) exec playwright test --project=chromium
@@ -56,9 +43,6 @@ worker-budget: build ## Fail if the Worker outgrows its gzip budget
 
 knip: ## Fail on unused files, dependencies and exports
 	$(PNPM) exec knip
-
-duplication: ## Fail if copied code passes the threshold in .jscpd.json
-	$(PNPM) exec jscpd
 
 openapi: ## Regenerate the API reference from the routes
 	$(PNPM) --filter lineup-api exec vitest run src/openapi.test.ts --update

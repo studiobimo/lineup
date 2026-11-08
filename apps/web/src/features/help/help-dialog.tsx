@@ -64,7 +64,6 @@ function Guide({ onShown }: { onShown: () => void }) {
   )
 }
 
-/** Each opens in a tab of its own: leaving the planner would drop its undo history and any import. */
 function Legal() {
   const { t } = useTranslation('settings')
   return (

@@ -18,7 +18,6 @@ describe('readMetadata', () => {
   })
 
   it('reads the date and the city from a HEIC photo, which the small reader cannot open', async () => {
-    // Taken at 12:30 on 6 May 2024, at 48°N 2°W, with the least Exif that says so.
     const heic = new Blob([
       readFileSync(resolve(import.meta.dirname, '../../../e2e/fixtures/photo.heic'))
     ])

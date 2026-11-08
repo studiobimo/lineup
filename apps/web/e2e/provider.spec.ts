@@ -110,7 +110,6 @@ test('published posts carry on after the planned cells, and stay after a reload'
 })
 
 const IN_A_WEEK = new Date(Date.now() + 7 * 86_400_000)
-/** As a date and time field wants it, here and in the zone the test runs in. */
 const fieldTime = (date: Date) =>
   new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
 
@@ -214,7 +213,6 @@ test('a retry after a lost answer does not post twice', async ({ page }) => {
   expect(new Set(keys).size).toBe(1)
 })
 
-/** A cell on the grid with a post at the provider, ready for what happens to the post next. */
 async function scheduledCell(page: Page) {
   const provider = await mockProvider(page)
   await planOnGrid(page)

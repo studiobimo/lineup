@@ -66,7 +66,6 @@ describe('provider routes', () => {
   const putKey = (body: object = { key: KEY }) =>
     send('/key', { method: 'PUT', body: JSON.stringify(body) })
 
-  /** The cookie a browser would send back, without the attributes. */
   async function signedIn() {
     const cookie = (await putKey()).headers.get('Set-Cookie') ?? ''
     return { Cookie: cookie.split(';')[0] }

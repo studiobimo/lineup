@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils'
 
 import { rise } from './motion'
 
-/** Floats over the bottom of the page, for what is true of the board only for now. */
 export function BottomBar({ className, ...props }: HTMLMotionProps<'div'>) {
   return (
     <m.div

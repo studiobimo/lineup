@@ -8,7 +8,6 @@ import { createStoredStore } from '@/lib/stored-store'
 
 import { answer, providerApi, ProviderRequestError } from './api'
 
-/** The provider returns the first answer to a key for 24 hours. After that a key is a new post. */
 const IDEMPOTENCY_WINDOW_MS = 23 * 3_600_000
 
 const attemptSchema = z.object({
@@ -21,7 +20,6 @@ type Attempt = z.infer<typeof attemptSchema>
 
 const attemptsSchema = z.record(z.string(), attemptSchema)
 
-// Kept past a reload: a request can arrive with its answer lost, and only the same key is safe then.
 const { store, save } = createStoredStore<{ attempts: Record<string, Attempt> }>(
   'schedule-attempts',
   ({ attempts }) => ({ attempts: attemptsSchema.catch({}).parse(attempts) })
@@ -42,17 +40,14 @@ function attemptFor(cell: string, images: string[]): Attempt {
   if (!earlier || Date.now() - earlier.startedAt > IDEMPOTENCY_WINDOW_MS) {
     return { ...fresh, key: crypto.randomUUID() }
   }
-  // An album reordered since then needs sending again, under the key that is still at the provider.
   const unchanged = earlier.images.join() === images.join()
   return unchanged ? earlier : { ...fresh, key: earlier.key }
 }
 
-/** The image is gone from this device, which trying again will not change. */
 export class MissingCopyError extends Error {}
 
 type VideoLimit = 'size' | 'length' | 'count'
 
-/** Over what the network takes: found before anything is uploaded, which would be wasted. */
 export class VideoLimitError extends Error {
   readonly limit: VideoLimit
 
@@ -100,11 +95,9 @@ interface PostToSend {
   cell: string
   images: string[]
   post: Omit<NewPost, 'mediaUrls'>
-  /** Which image is on its way, from 1. */
   onImage: (position: number) => void
 }
 
-/** Images go one at a time, in album order, and a retry picks up from the first one not sent. */
 export async function sendPost({ cell, images, post, onImage }: PostToSend): Promise<CellPost> {
   const copies = await copiesOf(images)
   const attempt = attemptFor(cell, images)
@@ -119,7 +112,6 @@ export async function sendPost({ cell, images, post, onImage }: PostToSend): Pro
   const mediaTypes = copies.map<MediaType>(({ type }) =>
     type.startsWith('video/') ? 'video' : 'image'
   )
-  // Left out for photos only, as a client from before videos sent it.
   const media = mediaTypes.includes('video') ? { mediaUrls, mediaTypes } : { mediaUrls }
   const sent = await answer(
     providerApi['scheduled-posts'].$post(

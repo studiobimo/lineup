@@ -43,7 +43,7 @@ a lowercase subject with no full stop, and at most 100 characters in the header 
 body line.
 
 PRs are **squash-merged**, so the **PR title** must also be a Conventional Commit.
-It becomes the commit on `develop` that semantic-release reads.
+It becomes the commit the project's release tooling reads.
 
 ### Issues: titled like the commit that closes them
 
@@ -80,7 +80,7 @@ weekly workflow opens an issue when something does. A deliberate difference goes
 ignored, and a change to `.template-ignore` or `.template-profiles` needs the fleet's owners to
 review it.
 
-Projects only receive a change at a release, and release-please releases only `fix`, `feat` and
+Projects only receive a change at a release, and a release is cut only for `fix`, `feat` and
 breaking commits. A change to a managed file titled `chore`, `docs` or `ci` merges but never reaches
 `sync`, so title it `fix` or `feat`.
 <!-- <<< template:workflow -->

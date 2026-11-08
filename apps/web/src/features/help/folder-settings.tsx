@@ -25,7 +25,6 @@ import { useFolderAction } from '@/features/planner/use-folder-action'
 
 import { DialogSection } from './dialog-sections'
 
-/** The offer is a toast, and a toast behind this dialog could not be clicked. */
 function RemovedPhotos({ name, onOffered }: { name: string; onOffered: () => void }) {
   const { t } = useTranslation('settings')
   const { busy, run } = useFolderAction()
@@ -33,7 +32,6 @@ function RemovedPhotos({ name, onOffered }: { name: string; onOffered: () => voi
   const [confirming, setConfirming] = useState(false)
 
   useEffect(() => {
-    // Without a count there is nothing to show, and the photos are still in the folder.
     countRemovedFiles().then(setCount, () => undefined)
   }, [])
 

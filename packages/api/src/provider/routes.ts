@@ -26,9 +26,7 @@ import { seal, type SealedKey, type SecretEnv, unseal } from './sealed-key'
 const COOKIE = 'provider-key'
 const KEY_DAYS = 30
 const DAY_SECONDS = 86_400
-// The limiter counts in minutes (wrangler.jsonc), so this is the longest a caller has to wait.
 const LIMIT_PERIOD_SECONDS = 60
-// A time this close has passed by the time the post arrives, and the provider publishes those at once.
 const SOONEST_MS = 60_000
 
 const cookieOptions = {
@@ -55,7 +53,6 @@ type Segment = PropertyKey | { key: PropertyKey }
 const pathOf = (path: readonly Segment[] = []) =>
   path.map((part) => String(typeof part === 'object' ? part.key : part)).join('.')
 
-/** Its schema goes in the reference too, and what it refuses stays a problem document. */
 const valid = <Target extends 'json' | 'query', Schema extends z.ZodType>(
   target: Target,
   schema: Schema
@@ -113,7 +110,6 @@ export function providerRoutes(providerFor: ProviderFor) {
       valid('json', keyInputSchema),
       async (c) => {
         const { key, profileId } = c.req.valid('json')
-        // By address, so that this route cannot be used to try stolen keys in bulk.
         const caller = c.req.header('cf-connecting-ip') ?? 'unknown'
         if (!(await c.env.KEY_RATE_LIMIT.limit({ key: caller })).success) {
           throw new ProblemError({

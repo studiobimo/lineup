@@ -29,7 +29,6 @@ const METHODS = new Set(['get', 'put', 'post', 'patch', 'delete'])
 const typeOf = ({ type, anyOf }: Schema) =>
   JSON.stringify(type ?? anyOf?.map(({ type }) => type) ?? null)
 
-/** What a client sends: it may not be asked for more, or be allowed less. */
 function compareRequest(before: Schema, after: Schema, at: string, found: string[]) {
   if (typeOf(before) !== typeOf(after)) found.push(`${at}: the type changed`)
   const gone = (before.enum ?? []).filter((value) => !after.enum?.includes(value))
@@ -44,7 +43,6 @@ function compareRequest(before: Schema, after: Schema, at: string, found: string
   }
 }
 
-/** What a client reads: all of it must still be there, and mean the same. */
 function compareResponse(before: Schema, after: Schema, at: string, found: string[]) {
   if (typeOf(before) !== typeOf(after)) found.push(`${at}: the type changed`)
   for (const field of before.required ?? []) {

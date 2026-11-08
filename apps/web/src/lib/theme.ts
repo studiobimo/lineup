@@ -9,7 +9,6 @@ function savedTheme(): Theme | null {
   return saved === 'light' || saved === 'dark' ? saved : null
 }
 
-/** The theme chosen in the app, or the system's until one is. */
 export function getTheme(): Theme {
   return savedTheme() ?? (systemDark().matches ? 'dark' : 'light')
 }
@@ -31,7 +30,6 @@ export function subscribeToTheme(listener: () => void) {
   }
 }
 
-/** Runs before the first render, and keeps following the system. */
 export function startTheme() {
   applyTheme()
   systemDark().addEventListener('change', applyTheme)

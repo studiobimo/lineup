@@ -419,7 +419,6 @@ describe('editing an album', () => {
   })
 })
 
-// Every action in E2, E4 and E5 treats an album as one cell, and undo needs nothing of its own.
 describe('an album moves as one', () => {
   const albums = { album: ['b', 'c'] }
   const board: Board = { tray: ['a', 'album'], grid: ['d', 'e'], albums }

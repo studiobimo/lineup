@@ -147,7 +147,6 @@ function StorageSettings({ onLeave }: { onLeave: () => void }) {
   const inFolder = useFolder().status === 'open'
 
   useEffect(() => {
-    // Without a figure there is no bar, which is all this is for.
     boardStore.storageUsage().then(setUsage, () => undefined)
   }, [inFolder])
 

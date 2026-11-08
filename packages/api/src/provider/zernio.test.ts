@@ -6,7 +6,6 @@ import { zernio } from './zernio'
 const KEY = 'sk_test_key'
 const respond = (body: unknown, status = 200, headers?: HeadersInit) =>
   new Response(body === undefined ? null : JSON.stringify(body), { status, headers })
-// A post synced from Instagram, in the shape Zernio sends rather than the one it documents.
 const external = (platformPostId: string, fields: Record<string, unknown> = {}, target = {}) => ({
   _id: `zernio-${platformPostId}`,
   origin: 'external',

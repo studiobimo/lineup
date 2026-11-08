@@ -26,7 +26,6 @@ const cell = (id: string) => ({
 
 const cells = Object.keys(swatches).map(cell)
 
-/** Reversed, so that nothing passes by leaving the input as it was. */
 const sorted = (strategy: SortStrategy) => sortByColour([...cells].reverse(), strategy)
 
 describe('sortByColour', () => {

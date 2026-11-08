@@ -3,32 +3,23 @@ import { instagram } from './network-profile'
 
 export type Container = 'tray' | 'grid'
 
-/** The images in a cell: its album's, or the one image it is. */
 export const imagesOf = (board: Board, cell: string) => board.albums?.[cell] ?? [cell]
 
-/** What a cell shows, and what it sorts by. An album's first image is its cover. */
 export const coverOf = (board: Board, cell: string) => imagesOf(board, cell)[0]
 
-/** The cell an image is in: the album that holds it, or its own. */
 export function cellOf(board: Board, image: string) {
   const album = Object.entries(board.albums ?? {}).find(([, images]) => images.includes(image))
   return album?.[0] ?? image
 }
 
-/** Every image a board holds, in albums or not, which is not the same as every cell. */
 export const imagesOn = (board: Board) =>
   [...board.tray, ...board.grid].flatMap((cell) => imagesOf(board, cell))
 
 const postedCells = (board: Board) => Object.keys(board.posts ?? {})
 
-/** The cells that hold their place: those the user locked, and those with a post. */
 export const lockedCells = (board: Board) =>
   new Set([...(board.locked ?? []), ...postedCells(board)])
 
-/**
- * An album belongs to the board only while a cell holds it. Snapshots keep their own. A locked cell
- * counts as held even when a change took it, because `keepLocked` is about to put it back.
- */
 function withoutLooseAlbums(board: Board): Board {
   if (!board.albums) return board
   const placed = new Set([...board.tray, ...board.grid, ...lockedCells(board)])
@@ -36,7 +27,6 @@ function withoutLooseAlbums(board: Board): Board {
   return { ...board, albums: Object.fromEntries(albums) }
 }
 
-/** Every operation returns a new board, so a snapshot in the history can never change. */
 export function addToTray(board: Board, ids: string[]): Board {
   return { ...board, tray: [...ids, ...board.tray] }
 }
@@ -57,7 +47,6 @@ function lift(board: Board, ids: string[]): Board {
 
 export const remove = (board: Board, ids: string[]) => withoutLooseAlbums(lift(board, ids))
 
-/** Inserts `id` before `index`, and shifts the rest. With no index, it goes last. */
 export function move(board: Board, id: string, to: Container, index?: number): Board {
   const without = lift(board, [id])
   const cells = [...without[to]]
@@ -65,7 +54,6 @@ export function move(board: Board, id: string, to: Container, index?: number): B
   return { ...without, [to]: cells }
 }
 
-/** Those not already in `to`, in their order on the board, after what is there. */
 export function moveCells(board: Board, ids: string[], to: Container): Board {
   const chosen = new Set(ids)
   const from = to === 'tray' ? board.grid : board.tray
@@ -73,7 +61,6 @@ export function moveCells(board: Board, ids: string[], to: Container): Board {
   return { ...lift(board, moving), [to]: [...board[to], ...moving] }
 }
 
-/** Why these cells cannot become one album, if they cannot. */
 export function groupProblem(board: Board, cells: string[]) {
   if (cells.length < 2) return 'tooFew'
   if (cells.some((cell) => isLocked(board, cell))) return 'locked'
@@ -81,7 +68,6 @@ export function groupProblem(board: Board, cells: string[]) {
   return images.length > instagram.carouselLimit ? 'tooMany' : null
 }
 
-/** The album takes the first cell's place. An album among the cells gives up its images, in order. */
 export function group(board: Board, cells: string[], album: string): Board {
   const [first, ...rest] = cells
   const { container } = locate(board, first)
@@ -110,7 +96,6 @@ function withoutAlbum(board: Board, album: string) {
   return { ...board, albums: Object.fromEntries(albums) }
 }
 
-/** The images go back as cells in the album's place, in order. */
 export function ungroup(board: Board, album: string) {
   return replaceCell(withoutAlbum(board, album), album, imagesOf(board, album))
 }
@@ -119,14 +104,12 @@ export function reorderAlbum(board: Board, album: string, images: string[]): Boa
   return { ...board, albums: { ...board.albums, [album]: images } }
 }
 
-/** The image goes beside the album, as a cell. An album left with one image stops being one. */
 export function takeFromAlbum(board: Board, album: string, image: string) {
   const rest = imagesOf(board, album).filter((id) => id !== image)
   if (rest.length === 1) return replaceCell(withoutAlbum(board, album), album, [...rest, image])
   return reorderAlbum(replaceCell(board, album, [album, image]), album, rest)
 }
 
-/** The cells in the order they sit on the board, tray first, however they were chosen. */
 export function inBoardOrder(board: Board, cells: string[]) {
   const chosen = new Set(cells)
   return [...board.tray, ...board.grid].filter((cell) => chosen.has(cell))
@@ -141,7 +124,6 @@ export function swap(board: Board, first: string, second: string): Board {
   return next
 }
 
-/** The cells that sit in a different container in `after`, whichever way they went. */
 export const containerOf = (board: Board, id: string): Container =>
   board.tray.includes(id) ? 'tray' : 'grid'
 
@@ -154,10 +136,6 @@ export function cellsThatCrossed(before: Board, after: Board) {
   ]
 }
 
-/**
- * Every cell that goes somewhere when a board changes: over to the other container, into an album,
- * or out of one. `image` is the picture it carries on the way. An undo is a change like any other.
- */
 export function flightsBetween(before: Board, after: Board) {
   const placed = ({ tray, grid }: Board) => new Set([...tray, ...grid])
   const was = placed(before)
@@ -198,23 +176,19 @@ export function clear(board: Board, containers: Container[]): Board {
 export const isLocked = (board: Board, id: string) =>
   board.posts?.[id] !== undefined || (board.locked?.includes(id) ?? false)
 
-/** The cell that `id` changes places with one place along. A locked cell is passed over. */
 export function neighbour(board: Board, id: string, step: 1 | -1): string | undefined {
   const free = freeCells(board, containerOf(board, id))
   return free[free.indexOf(id) + step]
 }
 
-/** The cells that sorting, shuffling, moving and clearing can touch. */
 export function freeCells(board: Board, container: Container) {
   const locked = lockedCells(board)
   return board[container].filter((id) => !locked.has(id))
 }
 
-/** The images a clear would take: an album counts for all it holds, a locked cell for nothing. */
 export const imagesIn = (board: Board, container: Container) =>
   freeCells(board, container).flatMap((cell) => imagesOf(board, cell))
 
-/** Only the grid has positions to hold: a cell in the tray is not placed yet. */
 export function toggleLock(board: Board, id: string): Board {
   if (!board.grid.includes(id) || board.posts?.[id]) return board
   const locked = new Set(board.locked)
@@ -222,10 +196,6 @@ export function toggleLock(board: Board, id: string): Board {
   return { ...board, locked: [...locked] }
 }
 
-/**
- * Whatever a change did, locked cells go back to their index in the grid and the rest flows around
- * them. A grid has no holes, so a lock past the end of a shorter grid moves up to the last cell.
- */
 export const keepLocked = (before: Board, after: Board) =>
   holdCells(before, after, lockedCells(after))
 
@@ -239,7 +209,6 @@ function holdCells(before: Board, after: Board, held: Set<string>): Board {
   return { ...after, tray: free('tray'), grid }
 }
 
-/** A snapshot under today's posts: undo restores the arrangement, and a post is not part of it. */
 export function keepPosted(today: Board, snapshot: Board): Board {
   const { posts, albums } = today
   if (!posts) return { ...snapshot, posts }
@@ -252,7 +221,6 @@ export function keepPosted(today: Board, snapshot: Board): Board {
   return holdCells(today, restored, new Set(postedCells(today)))
 }
 
-/** Whether a snapshot has this cell as it is now, so undoing to it cannot take a post apart. */
 export function holdsCell(snapshot: Board, cell: string, images: string[]) {
   const held = imagesOf(snapshot, cell)
   return (
@@ -262,7 +230,6 @@ export function holdsCell(snapshot: Board, cell: string, images: string[]) {
   )
 }
 
-/** Whether a time would publish this cell out of the grid's order, whose first cell is newest. */
 export function outOfOrder(board: Board, cell: string, time: string) {
   const at = board.grid.indexOf(cell)
   const when = Date.parse(time)
@@ -274,7 +241,6 @@ export function outOfOrder(board: Board, cell: string, time: string) {
   })
 }
 
-/** The board less whatever `known` says is gone. An album down to one image is that image. */
 export function withKnownImages(board: Board, known: (image: string) => boolean): Board {
   const albums: Record<string, string[]> = {}
   const keep = (cell: string) => {

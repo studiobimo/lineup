@@ -15,7 +15,6 @@ const refusals = {
 
 type Refusal = keyof typeof refusals
 
-// Whatever a route asks of the provider, the provider can answer in any of these ways.
 const providerRefusals: Refusal[] = [401, 403, 429, 502]
 
 interface RouteDoc {
@@ -23,11 +22,9 @@ interface RouteDoc {
   status?: 200 | 201 | 204
   answer?: z.ZodType
   refuses?: Refusal[]
-  /** Whether it needs the sealed key, which is the only credential the API has. */
   needsKey?: boolean
 }
 
-/** What the generated reference says of a route. It changes nothing about how the route runs. */
 export const documented = ({
   description,
   status = 200,

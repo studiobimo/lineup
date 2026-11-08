@@ -14,7 +14,6 @@ const storedColours = (page: Page) =>
 
 const testImages = readdirSync(photos).map((name) => fileURLToPath(new URL(name, photos)))
 
-/** The grid's hues in order, from the first image in the grid to the last. */
 async function gridHues(page: Page) {
   const [{ grid }, images] = await Promise.all([savedBoard(page), savedImages(page)])
   const hue = new Map(images.map(({ id, colour }) => [id, colour?.dominant.hue ?? -1]))
@@ -112,7 +111,6 @@ test('a date and a city are kept only when asked for, and a position never', asy
   ])
   expect(JSON.stringify(await savedImages(page))).not.toMatch(/latitude|longitude/i)
 
-  // The copy that goes to Instagram is re-encoded, so the photo's metadata stays behind.
   const copiesWithExif = await page.evaluate(
     () =>
       new Promise<number>((resolve) => {
@@ -130,7 +128,6 @@ test('a date and a city are kept only when asked for, and a position never', asy
   )
   expect(copiesWithExif).toBe(0)
 
-  // Newest first, so the first image is the one with something to say.
   const details = page.getByText('Taken in Hollywood, US')
   await page.getByRole('button', { name: 'Open full size' }).first().click({ force: true })
   await expect(details).toBeVisible()

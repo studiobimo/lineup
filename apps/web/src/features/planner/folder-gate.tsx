@@ -7,7 +7,6 @@ import { askForFolder, leaveFolder, useFolder } from './folder-board'
 import { openBoard } from './open-board'
 import { useFolderAction } from './use-folder-action'
 
-/** A folder board that cannot open yet. The photos are safe, so nothing here reads as an error. */
 export function FolderGate() {
   const { t } = useTranslation('settings')
   const folder = useFolder()

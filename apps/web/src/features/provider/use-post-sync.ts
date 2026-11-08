@@ -8,7 +8,6 @@ import { plannerStore, usePlanner } from '@/features/planner/planner'
 
 import { postsQuery } from './queries'
 
-/** What the provider says of each cell's post. One it no longer lists stays as it was (ADR-0018). */
 export function postChanges(board: Board, latest: ScheduledPost[]) {
   const byId = new Map(latest.map((post) => [post.id, post]))
   const changes: Record<string, CellPost | undefined> = {}
@@ -21,7 +20,6 @@ export function postChanges(board: Board, latest: ScheduledPost[]) {
   return changes
 }
 
-/** Keeps the board's posts up to date, with no request while it has none. */
 export function usePostSync(accountId: string) {
   const tracking = usePlanner(({ board }) => Object.keys(board.posts ?? {}).length > 0)
   const { data: latest } = useQuery({ ...postsQuery(accountId), enabled: tracking })

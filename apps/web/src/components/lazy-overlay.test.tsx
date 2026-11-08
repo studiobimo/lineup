@@ -30,7 +30,6 @@ describe('LazyOverlay', () => {
       </LazyOverlay>
     )
     await waitFor(() => expect(onClose).toHaveBeenCalled())
-    // It asks for a reload, so it stays until it is read (WCAG 2.2.1).
     expect(toastManager.add).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'error',

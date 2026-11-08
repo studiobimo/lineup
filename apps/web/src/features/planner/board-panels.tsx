@@ -130,7 +130,6 @@ export function GridPanel({ desktop }: { desktop: boolean }) {
         </div>
         {!desktop && <TrayToolbar />}
         {!desktop && <ImportProgress />}
-        {/* On a phone the grid runs edge to edge, as it does in Instagram. */}
         <AreaBoundary>
           <Cells
             container="grid"

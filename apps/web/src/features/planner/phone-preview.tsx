@@ -17,8 +17,6 @@ import { settle } from './motion'
 import { PhoneScreen } from './phone-screen'
 import { useFitScale } from './use-fit-scale'
 
-// A real phone's size in points, scaled as one piece, so what sits above the fold here sits above
-// it there. Squeezing the layout to fit the window would show a phone that does not exist.
 const SCREEN = { width: 390, height: 844 }
 const BEZEL = 10
 const WINDOW_MARGIN = 32

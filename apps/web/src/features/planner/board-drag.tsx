@@ -31,13 +31,11 @@ import { useDragGhost } from './use-drag-ghost'
 
 const pointOf = ({ clientX, clientY }: MouseEvent | Touch): Point => ({ x: clientX, y: clientY })
 
-/** Where a drag starts. Keys have no position, so it starts from the cell. */
 function startOf(event: MouseEvent | TouchEvent | KeyboardEvent, cell: Box) {
   if ('touches' in event) return pointOf(event.touches[0])
   return 'clientX' in event ? pointOf(event) : centreOf(cell)
 }
 
-/** Where the cell ended up, which after grouping is a cell that did not exist before. */
 function place(id: string, target: DropTarget) {
   const { swap, move, group } = plannerStore.getState()
   if (target.kind === 'group') return group([target.id, id]) ?? id
@@ -54,10 +52,8 @@ interface Latest {
   dwelling: string | null
 }
 
-// Long enough that dragging across a cell does not offer to group with it.
 const GROUP_DWELL_MS = 600
 
-/** A status, so that what holding a cell still will do is said as well as shown. */
 function DragHint() {
   const { t } = useTranslation('planner')
   const grouping = useStore(dragStore, ({ target }) => target?.kind === 'group')
@@ -125,13 +121,10 @@ export function BoardDrag({ children }: { children: ReactNode }) {
     }, GROUP_DWELL_MS)
   }, [])
 
-  // Asks the page what is under the pointer. Rectangles measured beforehand would go stale beside
-  // a sticky tray as the page scrolls, and would count cells that the tray has clipped.
   const collide = useCallback<CollisionDetection>((args) => {
     const { collisionRect, droppableContainers, pointerCoordinates } = args
     const find = (id: unknown) => droppableContainers.find((droppable) => droppable.id === id)
     boxes.current = (id) => find(id)?.node.current?.getBoundingClientRect()
-    // A keyboard drag has no pointer, so it aims from the middle of the cell it is carrying.
     const point = pointerCoordinates ?? centreOf(collisionRect)
     latest.current.point = point
 
@@ -153,7 +146,6 @@ export function BoardDrag({ children }: { children: ReactNode }) {
       latest.current.inserting = shiftKey
       aim()
     }
-    // Straight from the event rather than through React, so the ghost keeps up with the pointer.
     const mouse = (event: MouseEvent) => follow(pointOf(event))
     const touch = ({ touches: [finger] }: TouchEvent) => follow(pointOf(finger))
     document.documentElement.toggleAttribute('data-dragging', true)
@@ -183,7 +175,6 @@ export function BoardDrag({ children }: { children: ReactNode }) {
     launch([id])
     const landing = apply && target ? place(id, target) : id
     const merging = apply && target?.kind === 'group'
-    // The board has changed but the page has not, until React has committed it.
     requestAnimationFrame(() => land(cellBox(landing), () => ground([id]), { merging }))
   }
 

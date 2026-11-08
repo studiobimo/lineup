@@ -53,7 +53,6 @@ export function AccountChoice() {
   const only = accounts?.length === 1 ? accounts[0] : undefined
 
   useEffect(() => {
-    // Nothing to choose between, or the account that was chosen has since gone.
     if (only && !chosen) chooseAccount(only)
   }, [only, chosen])
 

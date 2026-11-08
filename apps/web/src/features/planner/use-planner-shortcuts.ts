@@ -10,7 +10,6 @@ import { plannerStore } from './planner'
 import { clearSelection, selectedCells } from './selection-store'
 import { cellStep, isDelete, shortcutFor } from './shortcuts'
 
-/** Focus moves on to the next cell, so a run of deletes does not start again from the top. */
 function removeCell(cell: HTMLElement) {
   const next = cell.nextElementSibling ?? cell.previousElementSibling
   const { dropId } = cell.dataset
@@ -40,7 +39,6 @@ export function usePlannerShortcuts() {
           if (!dragStore.getState().dragging) removeCell(target)
           return
         }
-        // The drag sensor has already had these, and it marks the ones that were for it.
         if (!event.defaultPrevented && !dragStore.getState().dragging) {
           if (key === 'Enter') {
             event.preventDefault()
@@ -58,7 +56,6 @@ export function usePlannerShortcuts() {
       const shortcut = shortcutFor(event)
       if (!shortcut || inTextField(event.target) || dialogIsOpen()) return
       event.preventDefault()
-      // A board that changes under a drag would drop the cell somewhere the user never aimed at.
       if (dragStore.getState().dragging) return
       plannerStore.getState()[shortcut]()
     }

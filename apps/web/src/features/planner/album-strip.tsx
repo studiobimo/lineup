@@ -13,7 +13,6 @@ interface AlbumStripProps {
   onPick: (image: string) => void
 }
 
-/** The whole album in view, which says more than a count that an image belongs to one. */
 export function AlbumStrip({ images, current, onPick }: AlbumStripProps) {
   const { t } = useTranslation('planner')
   return (
@@ -42,7 +41,6 @@ export function AlbumStrip({ images, current, onPick }: AlbumStripProps) {
           >
             <Thumbnail id={image} label="" />
           </span>
-          {/* Beside the clipped picture, not in it, or it is cut off on its way between two. */}
           {image === current && (
             <m.span
               layoutId="album-strip-current"

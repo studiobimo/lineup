@@ -37,9 +37,7 @@ import type { ProcessedImage } from './process-image'
 const HISTORY_LIMIT = 50
 
 interface ImageImport {
-  /** Stores a batch. The images reach the board only at `finish`, so the import is one undo step. */
   add(images: ProcessedImage[]): Promise<void>
-  /** Puts everything that was stored in the tray, and throws the first error that stopped any. */
   finish(): void
 }
 
@@ -49,42 +47,29 @@ export interface PlannerState {
   past: Board[]
   future: Board[]
   ready: boolean
-  /** The board could not be read, so nothing can be shown or safely saved over it. */
   loadFailed: boolean
-  /** Only the active tab writes or purges (ADR-0010). `folder`: its folder cannot open yet. */
   session: 'starting' | 'active' | 'elsewhere' | 'folder'
-  /** A write failed. The board is safe in the journal, and `retrySave` writes it again. */
   saveFailed: boolean
   load(): Promise<void>
-  /** Whether the board opened in this tab, for what can arrive first: a drop as the page loads. */
   opened(): Promise<boolean>
   retrySave(): void
   suspend(): void
   addImages(images: ProcessedImage[]): Promise<void>
-  /** For an import too large to hold at once: store batches as they come, then `finish` once. */
   beginImport(): ImageImport
   move(id: string, to: Container, index?: number): void
   swap(first: string, second: string): void
   moveAll(from: Container): void
   moveCells(ids: string[], to: Container): void
-  /** The album's id, or nothing if `groupProblem` has a reason to refuse. */
   group(cells: string[]): string | undefined
   ungroup(album: string): void
   reorderAlbum(album: string, images: string[]): void
   takeFromAlbum(album: string, image: string): void
   shuffle(container: Container): void
   sortByColour(container: Container, strategy: SortStrategy): Promise<void>
-  /** Not a change to the board, so it is no part of undo. */
   setColour(id: string, colour: ImageColour): void
   toggleLock(id: string): void
-  /**
-   * A post exists now, whatever undo does, so the steps from before its cell was as it is go.
-   * Like every change to a post, this is no part of the history (ADR-0018).
-   */
   linkPost(cell: string, post: CellPost): void
-  /** The latest on each post, by cell. Nothing in place of a post frees its cell. */
   updatePosts(changes: Record<string, CellPost | undefined>): void
-  /** One undo step, so the board it replaced is still there. */
   restore(backup: Backup): Promise<void>
   remove(ids: string[]): void
   clear(containers: Container[]): void
@@ -96,15 +81,12 @@ const placedIn = (boards: Board[]) => new Set(boards.flatMap(imagesOn))
 
 export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal = boardJournal) {
   return createStore<PlannerState>((set, get, store) => {
-    // A later load, or another tab taking over, makes what an earlier load read out of date.
     let latestLoad = 0
     let savesUnderWay = 0
-    // Stored by an import that has not finished, so on no board yet, but not to be purged.
     const staged = new Set<string>()
 
     const report = (write: Promise<unknown>) => write.catch(() => set({ saveFailed: true }))
 
-    /** An image stays until no snapshot can bring it back, which is what makes undo exact. */
     const purge = () => {
       const { board, past, future, images } = get()
       const reachable = placedIn([board, ...past, ...future])
@@ -127,7 +109,6 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
       ]).then(
         () => {
           savesUnderWay -= 1
-          // A later save has a newer board in the journal, and only the last may clear it.
           if (savesUnderWay > 0) return
           journal.clear()
           set({ saveFailed: false })
@@ -139,7 +120,6 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
       )
     }
 
-    /** Every change to the board comes through here, so every change can be undone. */
     const record = (next: Board) => {
       const { board, past, session } = get()
       if (session !== 'active' || sameBoard(board, next)) return
@@ -186,14 +166,10 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
           board = next
         }
 
-        // Each is a step of its own, so that what comes back can still be undone.
         const unsaved = journal.read()
         if (unsaved && imagesOn(unsaved).every(known)) {
           if (!sameBoard(unsaved, board)) step(unsaved)
         }
-        // Stored but on no board: an import stopped, or the board's own file was lost. Not one
-        // still under way here, as when this tab takes the board back mid-import: its `finish`
-        // places those, and placing them now as well would put each in the tray twice.
         const placed = placedIn([board, ...past, ...future])
         const stranded = records
           .map(({ id }) => id)
@@ -255,14 +231,12 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
             )
             if (!rejected) return
             failure ??= { reason: rejected.reason }
-            // Stops the import here, since a full disk will fail the rest the same way.
             throw rejected.reason
           },
 
           finish() {
             for (const id of stored) staged.delete(id)
             commit(addToTray(get().board, stored))
-            // After the board, so that the images that made it are kept whatever stopped the rest.
             if (failure) throw failure.reason
           }
         }
@@ -324,13 +298,11 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
 
       async restore({ board, images }) {
         if (get().session !== 'active') return
-        // One at a time, so that a large backup is never all in memory on its way to the store.
         for (const image of images) await boardStore.putImage(image)
         const records = images.map(toRecord)
         set(({ images: known }) => ({
           images: { ...known, ...Object.fromEntries(records.map((image) => [image.id, image])) }
         }))
-        // Exactly the backup's board, so its locks are not held to where this one's were.
         record(board)
       },
 
@@ -338,7 +310,6 @@ export function createPlannerStore(boardStore: BoardStore, journal: BoardJournal
         const { board, images } = get()
         const cells = board[container].map((id) => ({ ...images[coverOf(board, id)], id }))
         const order = await sortByColour(cells, strategy)
-        // An order for a board that has since moved on would undo whatever moved it.
         if (get().board === board) commit({ ...board, [container]: order })
       },
 

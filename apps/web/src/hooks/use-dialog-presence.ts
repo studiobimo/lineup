@@ -1,10 +1,5 @@
 import { useEffect, useState } from 'react'
 
-/**
- * For a dialog that mounts to open, so that it fades like one that was always there. Base UI
- * animates a change of `open`, and a dialog that arrives open has none, so this one opens a frame
- * later. It also stays mounted until its exit has played, which is when `onClose` runs.
- */
 export function useDialogPresence(onClose: () => void) {
   const [open, setOpen] = useState(false)
 

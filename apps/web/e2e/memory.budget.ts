@@ -6,18 +6,11 @@ import { type Browser, expect, type Page, test } from '@playwright/test'
 
 import { savedBoard } from './fixtures'
 
-// The PRD's memory budget: a 300-image board adds under 150 MB to the page. It is measured as the
-// resident memory of the page's renderer process, which holds the JavaScript heap, decoded images
-// and canvases alike, so an image kept anywhere shows. Taken with the board open after a reload,
-// because a board is what the PRD budgets: an import's own peak is not given back to the system
-// straight away, and would be counted as the board's.
 const BUDGET_MB = 150
 const IMAGES = 300
 
 test.skip(process.platform !== 'linux', 'reads the renderer process from /proc')
 
-// Wider than a publish copy, so what is stored is what a phone's photos would leave, and small
-// enough that making 300 of them stays quick.
 const PHOTO = { width: 2048, height: 1536 }
 
 async function largestRenderer(browser: Browser) {
@@ -36,7 +29,6 @@ async function largestRenderer(browser: Browser) {
   }
 }
 
-/** Collects garbage and lets the page go quiet, so the reading is what stays. */
 async function settle(page: Page) {
   const session = await page.context().newCDPSession(page)
   await session.send('HeapProfiler.collectGarbage')
@@ -44,7 +36,6 @@ async function settle(page: Page) {
   await page.waitForTimeout(1000)
 }
 
-/** Closes a page and waits for its process to end, so it cannot be mistaken for the next one. */
 async function closeAndWait(page: Page) {
   const { pid } = await largestRenderer(page.context().browser()!)
   await page.close()
@@ -58,7 +49,6 @@ async function importPhotos(page: Page) {
       const context = canvas.getContext('2d')!
       const transfer = new DataTransfer()
       for (let index = 0; index < count; index++) {
-        // Blocks of colour, so each file compresses like a photo and not like a flat fill.
         const hue = (index * 37) % 360
         context.fillStyle = `hsl(${hue} 60% 50%)`
         context.fillRect(0, 0, width, height)
@@ -80,7 +70,6 @@ async function importPhotos(page: Page) {
     .toBe(IMAGES)
 }
 
-/** Scrolls the tray end to end, so every cell has been drawn and let go once. */
 async function scrollTray(page: Page) {
   await page
     .locator('aside')
@@ -100,7 +89,6 @@ async function scrollTray(page: Page) {
 test(`a ${IMAGES}-image board adds under ${BUDGET_MB} MB to the page`, async ({ browser }) => {
   test.setTimeout(360_000)
 
-  // The service worker would keep a closed page's process alive, and the next page would join it.
   const fresh = () => browser.newContext({ serviceWorkers: 'block' })
   const empty = await (await fresh()).newPage()
   await empty.goto('/')
@@ -109,7 +97,6 @@ test(`a ${IMAGES}-image board adds under ${BUDGET_MB} MB to the page`, async ({ 
   const baseline = (await largestRenderer(browser)).mb
   await closeAndWait(empty)
 
-  // One context, so the page that opens the board finds what the first one saved.
   const context = await fresh()
   const importer = await context.newPage()
   await importer.goto('/')

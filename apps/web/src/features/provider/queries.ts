@@ -2,7 +2,6 @@ import { queryOptions } from '@tanstack/react-query'
 
 import { answer, providerApi, worthRetrying } from './api'
 
-/** Everything from the provider, to be dropped at once when the key goes. */
 export const PROVIDER_KEY = 'provider'
 
 const MINUTE = 60_000
@@ -20,7 +19,6 @@ export const accountsQuery = queryOptions({
   staleTime: MINUTE
 })
 
-/** Fresh whenever the tab comes back, as posts go out while nobody is looking. */
 export const postsQuery = (accountId: string) =>
   queryOptions({
     queryKey: [PROVIDER_KEY, 'scheduled', accountId],

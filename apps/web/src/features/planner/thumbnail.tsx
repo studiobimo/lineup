@@ -30,17 +30,11 @@ export function Thumbnail(props: ImageProps) {
   return <StoredImage {...props} read={readThumbnail} className="size-full object-cover" cover />
 }
 
-/** A cell's picture, for anything that draws a cell: an album's cover, or the image itself. */
 export function CellThumbnail({ id, label }: ImageProps) {
   const cover = usePlanner(({ board }) => coverOf(board, id))
   return <Thumbnail id={cover} label={label} />
 }
 
-/**
- * A video plays from its own bytes, through a URL that lives only while it is shown. Unlike an
- * <img>, a <video> lets go of what it loaded once its source is taken away. Keyed by its id where
- * it is used, so that another video starts from nothing.
- */
 export function StoredVideo({ id, label, className }: ImageProps & { className?: string }) {
   const { t } = useTranslation('planner')
   const player = useRef<HTMLVideoElement>(null)

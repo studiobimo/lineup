@@ -1,9 +1,7 @@
-/** Everything Instagram-specific. A second network is a second profile. */
 export const instagram = {
   columns: 3,
   cellRatio: { width: 3, height: 4 },
   carouselLimit: 20,
-  /** A video of either kind, Reel or carousel item, and how many one post may hold (ADR-0022). */
   videoSizeLimit: 300 * 1024 * 1024,
   reelLengthLimit: 15 * 60,
   videosPerPost: 1,

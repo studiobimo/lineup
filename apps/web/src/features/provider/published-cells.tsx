@@ -71,7 +71,6 @@ function Cells({ accountId }: { accountId: string }) {
   ))
 }
 
-/** Drawn straight into the grid's own columns, so they carry on from the planned cells. */
 export function PublishedCells({ accountId }: { accountId: string }) {
   return (
     <ProviderQueries>

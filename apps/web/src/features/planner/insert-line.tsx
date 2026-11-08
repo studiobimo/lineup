@@ -2,7 +2,6 @@ import { useStore } from 'zustand'
 
 import { dragStore, gapBeside } from './drag-target'
 
-/** Drawn over the board, because a cell clips what is inside it and paints under the next one. */
 export function InsertLine() {
   const beside = useStore(dragStore, ({ target }) =>
     target?.kind === 'insert' ? target.beside : undefined

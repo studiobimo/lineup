@@ -6,7 +6,6 @@ import { plannerStore } from './planner'
 
 interface SelectionState {
   cells: ReadonlySet<string>
-  /** Where a Shift-click measures from. */
   anchor: string | null
 }
 
@@ -14,7 +13,6 @@ const empty: SelectionState = { cells: new Set(), anchor: null }
 
 const selectionStore = createStore<SelectionState>(() => empty)
 
-/** Each cell asks about itself, so that selecting one renders one and not all 300. */
 export const useIsSelected = (cell: string) =>
   useStore(selectionStore, ({ cells }) => cells.has(cell))
 
@@ -30,7 +28,6 @@ export function toggleSelected(cell: string) {
   })
 }
 
-/** Everything from the anchor to `cell`, added to what is selected. A range spans one container. */
 function selectRange(cell: string) {
   const { cells, anchor } = selectionStore.getState()
   const { board } = plannerStore.getState()
@@ -53,13 +50,11 @@ interface Modifiers {
   ctrlKey: boolean
 }
 
-/** Once anything is selected a plain click selects too, which is how it works without a keyboard. */
 export function clickCell(cell: string, { shiftKey, metaKey, ctrlKey }: Modifiers) {
   if (shiftKey) selectRange(cell)
   else if (metaKey || ctrlKey || selectionStore.getState().cells.size > 0) toggleSelected(cell)
 }
 
-// A cell that has left the board cannot be acted on, and a board loaded afresh shares none.
 plannerStore.subscribe(({ board }, { board: previous }) => {
   if (board === previous) return
   const { cells, anchor } = selectionStore.getState()

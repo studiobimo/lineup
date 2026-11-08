@@ -11,7 +11,6 @@ async function violations(page: Page) {
   return violations.map(({ id, nodes }) => `${id}: ${nodes.map((node) => node.target).join(', ')}`)
 }
 
-/** A dialog still fading in reads as low contrast. */
 async function settled(page: Page, role: 'dialog' | 'alertdialog' = 'dialog') {
   const dialog = page.getByRole(role)
   await dialog.waitFor()
@@ -37,8 +36,6 @@ async function fillBoard(page: Page) {
   await expect(page.getByRole('img')).toHaveCount(8)
 }
 
-// Axe is the expensive part of each test, so dark mode, where contrast differs, checks only the
-// fullest screen.
 test.describe('in light', () => {
   test('the empty planner', async ({ page }) => {
     await page.goto('/')
@@ -146,7 +143,6 @@ test('focus does not land under the header', async ({ page }) => {
   await fillBoard(page)
   await page.setViewportSize({ width: 640, height: 360 })
   const undo = page.getByRole('button', { name: 'Undo' })
-  // Under the header, but on the page, so without room left for the header nothing would scroll.
   await undo.evaluate((button) => scrollTo(0, scrollY + button.getBoundingClientRect().top))
   await undo.focus()
   const header = await page.getByRole('banner').boundingBox()
@@ -168,7 +164,6 @@ test('a focused photo is marked in two colours, one of which shows on any photo'
   expect(colours.outer).not.toEqual(colours.inner)
 })
 
-/** The one place a person meets a destructive button without first opening anything else. */
 async function openClear(page: Page) {
   await fillBoard(page)
   await page.getByRole('button', { name: 'Clear' }).click()

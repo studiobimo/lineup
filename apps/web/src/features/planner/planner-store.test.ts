@@ -218,7 +218,6 @@ describe('the planner store', () => {
     ]
 
     beforeEach(() => {
-      // A shuffle that lands on the same order would not be a change to undo.
       vi.spyOn(Math, 'random').mockReturnValue(0)
     })
 
@@ -287,7 +286,6 @@ describe('the planner store', () => {
       const importing = state().beginImport()
       await importing.add([processed, processed])
       await importing.add([processed])
-      // Not on the board until it is finished, so nothing half-imported can be undone to.
       expect(state().board).toEqual(start)
       importing.finish()
 
@@ -304,7 +302,6 @@ describe('the planner store', () => {
       const { state } = await loaded()
       const importing = state().beginImport()
       await importing.add([processed])
-      // Another tab took the board, and this one took it back, before the import finished.
       state().suspend()
       await state().load()
       await importing.add([processed])
@@ -340,7 +337,6 @@ describe('the planner store', () => {
       await expect(importing.add([processed, processed])).rejects.toThrow('the disk is full')
 
       expect(() => importing.finish()).toThrow('the disk is full')
-      // The first batch and the image of the second that was stored.
       expect(state().board.tray).toHaveLength(start.tray.length + 2)
     })
 
@@ -360,7 +356,6 @@ describe('the planner store', () => {
     expect(boardStore.deleteImages).not.toHaveBeenCalled()
     expect(state().images.a).toBeDefined()
 
-    // 49 more steps fill the history, and the delete is still the oldest of them.
     for (let step = 0; step < 49; step += 1) state().move('b', step % 2 === 0 ? 'grid' : 'tray')
     expect(state().past).toHaveLength(50)
     expect(boardStore.deleteImages).not.toHaveBeenCalled()
@@ -762,7 +757,6 @@ describe('the planner store', () => {
     state().move('a', 'grid')
     state().suspend()
 
-    // What the tab that held the board in the meantime left behind.
     boardStore.loadBoard.mockResolvedValueOnce({ tray: [], grid: ['e', 'd', 'c', 'b', 'a'] })
     boardStore.loadHistory.mockResolvedValueOnce({ past: [], future: [start] })
     await state().load()

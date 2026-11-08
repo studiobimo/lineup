@@ -19,7 +19,6 @@ import {
 interface LineupDb extends DBSchema {
   board: { key: 'current'; value: Board }
   history: { key: 'current'; value: History }
-  // Apart from the records, so that listing them never reads a blob.
   images: { key: string; value: ImageRecord }
   thumbnails: { key: string; value: Blob }
   publishCopies: { key: string; value: Blob }
@@ -30,10 +29,6 @@ type Migration = (
   transaction: IDBPTransaction<LineupDb, StoreNames<LineupDb>[], 'versionchange'>
 ) => void | Promise<void>
 
-/**
- * One entry per schema version, in order, and never edited once released: a change appends a
- * migration, with a test that opens a board saved by the release before it.
- */
 export const migrations: Migration[] = [
   (db) => {
     db.createObjectStore('board')
@@ -54,7 +49,6 @@ export function createIndexedDbBoardStore(name = 'lineup', steps = migrations): 
       async upgrade(db, oldVersion, _newVersion, transaction) {
         for (const step of steps.slice(oldVersion)) await step(db, transaction)
       },
-      // A newer release is open in another tab, and it cannot upgrade until this one lets go.
       blocking() {
         void opening?.then((db) => db.close())
         opening = undefined
@@ -89,7 +83,6 @@ export function createIndexedDbBoardStore(name = 'lineup', steps = migrations): 
 
     async putImage(image) {
       const db = await open()
-      // One transaction: a crash cannot leave a record without its bytes.
       const transaction = db.transaction(['images', 'thumbnails', 'publishCopies'], 'readwrite')
       await Promise.all([
         transaction.objectStore('images').put(toRecord(image)),
@@ -103,7 +96,6 @@ export function createIndexedDbBoardStore(name = 'lineup', steps = migrations): 
       const db = await open()
       const transaction = db.transaction('images', 'readwrite')
       const record = await transaction.store.get(id)
-      // It may have been deleted while its colour was worked out.
       if (record) await transaction.store.put({ ...record, colour })
       await transaction.done
     },

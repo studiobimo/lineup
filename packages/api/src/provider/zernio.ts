@@ -8,7 +8,6 @@ const PLATFORM = 'instagram'
 const TIMEOUT_MS = 15_000
 const RECENT_POSTS = 30
 const SCHEDULED_POSTS = 100
-// Every group but the two that hold what Lineup calls. A key made with this can manage no keys.
 const UNUSED_GROUPS = [
   'engagement',
   'messages',
@@ -75,7 +74,6 @@ type ZernioMedia = NonNullable<ZernioPost['mediaItems']>[number]
 const isVideo = (media: ZernioMedia | undefined) =>
   media?.type === 'video' || VIDEO_FILE.test(media?.url ?? '')
 
-// A video's url is the video, which an <img> cannot show, and Zernio often sends no thumbnail.
 function toPublishedPost(post: ZernioPost, id: string) {
   const [target] = post.platforms ?? []
   const [media] = post.mediaItems ?? []
@@ -97,7 +95,6 @@ const statuses: Record<string, PostStatus> = {
   scheduled: 'scheduled',
   publishing: 'publishing',
   published: 'published',
-  // One platform on every post, so a partial one has failed on the only one it has.
   partial: 'failed',
   failed: 'failed',
   cancelled: 'cancelled'
@@ -159,7 +156,6 @@ const at = (value: unknown, path: PropertyKey[]) =>
 const kindOf = (value: unknown) =>
   value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value
 
-// Types and field names only, never a value, so the log holds nothing from the account.
 function shapeOf(error: z.ZodError, body: unknown) {
   const issues = error.issues.slice(0, 5)
   const holder = issues[0] && at(body, issues[0].path.slice(0, -1))
@@ -196,7 +192,6 @@ export function zernio(key: string): Provider {
     if (response.status === 204) return schema.parse(undefined)
     const answer: unknown = await response.json().catch(() => undefined)
     const parsed = schema.safeParse(answer)
-    // An answer of a shape nobody expected has to fail here, not somewhere it cannot be explained.
     if (!parsed.success) {
       console.error(JSON.stringify({ provider: 'zernio', where, ...shapeOf(parsed.error, answer) }))
       throw new ProviderError('down')
@@ -222,16 +217,12 @@ export function zernio(key: string): Provider {
         const { apiKey } = await call('/api-keys', createdKeySchema, { method: 'POST', body })
         return apiKey.key
       } catch (error) {
-        // A narrow key cannot make another, and that is the key the guide asks for. Nor can a
-        // read-only key, and this key has just read the profiles, so it is not a bad key.
         if (refusedThis(error, ['forbidden', 'refused', 'key'])) return undefined
         throw error
       }
     },
 
     async canPost() {
-      // An upload URL leaves nothing behind unless something is uploaded to it. Zernio has no way
-      // to ask a key what it may do, and limits a read-only key to GET requests.
       const body = { filename: 'lineup-check.jpg', contentType: 'image/jpeg', size: 1 }
       try {
         await call('/media/presign', presignSchema, { method: 'POST', body })
@@ -266,7 +257,6 @@ export function zernio(key: string): Provider {
     async publishedPosts(accountId) {
       const limit = String(RECENT_POSTS)
       const query = (source: string) => new URLSearchParams({ accountId, limit, source })
-      // Zernio documents posts from elsewhere in another shape, but sends them in this one.
       const [{ posts: elsewhere }, { posts: throughHere }] = await Promise.all([
         call(`/posts?${query('external')}`, postsSchema),
         call(`/posts?${query('zernio')}&status=published`, postsSchema)
@@ -274,7 +264,6 @@ export function zernio(key: string): Provider {
       const fromElsewhere = elsewhere
         .filter(({ mediaProductType }) => !OFF_THE_GRID.includes(mediaProductType ?? ''))
         .map((post) => toPublishedPost(post, post.platforms?.[0]?.platformPostId ?? post._id))
-      // Zernio syncs its own posts back as external ones, with the id or the link maybe missing.
       const seen = new Set(fromElsewhere.flatMap(({ id, url }) => (url ? [id, url] : [id])))
       const fromHere = throughHere
         .filter(({ platforms }) => {
@@ -319,7 +308,6 @@ export function zernio(key: string): Provider {
           content: caption,
           scheduledFor,
           timezone: timeZone,
-          // Instagram posts a lone video as a Reel, shown on the grid unless told otherwise.
           mediaItems: mediaUrls.map((url, index) => ({
             type: mediaTypes?.[index] ?? 'image',
             url
@@ -341,7 +329,6 @@ export function zernio(key: string): Provider {
     async cancel(id) {
       await call(`/posts/${encodeURIComponent(id)}`, nothing, { method: 'DELETE' }).catch(
         (error: unknown) => {
-          // Already gone is what was asked for.
           if (!(error instanceof ProviderError && error.failure === 'missing')) throw error
         }
       )

@@ -5,7 +5,6 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { site } from '@/config/site'
 
 interface AppShellProps {
-  /** Header buttons that belong to a feature, which the shell itself must not know about. */
   actions?: ReactNode
   children: ReactNode
 }
