@@ -53,7 +53,6 @@ function OpenPost() {
   )
 }
 
-/** Everything that opens over the board, whichever cell or key opened it. */
 export function PlannerOverlays() {
   return (
     <>

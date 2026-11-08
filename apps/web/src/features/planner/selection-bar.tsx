@@ -20,7 +20,6 @@ function SelectionActions({ count }: { count: number }) {
   const chosen = selectedCells()
   const inTray = chosen.some((cell) => containerOf(board, cell) === 'tray')
   const inGrid = chosen.some((cell) => containerOf(board, cell) === 'grid')
-  // An action ends the selection, as cells that moved away are no longer where they were chosen.
   const act = (action: () => void) => {
     action()
     clearSelection()
@@ -74,7 +73,6 @@ function SelectionActions({ count }: { count: number }) {
   )
 }
 
-/** Out of the way of a drag, which has a hint in the same place and is not about the selection. */
 export function SelectionBar() {
   const count = useSelectionSize()
   const dragging = useStore(dragStore, (state) => state.dragging)

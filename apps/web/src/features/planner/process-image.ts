@@ -7,10 +7,8 @@ import type { VideoInfo } from './video-frame'
 
 const PUBLISH_MAX_WIDTH = 1440
 const PUBLISH_QUALITY = 0.9
-// Cells crop to cover, so it is the short side that has to fill one on a dense phone screen.
 const THUMBNAIL_SHORT_SIDE = 480
 const THUMBNAIL_QUALITY = 0.8
-// About a thousand pixels: plenty for a colour, and cheap to cluster.
 const COLOUR_SAMPLE_LONG_SIDE = 32
 
 interface Size {
@@ -21,14 +19,11 @@ interface Size {
 export interface ProcessedImage extends Size, PhotoMetadata {
   thumbnail: Blob
   publish: Blob
-  /** Added back on the main thread, which still has the file: the worker never returns it. */
   original?: Blob
   colour: ImageColour
-  /** Set on the main thread, which took the frame this was made from. */
   video?: VideoInfo
 }
 
-/** Scales down by `factor`, and never up. */
 function scale({ width, height }: Size, factor: number): Size {
   const capped = Math.min(1, factor)
   return {
@@ -53,7 +48,6 @@ function draw(source: CanvasImageSource, { width, height }: Size): OffscreenCanv
   const canvas = new OffscreenCanvas(width, height)
   const context = canvas.getContext('2d')
   if (!context) throw new Error('This browser gave no 2d context')
-  // JPEG has no alpha: without a background, what is transparent in a PNG comes out black.
   context.fillStyle = 'white'
   context.fillRect(0, 0, width, height)
   context.imageSmoothingQuality = 'high'
@@ -68,7 +62,6 @@ function sampleColour(source: CanvasImageSource, size: Size) {
   return extractColour(context.getImageData(0, 0, width, height).data)
 }
 
-/** For an image stored before colours were kept. Its thumbnail is all that is needed. */
 export async function colourOf(file: Blob) {
   const bitmap = await createImageBitmap(file)
   try {
@@ -78,10 +71,8 @@ export async function colourOf(file: Blob) {
   }
 }
 
-/** The browser's own decoder first; the HEIC one (ADR-0021) only for what the browser cannot read. */
 async function decode(file: Blob) {
   try {
-    // A phone stores a portrait photo sideways, with a tag saying so.
     return await createImageBitmap(file, { imageOrientation: 'from-image' })
   } catch (error) {
     if (!(await looksLikeHeif(file))) throw error
@@ -89,7 +80,6 @@ async function decode(file: Blob) {
   }
 }
 
-/** The originals are not kept (ADR-0002), so these two copies are all a board ever holds. */
 export async function processImage(file: Blob, read: ImportSettings): Promise<ProcessedImage> {
   const bitmap = await decode(file)
   try {

@@ -21,7 +21,6 @@ export const useProfile = () => useStore(store)
 
 export const saveProfile = save
 
-/** What people paste is an @name or a link to their profile, so both come down to the handle. */
 export function toHandle(typed: string) {
   return typed
     .trim()
