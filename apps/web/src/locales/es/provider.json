@@ -64,7 +64,13 @@
     "schedule": "Programar",
     "sending": "Enviando {{position}} de {{count}}",
     "scheduled": "Programada para {{time}}",
-    "missingCopy": "La copia completa de esta imagen ya no está en este dispositivo, así que no se puede enviar."
+    "missingCopy": "La copia completa de esta imagen ya no está en este dispositivo, así que no se puede enviar.",
+    "videoLimit": {
+      "size": "Instagram acepta videos de hasta {{size}} MB.",
+      "length": "Instagram acepta reels de hasta {{minutes}} minutos.",
+      "count_one": "Un carrusel puede tener un video.",
+      "count_other": "Un carrusel puede tener {{count}} videos."
+    }
   },
   "published": {
     "cell": "Publicación publicada",

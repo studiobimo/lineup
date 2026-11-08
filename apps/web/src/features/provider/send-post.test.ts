@@ -1,13 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ProviderRequestError } from './api'
-import { MissingCopyError, sendPost } from './send-post'
+import { MissingCopyError, sendPost, VideoLimitError } from './send-post'
 
 const copies = vi.hoisted(() => new Map<string, Blob>())
+const records = vi.hoisted(
+  () => ({}) as Record<string, { video?: { type: string; duration: number } }>
+)
 
 vi.mock('@/features/planner/planner', () => ({
-  boardStore: { getPublishCopy: async (id: string) => copies.get(id) }
+  boardStore: { getPublishCopy: async (id: string) => copies.get(id) },
+  plannerStore: { getState: () => ({ images: records }) }
 }))
+
+function addVideo(id: string, { duration = 10, size = 1 } = {}) {
+  const copy = new Blob(['v'], { type: 'video/quicktime' })
+  copies.set(id, size === 1 ? copy : ({ type: copy.type, size } as Blob))
+  records[id] = { video: { type: 'video/quicktime', duration } }
+}
 
 const post = {
   accountId: 'account',
@@ -62,6 +72,7 @@ const send = (images: string[], cell = 'cell') =>
 beforeEach(() => {
   localStorage.clear()
   copies.clear()
+  for (const id of Object.keys(records)) delete records[id]
   for (const image of ['a', 'b', 'c']) {
     copies.set(image, new Blob(['x'], { type: 'image/jpeg' }))
   }
@@ -144,5 +155,34 @@ describe('sending a post', () => {
     copies.delete('a')
     await expect(send(['a'])).rejects.toBeInstanceOf(MissingCopyError)
     expect(posts()).toEqual([])
+  })
+
+  it('sends a video as one, as a .mov, and says so beside the photos', async () => {
+    addVideo('v')
+    const { posts, stored } = provider()
+    await send(['a', 'v'])
+    expect(stored().map(({ url }) => url.split('/').pop())).toEqual(['a.jpeg', 'v.mov'])
+    expect(posts()[0].body).toMatchObject({
+      mediaUrls: ['m:a.jpeg', 'm:v.mov'],
+      mediaTypes: ['image', 'video']
+    })
+  })
+
+  it('sends photos alone as before, with no media types', async () => {
+    const { posts } = provider()
+    await send(['a'])
+    expect(posts()[0].body).not.toHaveProperty('mediaTypes')
+  })
+
+  it.each([
+    ['count', () => (addVideo('v'), addVideo('w'), ['v', 'w'])],
+    ['size', () => (addVideo('v', { size: 301 * 1024 * 1024 }), ['v'])],
+    ['length', () => (addVideo('v', { duration: 16 * 60 }), ['v'])]
+  ])('refuses a video over the %s limit before anything is uploaded', async (limit, images) => {
+    const { sent } = provider()
+    const sending = send(images())
+    await expect(sending).rejects.toBeInstanceOf(VideoLimitError)
+    await expect(sending).rejects.toMatchObject({ limit })
+    expect(sent).toEqual([])
   })
 })

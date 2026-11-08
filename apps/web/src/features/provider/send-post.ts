@@ -1,8 +1,9 @@
-import { type NewPost, uploadRequestSchema } from 'lineup-contract'
+import { type MediaType, type NewPost, uploadRequestSchema } from 'lineup-contract'
 import { z } from 'zod'
 
 import type { CellPost } from '@/features/planner/board-schema'
-import { boardStore } from '@/features/planner/planner'
+import { instagram } from '@/features/planner/network-profile'
+import { boardStore, plannerStore } from '@/features/planner/planner'
 import { createStoredStore } from '@/lib/stored-store'
 
 import { answer, providerApi, ProviderRequestError } from './api'
@@ -49,11 +50,40 @@ function attemptFor(cell: string, images: string[]): Attempt {
 /** The image is gone from this device, which trying again will not change. */
 export class MissingCopyError extends Error {}
 
-async function sendImage(image: string) {
-  const copy = await boardStore.getPublishCopy(image)
-  if (!copy) throw new MissingCopyError()
+type VideoLimit = 'size' | 'length' | 'count'
+
+/** Over what the network takes: found before anything is uploaded, which would be wasted. */
+export class VideoLimitError extends Error {
+  readonly limit: VideoLimit
+
+  constructor(limit: VideoLimit) {
+    super(`This video is over the ${limit} limit`)
+    this.limit = limit
+  }
+}
+
+const EXTENSIONS: Record<string, string> = { 'video/quicktime': 'mov' }
+
+async function copiesOf(images: string[]) {
+  const copies = await Promise.all(images.map((image) => boardStore.getPublishCopy(image)))
+  const { images: records } = plannerStore.getState()
+  const videos = images.filter((image) => records[image]?.video)
+  if (videos.length > instagram.videosPerPost) throw new VideoLimitError('count')
+  for (const [index, image] of images.entries()) {
+    const copy = copies[index]
+    if (!copy) throw new MissingCopyError()
+    const video = records[image]?.video
+    if (!video) continue
+    if (copy.size > instagram.videoSizeLimit) throw new VideoLimitError('size')
+    if (video.duration > instagram.reelLengthLimit) throw new VideoLimitError('length')
+  }
+  return copies as Blob[]
+}
+
+async function sendImage(image: string, copy: Blob) {
   const contentType = uploadRequestSchema.shape.contentType.parse(copy.type)
-  const fileName = `${image}.${contentType.split('/')[1]}`
+  const extension = EXTENSIONS[contentType] ?? contentType.split('/')[1]
+  const fileName = `${image}.${extension}`
   const { uploadUrl, mediaUrl } = await answer(
     providerApi.uploads.$post({ json: { fileName, contentType, size: copy.size } })
   )
@@ -76,17 +106,24 @@ interface PostToSend {
 
 /** Images go one at a time, in album order, and a retry picks up from the first one not sent. */
 export async function sendPost({ cell, images, post, onImage }: PostToSend): Promise<CellPost> {
+  const copies = await copiesOf(images)
   const attempt = attemptFor(cell, images)
   remember(cell, attempt)
   const mediaUrls = [...attempt.mediaUrls]
-  for (const image of images.slice(mediaUrls.length)) {
+  for (const [index, image] of images.entries()) {
+    if (index < mediaUrls.length) continue
     onImage(mediaUrls.length + 1)
-    mediaUrls.push(await sendImage(image))
+    mediaUrls.push(await sendImage(image, copies[index]))
     remember(cell, { ...attempt, mediaUrls })
   }
+  const mediaTypes = copies.map<MediaType>(({ type }) =>
+    type.startsWith('video/') ? 'video' : 'image'
+  )
+  // Left out for photos only, as a client from before videos sent it.
+  const media = mediaTypes.includes('video') ? { mediaUrls, mediaTypes } : { mediaUrls }
   const sent = await answer(
     providerApi['scheduled-posts'].$post(
-      { json: { ...post, mediaUrls } },
+      { json: { ...post, ...media } },
       { headers: { 'Idempotency-Key': attempt.key } }
     )
   )
