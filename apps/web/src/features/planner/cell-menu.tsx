@@ -25,10 +25,8 @@ import { openLightbox } from './lightbox-store'
 import { plannerStore } from './planner'
 import { selectedCells, toggleSelected } from './selection-store'
 
-// Into the cell's lower edge, so the menu reads as belonging to it and not to the row below.
 const OVERLAP = -112
 
-/** The cell focus moves to when this one leaves its container, so a run of actions carries on. */
 const neighbourOf = (cell: HTMLElement) =>
   (cell.nextElementSibling ?? cell.previousElementSibling) as HTMLElement | null
 
@@ -121,7 +119,6 @@ function OpenMenu({ id, cell }: { id: string; cell: HTMLElement }) {
   )
 }
 
-/** One for the page, as a menu per cell is hundreds of roots for nothing. */
 export function CellMenu() {
   const open = useCellMenu()
   return open && <OpenMenu key={open.id} {...open} />

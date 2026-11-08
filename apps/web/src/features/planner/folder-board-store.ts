@@ -12,20 +12,14 @@ import {
   toRecord
 } from './board-store'
 
-// The folder's layout is in ADR-0015. Originals sit where a person can see them, and everything
-// the app makes for itself sits in here, so it never looks like one of their photos.
 const DATA_FOLDER = '.lineup'
 
 export interface FolderBoardStore extends BoardStore {
   folderName: string
   hasBoard(): Promise<boolean>
-  /** Files in the folder the board has not seen, or been told to forget. */
   newFiles(): Promise<File[]>
-  /** How many files that left the board are still in the folder. */
   countForgotten(): Promise<number>
-  /** Lets `newFiles` offer those files again. */
   remember(): Promise<void>
-  /** Deletes those files from the folder, the one way Lineup ever removes a photo. Returns how many. */
   deleteForgotten(): Promise<number>
 }
 
@@ -44,13 +38,11 @@ async function orUndefined<Found>(reading: Promise<Found>) {
 }
 
 async function writeFile(handle: FileSystemFileHandle, bytes: Blob | string) {
-  // The browser writes to a side file and swaps it in on close, so a crash leaves the old one.
   const writable = await handle.createWritable()
   await writable.write(bytes)
   await writable.close()
 }
 
-/** One JSON file. Writes that pile up while one runs become the latest, so a burst costs one. */
 function jsonFile<Value>(
   directory: FileSystemDirectoryHandle,
   name: string,
@@ -73,7 +65,6 @@ function jsonFile<Value>(
   }
 
   return {
-    /** Nothing if the file was never written. Throws if it is not what this wrote. */
     async read() {
       const handle = await orUndefined(directory.getFileHandle(name))
       if (!handle) return undefined
@@ -88,7 +79,6 @@ function jsonFile<Value>(
   }
 }
 
-/** Every file a person can see, by its path in the folder. Hidden ones are not theirs to plan. */
 async function* walk(
   directory: FileSystemDirectoryHandle,
   prefix = ''
@@ -101,7 +91,6 @@ async function* walk(
   }
 }
 
-/** A file by its path in the folder, or nothing if it has gone. */
 async function fileAt(folder: FileSystemDirectoryHandle, path: string) {
   const steps = path.split('/')
   const name = steps.pop() ?? ''
@@ -117,7 +106,6 @@ async function fileAt(folder: FileSystemDirectoryHandle, path: string) {
 
 const VIDEO_EXTENSION = { 'video/mp4': 'mp4', 'video/quicktime': 'mov' } as const
 
-/** `photo.jpg`, or `photo (2).jpg` if that is taken: a person's file is never overwritten. */
 async function freeName(folder: FileSystemDirectoryHandle, name: string) {
   const dot = name.lastIndexOf('.')
   const [stem, extension] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, '']
@@ -138,7 +126,6 @@ export async function createFolderBoardStore(
   const imagesFile = jsonFile<ImageRecord[]>(data, 'images.json', z.array(storedRecordSchema))
   const forgottenFile = jsonFile<string[]>(data, 'forgotten.json', z.array(z.string()))
 
-  // All of them now, so that a damaged folder is found before anything has started to use it.
   const [, , savedRecords, savedForgotten] = await Promise.all([
     boardFile.read(),
     historyFile.read(),
@@ -147,9 +134,7 @@ export async function createFolderBoardStore(
   ])
   const records = new Map(savedRecords?.map((record) => [record.id, record]))
   const forgotten = new Set(savedForgotten)
-  // What newFiles handed out, so a file already here is recorded where it is and not copied.
   const alreadyHere = new WeakMap<Blob, string>()
-  // One at a time, so that two images with one name cannot both find it free.
   let adding = Promise.resolve()
 
   const saveRecords = () => imagesFile.write([...records.values()])
@@ -165,7 +150,6 @@ export async function createFolderBoardStore(
   async function keepOriginal({ id, original, publish, video }: StoredImage) {
     const known = (original && alreadyHere.get(original)) ?? records.get(id)?.fileName
     if (known) return known
-    // A backup holds no originals, so its copy is the best this image will ever have.
     const extension = video ? VIDEO_EXTENSION[video.type] : 'jpg'
     const name = original instanceof File ? original.name : `${id}.${extension}`
     const free = await freeName(folder, name)
@@ -176,7 +160,6 @@ export async function createFolderBoardStore(
   async function add(image: StoredImage) {
     const fileName = await keepOriginal(image)
     await writeTo(thumbnails, image.id, image.thumbnail)
-    // A video's original is its publish copy, and it is too big to keep twice (ADR-0022).
     if (!image.video) await writeTo(publishCopies, image.id, image.publish)
     records.set(image.id, { ...toRecord(image), fileName })
     await saveRecords()
@@ -227,7 +210,6 @@ export async function createFolderBoardStore(
       return original ? original.slice(0, original.size, record.video.type) : undefined
     },
 
-    /** The app's copies go. The original stays, and is not offered again. */
     async deleteImages(ids) {
       for (const id of ids) {
         const fileName = records.get(id)?.fileName
@@ -243,7 +225,6 @@ export async function createFolderBoardStore(
       const files: File[] = []
       for await (const [path, handle] of walk(folder)) {
         if (known.has(path) || forgotten.has(path)) continue
-        // The browser's own side file can be gone by the time this gets to it.
         const file = await orUndefined(handle.getFile())
         if (!file) continue
         alreadyHere.set(file, path)
@@ -264,25 +245,21 @@ export async function createFolderBoardStore(
     },
 
     async deleteForgotten() {
-      // Found first, because a folder changing under a walk can skip what comes next.
       const doomed: [FileSystemDirectoryHandle, string][] = []
       for await (const [path, , parent] of walk(folder)) {
         if (forgotten.has(path)) doomed.push([parent, path.slice(path.lastIndexOf('/') + 1)])
       }
       for (const [parent, name] of doomed) await orUndefined(parent.removeEntry(name))
-      // Paths whose file had already gone have nothing left to be told about either.
       forgotten.clear()
       await forgottenFile.write([])
       return doomed.length
     },
 
-    // The folder is the person's disk, so it has no quota to report or browser to persuade.
     storageUsage: async () => ({ used: 0, quota: 0 }),
     requestPersistence: async () => true
   }
 }
 
-/** History too, so that undo still works. The board goes last: its file means the copy finished. */
 export async function copyBoard(from: BoardStore, to: BoardStore) {
   for (const record of await from.listImages()) {
     const [thumbnail, publish] = await Promise.all([

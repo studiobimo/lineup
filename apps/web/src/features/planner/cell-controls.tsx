@@ -30,14 +30,12 @@ interface CellActionsProps {
   id: string
   container: Container
   locked: boolean
-  /** A post holds the cell, so neither locking nor scheduling means anything here. */
   posted: boolean
 }
 
 interface CellBadgeProps {
   icon: LucideIcon
   label?: string
-  /** Shown beside the icon. `label` says it in full to a screen reader. */
   text?: string
 }
 
@@ -51,14 +49,12 @@ export function CellBadge({ icon: Icon, label, text }: CellBadgeProps) {
   )
 }
 
-/** For the mouse: the keyboard has Enter on the cell, or these would be more tab stops per image. */
 export function CellButton(props: ComponentProps<typeof IconButton>) {
   return (
     <IconButton variant="outline" size="icon-xs" tabIndex={-1} tooltip={cellTooltip} {...props} />
   )
 }
 
-/** Memoised, because every cell renders when one moves and these do not depend on position. */
 export const CellActions = memo(function CellActions({
   id,
   container,
@@ -101,7 +97,6 @@ export const CellActions = memo(function CellActions({
           <CellButton label={t('remove')} onClick={() => plannerStore.getState().remove([id])}>
             <Trash2 />
           </CellButton>
-          {/* What a drag does, for those who cannot drag (WCAG 2.5.7), is in the cell's menu. */}
           <CellButton
             label={t('moreActions')}
             onClick={({ currentTarget }) => {
@@ -117,7 +112,6 @@ export const CellActions = memo(function CellActions({
   )
 })
 
-/** Always in view, unlike the actions: it says what the cell is, and opens what it says. */
 export const AlbumButton = memo(function AlbumButton({ id, size }: { id: string; size: number }) {
   const { t } = useTranslation('planner')
   return (
@@ -136,7 +130,6 @@ export const AlbumButton = memo(function AlbumButton({ id, size }: { id: string;
   )
 })
 
-/** In its own corner, because a narrow cell's actions already fill its top edge. */
 export const SelectToggle = memo(function SelectToggle({
   id,
   selected

@@ -25,18 +25,15 @@ interface Beside {
   side: Side
 }
 
-/** Where a dragged cell would land. The drop and its indicator both go by this. */
 export type DropTarget =
   | { kind: 'swap' | 'group'; id: string }
   | {
       kind: 'insert'
       container: Container
       index: number
-      /** The cell to draw the line against. An empty container has none. */
       beside?: Beside
     }
 
-/** What is under the pointer: a cell, or the empty part of a container. */
 export interface Hover {
   id: string
   container: Container
@@ -49,13 +46,10 @@ interface Aim {
   hover: Hover | null
   point: Point | null
   inserting: boolean
-  /** The cell the dragged one has been held over for long enough to group with it. */
   dwelling: string | null
   boxOf: (id: string) => Box | undefined
 }
 
-// The share of a cell's width, at each side, that inserts beside it instead of swapping with it.
-// The gap between two cells is 2 px, too thin to aim at.
 const INSERT_EDGE = 0.2
 
 export const centreOf = ({ left, right, top, bottom }: Box): Point => ({
@@ -68,7 +62,6 @@ function distance(box: Box, { x, y }: Point) {
   return Math.hypot(x - centre.x, y - centre.y)
 }
 
-/** Straying off the line counts double, so Down stays in its column rather than the next one. */
 export function nearestInDirection(from: Box, direction: Direction, boxes: Box[]) {
   const sideways = direction === 'left' || direction === 'right'
   const sign = direction === 'left' || direction === 'up' ? -1 : 1
@@ -84,7 +77,6 @@ export function nearestInDirection(from: Box, direction: Direction, boxes: Box[]
   return nearest?.box
 }
 
-/** The cells read left to right, so past the end of a row or below it counts as after. */
 function sideOf(box: Box, { x, y }: Point): Side {
   if (y > box.bottom) return 'after'
   if (y < box.top) return 'before'
@@ -130,9 +122,7 @@ export function dropTarget({ board, active, hover, point, inserting, dwelling, b
 interface DragState {
   dragging: boolean
   target: DropTarget | null
-  /** Held over a cell, but the album would have more images than a carousel can. */
   albumFull: boolean
-  /** Cells drawn by something flying to them, so the real one waits, hidden, where it will land. */
   airborne: ReadonlySet<string>
 }
 
@@ -159,10 +149,6 @@ export const cellElement = (id: string) => document.querySelector(`[data-drop-id
 
 export const cellBox = (id: string) => cellElement(id)?.getBoundingClientRect()
 
-/**
- * The right of one cell and the left of the next are the same drop, so they share one spot: the
- * middle of the gap. At the end of a row there is no gap, and the line sits on the cell's edge.
- */
 export function gapBeside({ id, side }: Beside) {
   const cell = cellElement(id)
   if (!cell) return undefined
@@ -176,7 +162,6 @@ export function gapBeside({ id, side }: Beside) {
   return { x, top, height }
 }
 
-/** Only the cells the indicator is on change, so the other 299 do not render on every move. */
 export function useDropMark(id: string) {
   return useStore(dragStore, ({ target }) => {
     if (!target) return null
