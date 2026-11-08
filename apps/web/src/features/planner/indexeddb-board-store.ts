@@ -41,6 +41,86 @@ export const migrations: Migration[] = [
   }
 ]
 
+type Open = () => Promise<IDBPDatabase<LineupDb>>
+
+const boardMethods = (
+  open: Open
+): Pick<BoardStore, 'loadBoard' | 'saveBoard' | 'loadHistory' | 'saveHistory'> => ({
+  async loadBoard() {
+    const db = await open()
+    return (await db.get('board', 'current')) ?? emptyBoard
+  },
+
+  async saveBoard(board) {
+    const db = await open()
+    await db.put('board', board, 'current')
+  },
+
+  async loadHistory() {
+    const db = await open()
+    return (await db.get('history', 'current')) ?? emptyHistory
+  },
+
+  async saveHistory(history) {
+    const db = await open()
+    await db.put('history', history, 'current')
+  }
+})
+
+const imageMethods = (
+  open: Open
+): Pick<
+  BoardStore,
+  'listImages' | 'putImage' | 'setColour' | 'getThumbnail' | 'getPublishCopy' | 'deleteImages'
+> => ({
+  async listImages() {
+    const db = await open()
+    return db.getAll('images')
+  },
+
+  async putImage(image) {
+    const db = await open()
+    const transaction = db.transaction(['images', 'thumbnails', 'publishCopies'], 'readwrite')
+    await Promise.all([
+      transaction.objectStore('images').put(toRecord(image)),
+      transaction.objectStore('thumbnails').put(image.thumbnail, image.id),
+      transaction.objectStore('publishCopies').put(image.publish, image.id),
+      transaction.done
+    ])
+  },
+
+  async setColour(id, colour) {
+    const db = await open()
+    const transaction = db.transaction('images', 'readwrite')
+    const record = await transaction.store.get(id)
+    if (record) await transaction.store.put({ ...record, colour })
+    await transaction.done
+  },
+
+  async getThumbnail(id) {
+    const db = await open()
+    return db.get('thumbnails', id)
+  },
+
+  async getPublishCopy(id) {
+    const db = await open()
+    return db.get('publishCopies', id)
+  },
+
+  async deleteImages(ids) {
+    const db = await open()
+    const transaction = db.transaction(['images', 'thumbnails', 'publishCopies'], 'readwrite')
+    await Promise.all([
+      ...ids.flatMap((id) => [
+        transaction.objectStore('images').delete(id),
+        transaction.objectStore('thumbnails').delete(id),
+        transaction.objectStore('publishCopies').delete(id)
+      ]),
+      transaction.done
+    ])
+  }
+})
+
 export function createIndexedDbBoardStore(name = 'lineup', steps = migrations): BoardStore {
   let opening: Promise<IDBPDatabase<LineupDb>> | undefined
 
@@ -56,72 +136,8 @@ export function createIndexedDbBoardStore(name = 'lineup', steps = migrations): 
     }))
 
   return {
-    async loadBoard() {
-      const db = await open()
-      return (await db.get('board', 'current')) ?? emptyBoard
-    },
-
-    async saveBoard(board) {
-      const db = await open()
-      await db.put('board', board, 'current')
-    },
-
-    async loadHistory() {
-      const db = await open()
-      return (await db.get('history', 'current')) ?? emptyHistory
-    },
-
-    async saveHistory(history) {
-      const db = await open()
-      await db.put('history', history, 'current')
-    },
-
-    async listImages() {
-      const db = await open()
-      return db.getAll('images')
-    },
-
-    async putImage(image) {
-      const db = await open()
-      const transaction = db.transaction(['images', 'thumbnails', 'publishCopies'], 'readwrite')
-      await Promise.all([
-        transaction.objectStore('images').put(toRecord(image)),
-        transaction.objectStore('thumbnails').put(image.thumbnail, image.id),
-        transaction.objectStore('publishCopies').put(image.publish, image.id),
-        transaction.done
-      ])
-    },
-
-    async setColour(id, colour) {
-      const db = await open()
-      const transaction = db.transaction('images', 'readwrite')
-      const record = await transaction.store.get(id)
-      if (record) await transaction.store.put({ ...record, colour })
-      await transaction.done
-    },
-
-    async getThumbnail(id) {
-      const db = await open()
-      return db.get('thumbnails', id)
-    },
-
-    async getPublishCopy(id) {
-      const db = await open()
-      return db.get('publishCopies', id)
-    },
-
-    async deleteImages(ids) {
-      const db = await open()
-      const transaction = db.transaction(['images', 'thumbnails', 'publishCopies'], 'readwrite')
-      await Promise.all([
-        ...ids.flatMap((id) => [
-          transaction.objectStore('images').delete(id),
-          transaction.objectStore('thumbnails').delete(id),
-          transaction.objectStore('publishCopies').delete(id)
-        ]),
-        transaction.done
-      ])
-    },
+    ...boardMethods(open),
+    ...imageMethods(open),
 
     async requestPersistence() {
       return (await navigator.storage?.persist?.()) ?? false

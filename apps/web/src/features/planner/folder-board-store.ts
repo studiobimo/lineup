@@ -115,9 +115,147 @@ async function freeName(folder: FileSystemDirectoryHandle, name: string) {
   }
 }
 
-export async function createFolderBoardStore(
+interface FolderState {
   folder: FileSystemDirectoryHandle
-): Promise<FolderBoardStore> {
+  thumbnails: FileSystemDirectoryHandle
+  publishCopies: FileSystemDirectoryHandle
+  imagesFile: ReturnType<typeof jsonFile<ImageRecord[]>>
+  forgottenFile: ReturnType<typeof jsonFile<string[]>>
+  records: Map<string, ImageRecord>
+  forgotten: Set<string>
+  alreadyHere: WeakMap<Blob, string>
+  queue: { adding: Promise<void> }
+}
+
+const readFrom = async (directory: FileSystemDirectoryHandle, id: string) => {
+  const handle = await orUndefined(directory.getFileHandle(`${id}.jpg`))
+  return handle?.getFile()
+}
+
+const writeTo = async (directory: FileSystemDirectoryHandle, id: string, bytes: Blob) =>
+  writeFile(await directory.getFileHandle(`${id}.jpg`, { create: true }), bytes)
+
+const removeFrom = (directory: FileSystemDirectoryHandle, id: string) =>
+  orUndefined(directory.removeEntry(`${id}.jpg`))
+
+const saveRecords = ({ imagesFile, records }: FolderState) =>
+  imagesFile.write([...records.values()])
+
+async function keepOriginal(
+  { folder, records, alreadyHere }: FolderState,
+  { id, original, publish, video }: StoredImage
+) {
+  const known = (original && alreadyHere.get(original)) ?? records.get(id)?.fileName
+  if (known) return known
+  const extension = video ? VIDEO_EXTENSION[video.type] : 'jpg'
+  const name = original instanceof File ? original.name : `${id}.${extension}`
+  const free = await freeName(folder, name)
+  await writeFile(await folder.getFileHandle(free, { create: true }), original ?? publish)
+  return free
+}
+
+async function addImage(state: FolderState, image: StoredImage) {
+  const fileName = await keepOriginal(state, image)
+  await writeTo(state.thumbnails, image.id, image.thumbnail)
+  if (!image.video) await writeTo(state.publishCopies, image.id, image.publish)
+  state.records.set(image.id, { ...toRecord(image), fileName })
+  await saveRecords(state)
+}
+
+const imageMethods = (
+  state: FolderState
+): Pick<
+  FolderBoardStore,
+  'listImages' | 'putImage' | 'setColour' | 'getThumbnail' | 'getPublishCopy' | 'deleteImages'
+> => ({
+  async listImages() {
+    const present = new Set<string>()
+    for await (const [path] of walk(state.folder)) present.add(path)
+    return [...state.records.values()].map((record) => ({
+      ...record,
+      missing: !present.has(record.fileName ?? '')
+    }))
+  },
+
+  putImage(image) {
+    const added = state.queue.adding.then(() => addImage(state, image))
+    state.queue.adding = added.catch(() => undefined)
+    return added
+  },
+
+  async setColour(id, colour) {
+    const record = state.records.get(id)
+    if (!record) return
+    state.records.set(id, { ...record, colour })
+    await saveRecords(state)
+  },
+
+  getThumbnail: (id) => readFrom(state.thumbnails, id),
+  async getPublishCopy(id) {
+    const record = state.records.get(id)
+    if (!record?.video) return readFrom(state.publishCopies, id)
+    const original = record.fileName && (await fileAt(state.folder, record.fileName))
+    return original ? original.slice(0, original.size, record.video.type) : undefined
+  },
+
+  async deleteImages(ids) {
+    for (const id of ids) {
+      const fileName = state.records.get(id)?.fileName
+      if (fileName) state.forgotten.add(fileName)
+      state.records.delete(id)
+      await Promise.all([removeFrom(state.thumbnails, id), removeFrom(state.publishCopies, id)])
+    }
+    await Promise.all([saveRecords(state), state.forgottenFile.write([...state.forgotten])])
+  }
+})
+
+const forgottenMethods = ({
+  folder,
+  records,
+  forgotten,
+  forgottenFile,
+  alreadyHere
+}: FolderState): Pick<
+  FolderBoardStore,
+  'newFiles' | 'countForgotten' | 'remember' | 'deleteForgotten'
+> => ({
+  async newFiles() {
+    const known = new Set([...records.values()].map(({ fileName }) => fileName))
+    const files: File[] = []
+    for await (const [path, handle] of walk(folder)) {
+      if (known.has(path) || forgotten.has(path)) continue
+      const file = await orUndefined(handle.getFile())
+      if (!file) continue
+      alreadyHere.set(file, path)
+      files.push(file)
+    }
+    return files
+  },
+
+  async countForgotten() {
+    let count = 0
+    for await (const [path] of walk(folder)) if (forgotten.has(path)) count += 1
+    return count
+  },
+
+  async remember() {
+    forgotten.clear()
+    await forgottenFile.write([])
+  },
+
+  async deleteForgotten() {
+    const doomed: [FileSystemDirectoryHandle, string][] = []
+    for await (const [path, , parent] of walk(folder)) {
+      if (forgotten.has(path)) doomed.push([parent, path.slice(path.lastIndexOf('/') + 1)])
+    }
+    for (const [parent, name] of doomed) await orUndefined(parent.removeEntry(name))
+    forgotten.clear()
+    await forgottenFile.write([])
+    return doomed.length
+  }
+})
+
+async function openFolderState(folder: FileSystemDirectoryHandle) {
   const data = await folder.getDirectoryHandle(DATA_FOLDER, { create: true })
   const thumbnails = await data.getDirectoryHandle('thumbnails', { create: true })
   const publishCopies = await data.getDirectoryHandle('publish', { create: true })
@@ -132,42 +270,24 @@ export async function createFolderBoardStore(
     imagesFile.read(),
     forgottenFile.read()
   ])
-  const records = new Map(savedRecords?.map((record) => [record.id, record]))
-  const forgotten = new Set(savedForgotten)
-  const alreadyHere = new WeakMap<Blob, string>()
-  let adding = Promise.resolve()
-
-  const saveRecords = () => imagesFile.write([...records.values()])
-
-  const readFrom = async (directory: FileSystemDirectoryHandle, id: string) => {
-    const handle = await orUndefined(directory.getFileHandle(`${id}.jpg`))
-    return handle?.getFile()
+  const state: FolderState = {
+    folder,
+    thumbnails,
+    publishCopies,
+    imagesFile,
+    forgottenFile,
+    records: new Map(savedRecords?.map((record) => [record.id, record])),
+    forgotten: new Set(savedForgotten),
+    alreadyHere: new WeakMap(),
+    queue: { adding: Promise.resolve() }
   }
+  return { state, data, boardFile, historyFile }
+}
 
-  const writeTo = async (directory: FileSystemDirectoryHandle, id: string, bytes: Blob) =>
-    writeFile(await directory.getFileHandle(`${id}.jpg`, { create: true }), bytes)
-
-  async function keepOriginal({ id, original, publish, video }: StoredImage) {
-    const known = (original && alreadyHere.get(original)) ?? records.get(id)?.fileName
-    if (known) return known
-    const extension = video ? VIDEO_EXTENSION[video.type] : 'jpg'
-    const name = original instanceof File ? original.name : `${id}.${extension}`
-    const free = await freeName(folder, name)
-    await writeFile(await folder.getFileHandle(free, { create: true }), original ?? publish)
-    return free
-  }
-
-  async function add(image: StoredImage) {
-    const fileName = await keepOriginal(image)
-    await writeTo(thumbnails, image.id, image.thumbnail)
-    if (!image.video) await writeTo(publishCopies, image.id, image.publish)
-    records.set(image.id, { ...toRecord(image), fileName })
-    await saveRecords()
-  }
-
-  const removeFrom = (directory: FileSystemDirectoryHandle, id: string) =>
-    orUndefined(directory.removeEntry(`${id}.jpg`))
-
+export async function createFolderBoardStore(
+  folder: FileSystemDirectoryHandle
+): Promise<FolderBoardStore> {
+  const { state, data, boardFile, historyFile } = await openFolderState(folder)
   return {
     folderName: folder.name,
 
@@ -180,80 +300,8 @@ export async function createFolderBoardStore(
     loadHistory: async () => (await historyFile.read()) ?? emptyHistory,
     saveHistory: (history) => historyFile.write(history),
 
-    async listImages() {
-      const present = new Set<string>()
-      for await (const [path] of walk(folder)) present.add(path)
-      return [...records.values()].map((record) => ({
-        ...record,
-        missing: !present.has(record.fileName ?? '')
-      }))
-    },
-
-    putImage(image) {
-      const added = adding.then(() => add(image))
-      adding = added.catch(() => undefined)
-      return added
-    },
-
-    async setColour(id, colour) {
-      const record = records.get(id)
-      if (!record) return
-      records.set(id, { ...record, colour })
-      await saveRecords()
-    },
-
-    getThumbnail: (id) => readFrom(thumbnails, id),
-    async getPublishCopy(id) {
-      const record = records.get(id)
-      if (!record?.video) return readFrom(publishCopies, id)
-      const original = record.fileName && (await fileAt(folder, record.fileName))
-      return original ? original.slice(0, original.size, record.video.type) : undefined
-    },
-
-    async deleteImages(ids) {
-      for (const id of ids) {
-        const fileName = records.get(id)?.fileName
-        if (fileName) forgotten.add(fileName)
-        records.delete(id)
-        await Promise.all([removeFrom(thumbnails, id), removeFrom(publishCopies, id)])
-      }
-      await Promise.all([saveRecords(), forgottenFile.write([...forgotten])])
-    },
-
-    async newFiles() {
-      const known = new Set([...records.values()].map(({ fileName }) => fileName))
-      const files: File[] = []
-      for await (const [path, handle] of walk(folder)) {
-        if (known.has(path) || forgotten.has(path)) continue
-        const file = await orUndefined(handle.getFile())
-        if (!file) continue
-        alreadyHere.set(file, path)
-        files.push(file)
-      }
-      return files
-    },
-
-    async countForgotten() {
-      let count = 0
-      for await (const [path] of walk(folder)) if (forgotten.has(path)) count += 1
-      return count
-    },
-
-    async remember() {
-      forgotten.clear()
-      await forgottenFile.write([])
-    },
-
-    async deleteForgotten() {
-      const doomed: [FileSystemDirectoryHandle, string][] = []
-      for await (const [path, , parent] of walk(folder)) {
-        if (forgotten.has(path)) doomed.push([parent, path.slice(path.lastIndexOf('/') + 1)])
-      }
-      for (const [parent, name] of doomed) await orUndefined(parent.removeEntry(name))
-      forgotten.clear()
-      await forgottenFile.write([])
-      return doomed.length
-    },
+    ...imageMethods(state),
+    ...forgottenMethods(state),
 
     storageUsage: async () => ({ used: 0, quota: 0 }),
     requestPersistence: async () => true
