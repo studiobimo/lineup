@@ -1,5 +1,6 @@
 import {
   animate,
+  type MotionValue,
   useMotionValue,
   useReducedMotion,
   useSpring,
@@ -26,10 +27,7 @@ const LEAN_SPRING = { stiffness: 320, damping: 24, mass: 0.6 }
 
 const restingScale = () => Math.min(1, (window.innerWidth * MAX_VIEWPORT_SHARE) / GHOST_WIDTH)
 
-export function useDragGhost() {
-  const reduced = useReducedMotion()
-  const [id, setId] = useState<string | null>(null)
-
+function useGhostMotion() {
   const pointerX = useMotionValue(0)
   const pointerY = useMotionValue(0)
   const offsetX = useMotionValue(0)
@@ -49,6 +47,34 @@ export function useDragGhost() {
     useTransform(() => lean.get() * leaning.get()),
     LEAN_SPRING
   )
+  return { pointerX, pointerY, offsetX, offsetY, scale, opacity, leaning, x, y, rotate }
+}
+
+function usePointerMoves(pointerX: MotionValue<number>, pointerY: MotionValue<number>) {
+  const follow = useCallback(
+    ({ x, y }: Point) => {
+      pointerX.set(x)
+      pointerY.set(y)
+    },
+    [pointerX, pointerY]
+  )
+
+  const glide = useCallback(
+    ({ x, y }: Point) => {
+      animate(pointerX, x, settle)
+      animate(pointerY, y, settle)
+    },
+    [pointerX, pointerY]
+  )
+  return { follow, glide }
+}
+
+export function useDragGhost() {
+  const reduced = useReducedMotion()
+  const [id, setId] = useState<string | null>(null)
+
+  const { pointerX, pointerY, offsetX, offsetY, scale, opacity, leaning, x, y, rotate } =
+    useGhostMotion()
 
   const landed = useRef<(() => void) | null>(null)
 
@@ -78,21 +104,7 @@ export function useDragGhost() {
     [finishLanding, leaning, offsetX, offsetY, opacity, pointerX, pointerY, scale]
   )
 
-  const follow = useCallback(
-    ({ x, y }: Point) => {
-      pointerX.set(x)
-      pointerY.set(y)
-    },
-    [pointerX, pointerY]
-  )
-
-  const glide = useCallback(
-    ({ x, y }: Point) => {
-      animate(pointerX, x, settle)
-      animate(pointerY, y, settle)
-    },
-    [pointerX, pointerY]
-  )
+  const { follow, glide } = usePointerMoves(pointerX, pointerY)
 
   const land = useCallback(
     (to: Box | undefined, done: () => void, { merging = false } = {}) => {
