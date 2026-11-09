@@ -1,4 +1,3 @@
-// Fails if a document breaks `v1`: node api-breaking.mjs <before.json> <after.json>
 import { readFileSync } from 'node:fs'
 
 import { breakingChanges } from '../../packages/api/src/breaking-changes.ts'

@@ -7,7 +7,7 @@
       "ignoreDependencies": ["jscpd", "tailwindcss"]
     },
     "apps/web": {
-      "entry": ["src/routes/**/*.tsx", "src/workers/*.ts"],
+      "entry": ["src/routes/**/*.tsx", "src/workers/*.ts", "src/test/setup.ts"],
       "project": ["src/**/*.{ts,tsx}", "worker/**/*.ts", "e2e/**/*.ts"],
       "ignore": ["src/components/ui/**"],
       "ignoreDependencies": [

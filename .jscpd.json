@@ -6,6 +6,7 @@
     "**/.mise/locks/**",
     "**/src/routeTree.gen.ts",
     "**/src/components/ui/**",
+    "**/public/api-docs/openapi.json",
     "**/.template/profiles/**"
   ]
 }

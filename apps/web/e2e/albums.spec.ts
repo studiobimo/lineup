@@ -42,6 +42,13 @@ async function openAlbum(page: Page) {
   await tray(page).first().getByRole('button', { name: 'Open album' }).click()
 }
 
+async function albumOnGrid(page: Page) {
+  await boardOf(page, 3)
+  await groupFirst(page, 2)
+  await page.getByRole('button', { name: 'Move all to the grid' }).click()
+  await expect(grid(page)).toHaveCount(2)
+}
+
 test('a selection becomes one cell, marked as an album, and undo takes it back', async ({
   page
 }) => {
@@ -149,10 +156,7 @@ test('the lightbox steps through an album before the next cell', async ({ page }
 })
 
 test('an album drags as one cell, across and back', async ({ page }) => {
-  await boardOf(page, 3)
-  await groupFirst(page, 2)
-  await page.getByRole('button', { name: 'Move all to the grid' }).click()
-  await expect(grid(page)).toHaveCount(2)
+  await albumOnGrid(page)
   const first = (await grid(page).nth(0).boundingBox())!
   const second = (await grid(page).nth(1).boundingBox())!
   await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2)
@@ -165,10 +169,7 @@ test('an album drags as one cell, across and back', async ({ page }) => {
 })
 
 test('an album is one post in the phone preview, with the carousel marker', async ({ page }) => {
-  await boardOf(page, 3)
-  await groupFirst(page, 2)
-  await page.getByRole('button', { name: 'Move all to the grid' }).click()
-  await expect(grid(page)).toHaveCount(2)
+  await albumOnGrid(page)
   await page.getByRole('button', { name: 'Preview on a phone' }).click()
   const phone = page.getByRole('dialog')
   await expect(phone.getByRole('img')).toHaveCount(2)

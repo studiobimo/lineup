@@ -36,6 +36,18 @@ async function fillBoard(page: Page) {
   await expect(page.getByRole('img')).toHaveCount(8)
 }
 
+async function openFullSize(page: Page) {
+  await fillBoard(page)
+  await grid(page).first().focus()
+  await page.keyboard.press('Enter')
+  await page.getByRole('menuitem', { name: 'Open full size' }).click()
+}
+
+async function filledPlanner({ page }: { page: Page }) {
+  await fillBoard(page)
+  expect(await violations(page)).toEqual([])
+}
+
 test.describe('in light', () => {
   test('the empty planner', async ({ page }) => {
     await page.goto('/')
@@ -43,10 +55,7 @@ test.describe('in light', () => {
     expect(await violations(page)).toEqual([])
   })
 
-  test('a planner with images, its grid and tray filled', async ({ page }) => {
-    await fillBoard(page)
-    expect(await violations(page)).toEqual([])
-  })
+  test('a planner with images, its grid and tray filled', filledPlanner)
 
   test('the lightbox and the phone preview', async ({ page }) => {
     await fillBoard(page)
@@ -93,10 +102,7 @@ test('a phone preview too long for the phone scrolls from the keyboard', async (
 })
 
 test('the arrows pan a zoomed picture, and step through one that is not', async ({ page }) => {
-  await fillBoard(page)
-  await grid(page).first().focus()
-  await page.keyboard.press('Enter')
-  await page.getByRole('menuitem', { name: 'Open full size' }).click()
+  await openFullSize(page)
   const lightbox = page.getByRole('dialog')
   await lightbox.getByRole('button', { name: 'Zoom in' }).click()
   const at = () => lightbox.locator('[data-zoom]').evaluate((zoomed) => zoomed.style.transform)
@@ -129,10 +135,7 @@ test('a zoomed picture pans without dragging', async ({ page }) => {
 test('focus opens a picture without a tooltip, so Escape goes straight to closing', async ({
   page
 }) => {
-  await fillBoard(page)
-  await grid(page).first().focus()
-  await page.keyboard.press('Enter')
-  await page.getByRole('menuitem', { name: 'Open full size' }).click()
+  await openFullSize(page)
   await page.getByRole('dialog').waitFor()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toHaveCount(0)
@@ -284,8 +287,5 @@ test.describe('in dark', () => {
     expect(await violations(page)).toEqual([])
   })
 
-  test('a planner with images, its grid and tray filled', async ({ page }) => {
-    await fillBoard(page)
-    expect(await violations(page)).toEqual([])
-  })
+  test('a planner with images, its grid and tray filled', filledPlanner)
 })

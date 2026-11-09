@@ -16,6 +16,15 @@ const processed = {
 
 beforeAll(() => loadStrings('planner'))
 
+async function oneImageOnGrid() {
+  await act(async () => {
+    plannerStore.getState().clear(['tray', 'grid'])
+    await plannerStore.getState().addImages([processed])
+    plannerStore.getState().moveAll('tray')
+  })
+  return plannerStore.getState().board.grid[0]
+}
+
 describe('PlannerPage', () => {
   beforeEach(async () => {
     await boardStore.deleteImages((await boardStore.listImages()).map(({ id }) => id))
@@ -34,12 +43,7 @@ describe('PlannerPage', () => {
     render(<PlannerPage />)
     await screen.findByText('Move images here to plan your feed.')
 
-    await act(async () => {
-      plannerStore.getState().clear(['tray', 'grid'])
-      await plannerStore.getState().addImages([processed])
-      plannerStore.getState().moveAll('tray')
-    })
-    const [id] = plannerStore.getState().board.grid
+    const id = await oneImageOnGrid()
 
     await screen.findByRole('img', { name: 'Image 1' })
 
@@ -65,12 +69,7 @@ describe('PlannerPage', () => {
       </>
     )
     await waitFor(() => expect(plannerStore.getState().session).toBe('active'))
-    await act(async () => {
-      plannerStore.getState().clear(['tray', 'grid'])
-      await plannerStore.getState().addImages([processed])
-      plannerStore.getState().moveAll('tray')
-    })
-    const [id] = plannerStore.getState().board.grid
+    const id = await oneImageOnGrid()
 
     await user.click(screen.getByLabelText('Caption'))
     await user.keyboard('{Control>}z{/Control}')

@@ -17,6 +17,13 @@ const image = (id: string, original?: Blob): StoredImage => ({
 
 const photo = (name: string, text = name) => new File([text], name, { type: 'image/jpeg' })
 
+async function storeWith(names: string[]) {
+  const { handle, files } = fakeDirectory()
+  const store = await createFolderBoardStore(handle)
+  for (const name of names) await store.putImage(image(name, photo(`${name}.jpg`)))
+  return { handle, files, store }
+}
+
 describe('a folder board', () => {
   it('keeps the original untouched, under its own name, beside the app’s copies', async () => {
     const { handle, files } = fakeDirectory()
@@ -112,10 +119,7 @@ describe('a folder board', () => {
   })
 
   it('can offer what was removed again, and counts only what is still there', async () => {
-    const { handle, files } = fakeDirectory()
-    const store = await createFolderBoardStore(handle)
-    await store.putImage(image('a', photo('a.jpg')))
-    await store.putImage(image('b', photo('b.jpg')))
+    const { handle, files, store } = await storeWith(['a', 'b'])
     await store.deleteImages(['a', 'b'])
     files.delete('b.jpg')
     expect(await store.countForgotten()).toBe(1)
@@ -129,11 +133,7 @@ describe('a folder board', () => {
   })
 
   it('deletes only the files it was told to forget, and counts them', async () => {
-    const { handle, files } = fakeDirectory()
-    const store = await createFolderBoardStore(handle)
-    await store.putImage(image('a', photo('a.jpg')))
-    await store.putImage(image('b', photo('b.jpg')))
-    await store.putImage(image('c', photo('c.jpg')))
+    const { handle, files, store } = await storeWith(['a', 'b', 'c'])
     await store.deleteImages(['a', 'b'])
 
     expect(await store.deleteForgotten()).toBe(2)
