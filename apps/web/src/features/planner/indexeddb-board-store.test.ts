@@ -72,7 +72,9 @@ describe('the IndexedDB board store', () => {
     await store.saveHistory(history)
     expect(await store.loadHistory()).toEqual(history)
   })
+})
 
+describe('the IndexedDB board store, across versions and browsers', () => {
   it('opens a board saved by an earlier schema, through the migrations after it', async () => {
     const name = uniqueName()
     await createIndexedDbBoardStore(name).saveBoard({ tray: ['a'], grid: [] })

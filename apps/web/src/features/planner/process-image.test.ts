@@ -32,27 +32,29 @@ describe('thumbnailSize', () => {
   })
 })
 
-describe('processImage', () => {
-  const calls: string[] = []
-  const close = vi.fn()
+const calls: string[] = []
 
-  class FakeCanvas {
-    getContext = () => ({
-      fillRect: () => calls.push('fill'),
-      drawImage: () => calls.push('draw'),
-      getImageData: () => ({ data: Uint8ClampedArray.of(200, 40, 40, 255) })
-    })
-    convertToBlob = async () => new Blob(['jpeg'], { type: 'image/jpeg' })
-  }
+const close = vi.fn()
 
-  beforeEach(() => {
-    calls.length = 0
-    close.mockClear()
-    vi.mocked(decodeHeif).mockReset()
-    vi.stubGlobal('OffscreenCanvas', FakeCanvas)
+class FakeCanvas {
+  getContext = () => ({
+    fillRect: () => calls.push('fill'),
+    drawImage: () => calls.push('draw'),
+    getImageData: () => ({ data: Uint8ClampedArray.of(200, 40, 40, 255) })
   })
-  afterEach(() => vi.unstubAllGlobals())
+  convertToBlob = async () => new Blob(['jpeg'], { type: 'image/jpeg' })
+}
 
+beforeEach(() => {
+  calls.length = 0
+  close.mockClear()
+  vi.mocked(decodeHeif).mockReset()
+  vi.stubGlobal('OffscreenCanvas', FakeCanvas)
+})
+
+afterEach(() => vi.unstubAllGlobals())
+
+describe('processImage', () => {
   it('makes both copies, on white, and lets go of the decoded image', async () => {
     vi.stubGlobal('createImageBitmap', async () => ({ width: 6000, height: 4000, close }))
 
@@ -86,40 +88,40 @@ describe('processImage', () => {
     await expect(processImage(new Blob(), readNothing)).rejects.toThrow()
     expect(close).toHaveBeenCalledOnce()
   })
+})
 
-  describe('a HEIC photo', () => {
-    const heic = () => new Blob([new Uint8Array([0, 0, 0, 24, ...Buffer.from('ftypheic')])])
-    const refuse = async () => {
-      throw new Error('The source image cannot be decoded')
-    }
+describe('processImage, a HEIC photo', () => {
+  const heic = () => new Blob([new Uint8Array([0, 0, 0, 24, ...Buffer.from('ftypheic')])])
+  const refuse = async () => {
+    throw new Error('The source image cannot be decoded')
+  }
 
-    it('goes to the HEIC decoder when the browser cannot read it', async () => {
-      vi.stubGlobal('createImageBitmap', refuse)
-      vi.mocked(decodeHeif).mockResolvedValue({ width: 4032, height: 3024, close } as ImageBitmap)
+  it('goes to the HEIC decoder when the browser cannot read it', async () => {
+    vi.stubGlobal('createImageBitmap', refuse)
+    vi.mocked(decodeHeif).mockResolvedValue({ width: 4032, height: 3024, close } as ImageBitmap)
 
-      const image = await processImage(heic(), readNothing)
+    const image = await processImage(heic(), readNothing)
 
-      expect(image).toMatchObject({ width: 1440, height: 1080 })
-      expect(image.publish.type).toBe('image/jpeg')
-      expect(image.thumbnail.type).toBe('image/jpeg')
-      expect(close).toHaveBeenCalledOnce()
-    })
+    expect(image).toMatchObject({ width: 1440, height: 1080 })
+    expect(image.publish.type).toBe('image/jpeg')
+    expect(image.thumbnail.type).toBe('image/jpeg')
+    expect(close).toHaveBeenCalledOnce()
+  })
 
-    it('never reaches the HEIC decoder when the browser reads it itself', async () => {
-      vi.stubGlobal('createImageBitmap', async () => ({ width: 100, height: 100, close }))
+  it('never reaches the HEIC decoder when the browser reads it itself', async () => {
+    vi.stubGlobal('createImageBitmap', async () => ({ width: 100, height: 100, close }))
 
-      await processImage(heic(), readNothing)
+    await processImage(heic(), readNothing)
 
-      expect(decodeHeif).not.toHaveBeenCalled()
-    })
+    expect(decodeHeif).not.toHaveBeenCalled()
+  })
 
-    it('does not load the decoder for a file that is not HEIC, and says why it failed', async () => {
-      vi.stubGlobal('createImageBitmap', refuse)
+  it('does not load the decoder for a file that is not HEIC, and says why it failed', async () => {
+    vi.stubGlobal('createImageBitmap', refuse)
 
-      await expect(processImage(new Blob(['not an image']), readNothing)).rejects.toThrow(
-        'cannot be decoded'
-      )
-      expect(decodeHeif).not.toHaveBeenCalled()
-    })
+    await expect(processImage(new Blob(['not an image']), readNothing)).rejects.toThrow(
+      'cannot be decoded'
+    )
+    expect(decodeHeif).not.toHaveBeenCalled()
   })
 })

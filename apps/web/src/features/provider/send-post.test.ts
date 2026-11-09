@@ -139,7 +139,9 @@ describe('sending a post', () => {
     expect(second.body.mediaUrls).toEqual(['m:b.jpeg', 'm:a.jpeg'])
     expect(stored()).toHaveLength(4)
   })
+})
 
+describe('sending a post, with video and what is gone', () => {
   it('takes a new key once the provider will have forgotten the old one', async () => {
     const { posts } = provider({ loseAnswers: 1 })
     await expect(send(['a'])).rejects.toBeInstanceOf(ProviderRequestError)

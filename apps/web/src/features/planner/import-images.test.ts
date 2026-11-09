@@ -83,7 +83,9 @@ describe('importImages', () => {
     const { batches } = await run(Array.from({ length: 25 }, () => new Blob()))
     expect(batches.map((batch) => batch.length)).toEqual([10, 10, 5])
   })
+})
 
+describe('importImages, with the store and video', () => {
   it('waits for a batch to be stored before it reads on', async () => {
     const worker = fakeWorker()
     let release = () => {}
