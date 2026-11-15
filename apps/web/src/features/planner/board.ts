@@ -54,6 +54,15 @@ export function move(board: Board, id: string, to: Container, index?: number): B
   return { ...without, [to]: cells }
 }
 
+export function moveToStartOfGrid(board: Board, id: string): Board {
+  const without = lift(board, [id])
+  const locked = lockedCells(board)
+  const cells = [...without.grid]
+  const firstFree = cells.findIndex((cell) => !locked.has(cell))
+  cells.splice(firstFree === -1 ? cells.length : firstFree, 0, id)
+  return { ...without, grid: cells }
+}
+
 export function moveCells(board: Board, ids: string[], to: Container): Board {
   const chosen = new Set(ids)
   const from = to === 'tray' ? board.grid : board.tray
