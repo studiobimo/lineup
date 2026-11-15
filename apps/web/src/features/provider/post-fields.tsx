@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { Input } from '@/components/ui/input'
+import { DateTimePicker } from '@/components/date-time-picker'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { instagram } from '@/features/planner/network-profile'
@@ -55,14 +55,14 @@ export function TimeField({ value, invalid, onBlur, onChange }: FieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={TIME_FIELD}>{t('post.time')}</Label>
-      <Input
+      <DateTimePicker
         id={TIME_FIELD}
-        type="datetime-local"
         value={value}
-        aria-invalid={invalid || undefined}
+        invalid={invalid}
         aria-describedby={TIME_NOTE}
+        minDate={new Date()}
         onBlur={onBlur}
-        onChange={({ target }) => onChange(target.value)}
+        onChange={onChange}
       />
       <p
         id={TIME_NOTE}
