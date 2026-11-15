@@ -176,6 +176,19 @@ export function clear(board: Board, containers: Container[]): Board {
 export const isLocked = (board: Board, id: string) =>
   board.posts?.[id] !== undefined || (board.locked?.includes(id) ?? false)
 
+export const isPublished = (board: Board, id: string) => board.posts?.[id]?.status === 'published'
+
+// A published cell stays in `grid` so freeing it puts it back where it was planned, but it is ~keep
+// drawn among the published posts, as Instagram would show it.
+export const plannedCells = (board: Board) => board.grid.filter((id) => !isPublished(board, id))
+
+export const publishedCells = (board: Board) => board.grid.filter((id) => isPublished(board, id))
+
+export function publishedTime(board: Board, id: string) {
+  const post = board.posts?.[id]
+  return post ? Date.parse(post.publishedAt ?? post.scheduledFor) : Number.NaN
+}
+
 export function neighbour(board: Board, id: string, step: 1 | -1): string | undefined {
   const free = freeCells(board, containerOf(board, id))
   return free[free.indexOf(id) + step]
@@ -235,7 +248,8 @@ export function outOfOrder(board: Board, cell: string, time: string) {
   const when = Date.parse(time)
   return board.grid.some((other, index) => {
     const post = other !== cell && board.posts?.[other]
-    if (!post) return false
+    // A published cell is drawn after every planned one, whatever place it was planned in. ~keep
+    if (!post || post.status === 'published') return false
     const then = Date.parse(post.scheduledFor)
     return index < at ? then < when : then > when
   })

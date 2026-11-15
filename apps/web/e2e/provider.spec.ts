@@ -246,6 +246,28 @@ test('a post that goes out says so, links to it, and is not shown twice', async 
   await expect(publishedCells(page)).toHaveCount(1)
 })
 
+test('a cell that went out moves among the published posts, newest first', async ({ page }) => {
+  const provider = await mockProvider(page, { published: [post('older')] })
+  await planOnGrid(page, 2)
+  await connect(page)
+  const dialog = await openSchedule(page)
+  await schedule(dialog)
+  await expect(dialog).toBeHidden()
+
+  const url = 'https://www.instagram.com/p/abc/'
+  provider.scheduled[0] = { ...provider.scheduled[0], status: 'published', url }
+  const hour = new Date(Date.now() - 3_600_000).toISOString()
+  provider.published.unshift({ id: provider.scheduled[0].id, url, publishedAt: hour })
+  await page.reload()
+  await expect(grid(page)).toHaveCount(2)
+  await expect(grid(page).nth(1).getByRole('button', { name: 'Published' })).toBeVisible()
+  await expect(grid(page).first().getByRole('button', { name: 'Published' })).toHaveCount(0)
+  await expect(publishedCells(page)).toHaveCount(1)
+  const cell = await grid(page).nth(1).boundingBox()
+  const older = await publishedCells(page).first().boundingBox()
+  expect(older?.x).toBeGreaterThan(cell?.x ?? Infinity)
+})
+
 test('a post that failed gives the reason, and a new time tries again', async ({ page }) => {
   const provider = await scheduledCell(page)
   const failure = 'The image is too wide'
