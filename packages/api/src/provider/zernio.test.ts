@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ProviderError } from './provider'
-import { zernio } from './zernio'
+import { baseUrlFor, zernio } from './zernio'
 
 const KEY = 'sk_test_key'
 const respond = (body: unknown, status = 200, headers?: HeadersInit) =>
@@ -410,4 +410,30 @@ describe('zernio, failures', () => {
     stub.mockResolvedValueOnce(new Response('<html>', { status: 200 }))
     await expect(provider.profiles()).rejects.toMatchObject({ failure: 'down' })
   })
+})
+
+describe('the base URL override', () => {
+  it('honours a local address, for the fake Zernio', async () => {
+    stub.mockResolvedValue(respond({ profiles: [] }))
+    await zernio(KEY, 'http://localhost:8788/').profiles()
+    expect(sent().url).toBe('http://localhost:8788/profiles')
+  })
+
+  it.each([
+    'https://zernio.com.evil.test/api/v1',
+    'https://localhost:8788',
+    'http://localhost.evil.test',
+    'http://localhost@evil.test',
+    'http://evil.test/localhost',
+    'http://10.0.0.1:8788',
+    'ftp://localhost',
+    ''
+  ])('ignores %j, so a key never goes elsewhere', (override) => {
+    expect(baseUrlFor(override)).toBe('https://zernio.com/api/v1')
+  })
+
+  it.each(['http://localhost', 'http://127.0.0.1:8788', 'http://localhost:8788/api/v1'])(
+    'accepts %s',
+    (override) => expect(baseUrlFor(override)).toBe(override)
+  )
 })
