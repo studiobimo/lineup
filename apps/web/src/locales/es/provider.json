@@ -91,20 +91,14 @@
       "full": "Es el máximo que permite Instagram en una publicación, {{limit}} etiquetas.",
       "place": "Colocar una etiqueta en la imagen. Luego escribe el usuario.",
       "pending": "Usuario de la nueva etiqueta",
-      "confirm": "Añadir la etiqueta"
+      "confirm": "Añadir la etiqueta",
+      "none": "Aún no hay etiquetas.",
+      "tapPicture": "Toca la foto para añadir una etiqueta."
     },
-    "steps": {
-      "indicator": "Paso {{current}} de {{count}}",
-      "names": {
-        "caption": "Pie de foto",
-        "tags": "Etiquetar cuentas",
-        "when": "Fecha y hora"
-      },
-      "back": "Atrás",
-      "next": "Siguiente",
-      "skip": "Omitir",
-      "noCaption": "Sin pie de foto",
-      "noTags": "Sin cuentas etiquetadas",
+    "screens": {
+      "done": "Listo",
+      "tag": "Etiquetar cuentas",
+      "tagCount": "Etiquetar cuentas ({{count}})",
       "tagged_one": "Etiquetada: {{usernames}}",
       "tagged_other": "{{count}} cuentas etiquetadas: {{usernames}}"
     }

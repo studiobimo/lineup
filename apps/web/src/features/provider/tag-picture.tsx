@@ -118,7 +118,7 @@ export function TagPicture({
     <div
       ref={frame}
       className="relative mx-auto touch-manipulation overflow-hidden rounded-sm bg-muted"
-      style={{ aspectRatio: ratio, width: `min(100%, calc(20rem * ${ratio}))` }}
+      style={{ aspectRatio: ratio, width: `min(100%, calc(25rem * ${ratio}))` }}
     >
       <div className="pointer-events-none absolute inset-0">
         <PictureImage id={image} label={t('post.tags.picture')} />

@@ -1,13 +1,14 @@
-import { useForm, useStore } from '@tanstack/react-form'
+import { useStore } from '@tanstack/react-form'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 
+import { fieldProps, usePostForm } from './use-post-form'
 import { isMisordered } from './use-misordered'
 import { CaptionField, TimeField } from './post-fields'
-import { postFormSchema, type PostFormValues } from './post-schema'
+import { type PostFormValues } from './post-schema'
 
 const fields = [
   ['caption', CaptionField],
@@ -36,11 +37,7 @@ export function PostForm({
   onSubmit
 }: PostFormProps) {
   const { t } = useTranslation('provider')
-  const form = useForm({
-    defaultValues: initial,
-    validators: { onSubmit: postFormSchema },
-    onSubmit: ({ value }) => onSubmit(value).catch(() => undefined)
-  })
+  const form = usePostForm(initial, onSubmit)
   const when = useStore(form.store, ({ values }) => values.when)
   const misordered = isMisordered(cell, when)
 
@@ -54,14 +51,7 @@ export function PostForm({
     >
       {fields.map(([name, Input]) => (
         <form.Field key={name} name={name}>
-          {(field) => (
-            <Input
-              value={field.state.value}
-              invalid={field.state.meta.errors.length > 0}
-              onBlur={field.handleBlur}
-              onChange={field.handleChange}
-            />
-          )}
+          {(field) => <Input {...fieldProps(field)} />}
         </form.Field>
       ))}
       {misordered && (

@@ -11,7 +11,10 @@ import { toUserTags, type TagDraft } from './tags'
 vi.mock('@/features/planner/planner', () => ({
   usePlanner: (select: (state: object) => unknown) => select({ images: {} })
 }))
-vi.mock('@/features/planner/thumbnail', () => ({ PictureImage: () => null }))
+vi.mock('@/features/planner/thumbnail', () => ({
+  PictureImage: () => null,
+  Thumbnail: () => null
+}))
 
 const image = { id: 'a', video: false }
 const video = { id: 'v', video: true }
@@ -81,6 +84,16 @@ describe('TagPicker', () => {
     await user.click(document.body)
     expect(screen.queryByTestId('pending-tag')).toBeNull()
     expect(latest).toEqual([])
+  })
+
+  it('keeps one row for the pending tag, with a hint while there is none', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    expect(screen.getByText('Tap the picture to add a tag.')).toBeInTheDocument()
+    await user.click(screen.getByTestId('tag-picture'))
+    expect(screen.queryByText('Tap the picture to add a tag.')).toBeNull()
+    await user.type(pendingName(), '{Escape}')
+    expect(screen.getByText('Tap the picture to add a tag.')).toBeInTheDocument()
   })
 
   it('drops a committed tag whose username is emptied', async () => {
@@ -156,7 +169,8 @@ describe('TagPicker', () => {
       await user.click(screen.getByRole('button', { name: 'Add an account' }))
       await user.type(pendingName(), `a${count}{Enter}`)
     }
-    expect(screen.getByRole('button', { name: 'Add an account' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Add an account' })).toBeNull()
+    expect(screen.getByText(/most Instagram allows/)).toBeInTheDocument()
     expect(latest).toHaveLength(20)
-  })
+  }, 30_000)
 })

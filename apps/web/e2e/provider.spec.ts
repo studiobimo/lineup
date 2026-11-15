@@ -133,8 +133,6 @@ async function openSchedule(page: Page, position = 0) {
 
 async function schedule(dialog: Locator, when = IN_A_WEEK, caption = 'Hello') {
   await dialog.getByLabel('Caption').fill(caption)
-  await dialog.getByRole('button', { name: 'Next', exact: true }).click()
-  await dialog.getByRole('button', { name: 'Skip', exact: true }).click()
   await dialog.getByLabel('Date and time').fill(fieldTime(when))
   await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
 }
@@ -146,11 +144,13 @@ test('a planned image is sent, scheduled and held in place', async ({ page }) =>
   await connect(page)
 
   const dialog = await openSchedule(page)
-  await dialog.getByRole('button', { name: 'Next', exact: true }).click()
-  await dialog.getByRole('button', { name: 'Skip', exact: true }).click()
   await expect(dialog.getByText(/sent to Zernio and Instagram/)).toBeVisible()
-  await dialog.getByRole('button', { name: 'Back', exact: true }).click()
-  await dialog.getByRole('button', { name: 'Back', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Tag accounts', exact: true }).click()
+  await dialog.getByTestId('tag-picture').click()
+  await dialog.getByRole('textbox', { name: 'Username for the new tag' }).fill('friend')
+  await page.keyboard.press('Enter')
+  await dialog.getByRole('button', { name: 'Done', exact: true }).click()
+  await expect(dialog.getByText('Tagged: @friend')).toBeVisible()
   await schedule(dialog)
   await expect(dialog).toBeHidden()
   await expect(page.getByRole('heading', { name: /^Scheduled for/ })).toBeVisible()

@@ -9,7 +9,7 @@ import { instagram } from '@/features/planner/network-profile'
 import { plannerStore, usePlanner } from '@/features/planner/planner'
 
 import { type PostFormValues } from './post-schema'
-import { PostSteps } from './post-steps'
+import { PostScreens } from './post-screens'
 import {
   formatPostTime,
   fromFieldTime,
@@ -74,7 +74,7 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
         : problemText(error)
 
   return (
-    <PostSteps
+    <PostScreens
       cell={cell}
       slides={slides}
       tags={tags}
@@ -92,6 +92,6 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
       <p className="text-sm text-muted-foreground">
         {t('post.notice', { provider: provider.name })}
       </p>
-    </PostSteps>
+    </PostScreens>
   )
 }

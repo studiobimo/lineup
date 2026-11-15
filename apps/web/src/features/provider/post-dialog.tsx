@@ -34,7 +34,7 @@ export function PostDialog({ cell }: { cell: string }) {
   const scheduling = !post && accountId && mayPost(connection)
   return (
     <Dialog {...dialog}>
-      <DialogPopup>
+      <DialogPopup className={scheduling ? 'max-w-3xl' : undefined}>
         <DialogHeader>
           <DialogTitle>{t(post ? 'post.existingTitle' : 'post.title')}</DialogTitle>
           <DialogDescription>
