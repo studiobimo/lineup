@@ -74,7 +74,7 @@ export function TagPicker({ slides, tags, onChange }: TagPickerProps) {
 
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="text-sm font-medium">{t('post.tags.title')}</legend>
+      <legend className="sr-only">{t('post.tags.title')}</legend>
       <p className="text-xs text-muted-foreground">
         {t(slide.video ? 'post.tags.videoHint' : 'post.tags.hint', { limit: TAGS_PER_POST })}
       </p>

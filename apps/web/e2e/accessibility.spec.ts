@@ -269,10 +269,18 @@ test('the schedule form says what is wrong, beside the field it is about', async
   expect(await violations(page)).toEqual([])
 
   const dialog = page.getByRole('dialog', { name: 'Schedule a post' })
+  await expect(dialog.getByRole('heading', { name: 'Caption' })).toBeVisible()
   await dialog.getByLabel('Caption').fill('x'.repeat(2201))
+  await expect(dialog.getByLabel('Caption')).toHaveAccessibleDescription('1 over the limit of 2200')
+  await expect(dialog.getByRole('button', { name: 'Next', exact: true })).toBeDisabled()
+  await dialog.getByLabel('Caption').fill('Hello')
+  await dialog.getByRole('button', { name: 'Next', exact: true }).click()
+  await expect(dialog.getByRole('heading', { name: 'Tag accounts' })).toBeFocused()
+  expect(await violations(page)).toEqual([])
+  await dialog.getByRole('button', { name: 'Skip', exact: true }).click()
+  await expect(dialog.getByRole('heading', { name: 'Date and time' })).toBeFocused()
   await dialog.getByLabel('Date and time').fill('2020-01-01T10:00')
   await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
-  await expect(dialog.getByLabel('Caption')).toHaveAccessibleDescription('1 over the limit of 2200')
   await expect(dialog.getByLabel('Date and time')).toHaveAccessibleDescription(
     'Pick a time that is still to come.'
   )

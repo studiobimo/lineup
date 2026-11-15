@@ -92,6 +92,21 @@
       "place": "Colocar una etiqueta en la imagen. Luego escribe el usuario.",
       "pending": "Usuario de la nueva etiqueta",
       "confirm": "Añadir la etiqueta"
+    },
+    "steps": {
+      "indicator": "Paso {{current}} de {{count}}",
+      "names": {
+        "caption": "Pie de foto",
+        "tags": "Etiquetar cuentas",
+        "when": "Fecha y hora"
+      },
+      "back": "Atrás",
+      "next": "Siguiente",
+      "skip": "Omitir",
+      "noCaption": "Sin pie de foto",
+      "noTags": "Sin cuentas etiquetadas",
+      "tagged_one": "Etiquetada: {{usernames}}",
+      "tagged_other": "{{count}} cuentas etiquetadas: {{usernames}}"
     }
   },
   "published": {

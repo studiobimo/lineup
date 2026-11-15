@@ -8,14 +8,13 @@ import {
   DialogPopup,
   DialogTitle
 } from '@/components/ui/dialog'
-import { cellShape } from '@/features/planner/network-profile'
 import { usePlanner } from '@/features/planner/planner'
-import { CellThumbnail } from '@/features/planner/thumbnail'
 import { useDialogPresence } from '@/hooks/use-dialog-presence'
 
 import { hasLiveKey, liveAccount, mayPost, useConnection } from './connection'
 import { NewPost } from './new-post'
 import { PostDetails } from './post-details'
+import { PostThumbnail } from './post-thumbnail'
 import { closePost } from './post-store'
 import { formatPostTime } from './post-time'
 import { ProviderQueries } from './provider-queries'
@@ -32,6 +31,7 @@ export function PostDialog({ cell }: { cell: string }) {
   const post = usePlanner(({ board }) => board.posts?.[cell])
   const connection = useConnection()
   const accountId = liveAccount(connection)
+  const scheduling = !post && accountId && mayPost(connection)
   return (
     <Dialog {...dialog}>
       <DialogPopup>
@@ -43,14 +43,12 @@ export function PostDialog({ cell }: { cell: string }) {
               : t('post.description', { count: images })}
           </DialogDescription>
         </DialogHeader>
-        <DialogPanel className="grid gap-4 sm:grid-cols-[8rem_1fr]">
-          <div className="w-32 overflow-hidden rounded-sm bg-muted" style={cellShape}>
-            <CellThumbnail id={cell} label={t('post.picture')} />
-          </div>
+        <DialogPanel className={scheduling ? undefined : 'grid gap-4 sm:grid-cols-[8rem_1fr]'}>
+          {!scheduling && <PostThumbnail cell={cell} className="w-32" />}
           <ProviderQueries>
             {post ? (
               <PostDetails cell={cell} post={post} onDone={close} />
-            ) : accountId && mayPost(connection) ? (
+            ) : scheduling ? (
               <NewPost cell={cell} accountId={accountId} onDone={close} />
             ) : (
               <p className="text-sm text-muted-foreground">{t(whatIsMissing(connection))}</p>

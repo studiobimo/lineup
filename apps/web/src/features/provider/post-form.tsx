@@ -1,27 +1,18 @@
 import { useForm, useStore } from '@tanstack/react-form'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { z } from 'zod'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { outOfOrder } from '@/features/planner/board'
-import { instagram } from '@/features/planner/network-profile'
-import { plannerStore } from '@/features/planner/planner'
 
+import { isMisordered } from './use-misordered'
 import { CaptionField, TimeField } from './post-fields'
-import { fromFieldTime } from './post-time'
+import { postFormSchema, type PostFormValues } from './post-schema'
 
-const postFormSchema = z.object({
-  caption: z.string().max(instagram.captionLimit),
-  when: z.string().refine((time) => Date.parse(time) > Date.now())
-})
 const fields = [
   ['caption', CaptionField],
   ['when', TimeField]
 ] as const
-
-export type PostFormValues = z.infer<typeof postFormSchema>
 
 interface PostFormProps {
   cell: string
@@ -51,8 +42,7 @@ export function PostForm({
     onSubmit: ({ value }) => onSubmit(value).catch(() => undefined)
   })
   const when = useStore(form.store, ({ values }) => values.when)
-  const valid = !Number.isNaN(Date.parse(when))
-  const misordered = valid && outOfOrder(plannerStore.getState().board, cell, fromFieldTime(when))
+  const misordered = isMisordered(cell, when)
 
   return (
     <form
