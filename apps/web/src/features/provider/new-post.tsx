@@ -18,7 +18,7 @@ import {
 } from './post-time'
 import { PROVIDER_KEY } from './queries'
 import { TagPicker } from './tag-picker'
-import { allNamed, InvalidTagError, toUserTags, type TagDraft } from './tags'
+import { toUserTags, type TagDraft } from './tags'
 import { MissingCopyError, sendPost, VideoLimitError } from './send-post'
 import { useProblemText } from './use-problem-text'
 
@@ -40,7 +40,6 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
 
   const send = useMutation({
     mutationFn: async ({ caption, when }: PostFormValues) => {
-      if (!allNamed(tags)) throw new InvalidTagError()
       const scheduledFor = fromFieldTime(when)
       const userTags = toUserTags(tags)
       const post = {
@@ -66,15 +65,13 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
   const problem =
     error instanceof MissingCopyError
       ? t('post.missingCopy')
-      : error instanceof InvalidTagError
-        ? t('post.tags.invalid')
-        : error instanceof VideoLimitError
-          ? t(`post.videoLimit.${error.limit}`, {
-              size: instagram.videoSizeLimit / 1024 / 1024,
-              minutes: instagram.reelLengthLimit / 60,
-              count: instagram.videosPerPost
-            })
-          : problemText(error)
+      : error instanceof VideoLimitError
+        ? t(`post.videoLimit.${error.limit}`, {
+            size: instagram.videoSizeLimit / 1024 / 1024,
+            minutes: instagram.reelLengthLimit / 60,
+            count: instagram.videosPerPost
+          })
+        : problemText(error)
 
   return (
     <PostForm

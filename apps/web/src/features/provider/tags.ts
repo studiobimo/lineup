@@ -1,4 +1,4 @@
-import { TAGS_PER_POST, type UserTag, usernameSchema } from 'lineup-contract'
+import { cleanUsername, TAGS_PER_POST, type UserTag, usernameSchema } from 'lineup-contract'
 
 const NUDGE = 0.01
 const BIG_NUDGE = 0.1
@@ -44,11 +44,13 @@ export const mayAddTag = (tags: TagDraft[]) => tags.length < TAGS_PER_POST
 
 export const isValidName = (username: string) => usernameSchema.safeParse(username).success
 
-export const allNamed = (tags: TagDraft[]) => tags.every(({ username }) => isValidName(username))
+// Typing drops what Instagram refuses, so a tag that exists always has a name it accepts. ~keep
+export const typedUsername = (typed: string) =>
+  cleanUsername(typed)
+    .replace(/[^a-z0-9._]/g, '')
+    .slice(0, 30)
 
 export const toUserTags = (tags: TagDraft[]): UserTag[] =>
   tags.map(({ username, x, y, mediaIndex }) =>
     x === undefined ? { username, mediaIndex } : { username, x, y, mediaIndex }
   )
-
-export class InvalidTagError extends Error {}

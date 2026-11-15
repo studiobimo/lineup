@@ -78,7 +78,7 @@
     },
     "tags": {
       "title": "Tag accounts",
-      "hint": "Tap the picture where you want a tag, then type the username. Drag a tag to move it, or use the arrow keys (hold Shift for bigger steps). Up to {{limit}} per post.",
+      "hint": "Tap the picture where you want a tag, type the username and press Enter. Drag a tag to move it, or use the arrow keys (hold Shift for bigger steps). Up to {{limit}} per post.",
       "videoHint": "Add the accounts to tag in this video. Up to {{limit}} per post.",
       "slide": "Slide {{position}} ({{count}})",
       "picture": "The picture to tag",
@@ -89,8 +89,9 @@
       "remove": "Remove tag {{position}}",
       "add": "Add an account",
       "full": "That is the most Instagram allows on a post, {{limit}} tags.",
-      "invalid": "Every tag needs a username of letters, numbers, full stops and underscores, up to 30 characters.",
-      "place": "Place a tag on the picture. Then type the username."
+      "place": "Place a tag on the picture. Then type the username.",
+      "pending": "Username for the new tag",
+      "confirm": "Add the tag"
     }
   },
   "published": {

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
-import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { loadStrings } from '@/i18n/load-strings'
 
@@ -32,24 +32,71 @@ function Harness({ slides = [image] }: { slides?: { id: string; video: boolean }
   )
 }
 
+const pendingName = () => screen.getByRole('textbox', { name: 'Username for the new tag' })
+
+async function tag(user: ReturnType<typeof userEvent.setup>, username: string) {
+  await user.click(screen.getByTestId('tag-picture'))
+  await user.type(pendingName(), `${username}{Enter}`)
+}
+
 describe('TagPicker', () => {
   beforeAll(() => loadStrings('provider'))
+  beforeEach(() => {
+    latest = []
+  })
 
-  it('adds a tag where the picture is clicked and takes a username without the @', async () => {
+  it('places a pending point first and adds the tag only when a username is confirmed', async () => {
     const user = userEvent.setup()
     render(<Harness />)
     await user.click(screen.getByTestId('tag-picture'))
-    const name = screen.getByRole('textbox', { name: 'Username of tag 1' })
-    expect(name).toHaveFocus()
-    await user.type(name, '@Some.One')
+    expect(pendingName()).toHaveFocus()
+    expect(screen.getByTestId('pending-tag')).toBeInTheDocument()
+    expect(latest).toEqual([])
+    await user.type(pendingName(), '@Some.One{Enter}')
     expect(toUserTags(latest)).toEqual([{ username: 'some.one', x: 0.5, y: 0.5, mediaIndex: 0 }])
+    expect(screen.queryByTestId('pending-tag')).toBeNull()
+  })
+
+  it('confirms with the button, which stays disabled while the name is empty', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    await user.click(screen.getByTestId('tag-picture'))
+    expect(screen.getByRole('button', { name: 'Add the tag' })).toBeDisabled()
+    await user.type(pendingName(), 'friend')
+    await user.click(screen.getByRole('button', { name: 'Add the tag' }))
+    expect(latest).toHaveLength(1)
+  })
+
+  it('discards the pending point on Escape, on clicking elsewhere and when left empty', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    await user.click(screen.getByTestId('tag-picture'))
+    await user.type(pendingName(), 'nobody{Escape}')
+    expect(screen.queryByTestId('pending-tag')).toBeNull()
+    await user.click(screen.getByTestId('tag-picture'))
+    await user.type(pendingName(), 'nobody')
+    await user.click(document.body)
+    expect(screen.queryByTestId('pending-tag')).toBeNull()
+    await user.click(screen.getByTestId('tag-picture'))
+    await user.click(document.body)
+    expect(screen.queryByTestId('pending-tag')).toBeNull()
+    expect(latest).toEqual([])
+  })
+
+  it('drops a committed tag whose username is emptied', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    await tag(user, 'friend')
+    await user.clear(screen.getByRole('textbox', { name: 'Username of tag 1' }))
+    await user.click(document.body)
+    expect(latest).toEqual([])
   })
 
   it('moves a tag with the arrow keys, ten times as far with Shift', async () => {
     const user = userEvent.setup()
     render(<Harness />)
-    await user.click(screen.getByTestId('tag-picture'))
-    const marker = screen.getByRole('button', { name: /^Tag 1, 50% from the left/ })
+    await tag(user, 'friend')
+    const marker = screen.getByRole('button', { name: /^@friend, 50% from the left/ })
     marker.focus()
     await user.keyboard('{ArrowRight}')
     expect(latest[0]).toMatchObject({ x: 0.51, y: 0.5 })
@@ -57,14 +104,16 @@ describe('TagPicker', () => {
     expect(latest[0]).toMatchObject({ x: 0.51, y: 0.4 })
   })
 
-  it('moves a tag by dragging it', () => {
+  it('places a point where the picture is clicked and moves its tag by dragging', async () => {
+    const user = userEvent.setup()
     render(<Harness />)
     const picture = screen.getByTestId('tag-picture')
     picture.parentElement!.getBoundingClientRect = () =>
       ({ left: 0, top: 0, width: 200, height: 100 }) as DOMRect
     fireEvent.click(picture, { clientX: 50, clientY: 50, detail: 1 })
+    await user.type(pendingName(), 'friend{Enter}')
     expect(latest[0]).toMatchObject({ x: 0.25, y: 0.5 })
-    const marker = screen.getByRole('button', { name: /^Tag 1/ })
+    const marker = screen.getByRole('button', { name: /^@friend/ })
     fireEvent.pointerDown(marker, { isPrimary: true, button: 0, pointerId: 1 })
     fireEvent.pointerMove(marker, { clientX: 400, clientY: -10 })
     expect(latest[0]).toMatchObject({ x: 1, y: 0 })
@@ -73,11 +122,11 @@ describe('TagPicker', () => {
   it('removes a tag from the list and from the keyboard', async () => {
     const user = userEvent.setup()
     render(<Harness />)
-    await user.click(screen.getByTestId('tag-picture'))
+    await tag(user, 'friend')
     await user.click(screen.getByRole('button', { name: 'Remove tag 1' }))
     expect(latest).toEqual([])
-    await user.click(screen.getByTestId('tag-picture'))
-    screen.getByRole('button', { name: /^Tag 1/ }).focus()
+    await tag(user, 'friend')
+    screen.getByRole('button', { name: /^@friend/ }).focus()
     await user.keyboard('{Delete}')
     expect(latest).toEqual([])
   })
@@ -85,14 +134,15 @@ describe('TagPicker', () => {
   it('keeps tags per slide, and lists usernames only on a video', async () => {
     const user = userEvent.setup()
     render(<Harness slides={[image, video]} />)
-    await user.click(screen.getByTestId('tag-picture'))
+    await tag(user, 'friend')
     await user.click(screen.getByRole('button', { name: /^Slide 2/ }))
     expect(screen.queryByTestId('tag-picture')).toBeNull()
     expect(screen.queryByRole('textbox')).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Add an account' }))
-    await user.type(screen.getByRole('textbox'), 'filmer')
+    expect(pendingName()).toHaveFocus()
+    await user.type(pendingName(), 'filmer{Enter}')
     expect(toUserTags(latest)).toEqual([
-      { username: '', x: 0.5, y: 0.5, mediaIndex: 0 },
+      { username: 'friend', x: 0.5, y: 0.5, mediaIndex: 0 },
       { username: 'filmer', mediaIndex: 1 }
     ])
     await user.click(screen.getByRole('button', { name: /^Slide 1/ }))
@@ -104,6 +154,7 @@ describe('TagPicker', () => {
     render(<Harness slides={[video]} />)
     for (let count = 0; count < 20; count += 1) {
       await user.click(screen.getByRole('button', { name: 'Add an account' }))
+      await user.type(pendingName(), `a${count}{Enter}`)
     }
     expect(screen.getByRole('button', { name: 'Add an account' })).toBeDisabled()
     expect(latest).toHaveLength(20)

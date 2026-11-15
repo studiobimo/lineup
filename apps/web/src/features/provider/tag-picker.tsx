@@ -1,7 +1,7 @@
 import type { UserTag } from 'lineup-contract'
-import { TAGS_PER_POST, cleanUsername } from 'lineup-contract'
-import { X } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { TAGS_PER_POST } from 'lineup-contract'
+import { Check, X } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,7 @@ import { usePlanner } from '@/features/planner/planner'
 import { cn } from '@/lib/utils'
 
 import { TagPicture } from './tag-picture'
-import { isValidName, mayAddTag, type TagDraft } from './tags'
+import { isValidName, mayAddTag, type TagDraft, typedUsername } from './tags'
 
 const { width, height } = instagram.cellRatio
 
@@ -32,7 +32,9 @@ export function TagPicker({ slides, tags, onChange }: TagPickerProps) {
   const { t } = useTranslation('provider')
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<string>()
-  const toFocus = useRef<string>(undefined)
+  // A place the user has chosen but not yet named. It becomes a tag only on confirming a name. ~keep
+  const [pending, setPending] = useState<{ index: number; x?: number; y?: number }>()
+  const [name, setName] = useState('')
   const slide = slides[index] ?? slides[0]
   const size = usePlanner(({ images }) => images[slide.id])
   const here = tags.filter(({ mediaIndex = 0 }) => mediaIndex === index)
@@ -40,12 +42,29 @@ export function TagPicker({ slides, tags, onChange }: TagPickerProps) {
   const change = (key: string, changes: Partial<UserTag>) =>
     onChange(tags.map((tag) => (tag.key === key ? { ...tag, ...changes } : tag)))
 
-  const add = (point?: { x: number; y: number }) => {
+  const pendingHere = pending?.index === index ? pending : undefined
+
+  const discard = () => {
+    setPending(undefined)
+    setName('')
+  }
+
+  const place = (point?: { x: number; y: number }) => {
     if (!mayAddTag(tags)) return
+    setSelected(undefined)
+    setName('')
+    setPending({ index, ...point })
+  }
+
+  const confirm = () => {
+    if (!pending || !name || !isValidName(name)) return
+    const { x, y } = pending
     const key = crypto.randomUUID()
-    onChange([...tags, { key, username: '', mediaIndex: index, ...point }])
-    setSelected(key)
-    toFocus.current = key
+    onChange([
+      ...tags,
+      { key, username: name, mediaIndex: pending.index, ...(x !== undefined && { x, y }) }
+    ])
+    discard()
   }
 
   const remove = (key: string) => {
@@ -70,7 +89,10 @@ export function TagPicker({ slides, tags, onChange }: TagPickerProps) {
                 size="sm"
                 variant={position === index ? 'default' : 'outline'}
                 aria-pressed={position === index}
-                onClick={() => setIndex(position)}
+                onClick={() => {
+                  discard()
+                  setIndex(position)
+                }}
               >
                 {t('post.tags.slide', { position: position + 1, count })}
               </Button>
@@ -83,9 +105,12 @@ export function TagPicker({ slides, tags, onChange }: TagPickerProps) {
           image={slide.id}
           ratio={size ? size.width / size.height : width / height}
           tags={here}
+          pending={
+            pendingHere?.x === undefined ? undefined : { x: pendingHere.x, y: pendingHere.y ?? 0.5 }
+          }
           selected={selected}
           full={!mayAddTag(tags)}
-          onAdd={add}
+          onAdd={place}
           onSelect={setSelected}
           onMove={(key, point) => change(key, point)}
           onRemove={remove}
@@ -93,7 +118,6 @@ export function TagPicker({ slides, tags, onChange }: TagPickerProps) {
       )}
       <ul className="flex flex-col gap-1.5">
         {here.map((tag, position) => {
-          const invalid = !isValidName(tag.username)
           return (
             <li key={tag.key} className="flex items-center gap-1.5">
               <Label className="sr-only" htmlFor={`tag-${tag.key}`}>
@@ -104,24 +128,20 @@ export function TagPicker({ slides, tags, onChange }: TagPickerProps) {
               </span>
               <Input
                 id={`tag-${tag.key}`}
-                ref={(input) => {
-                  if (input && toFocus.current === tag.key) {
-                    toFocus.current = undefined
-                    input.focus()
-                  }
-                }}
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
-                maxLength={31}
+                maxLength={30}
                 placeholder={t('post.tags.placeholder')}
                 value={tag.username}
-                aria-invalid={invalid && tag.username !== '' ? true : undefined}
                 className={cn(tag.key === selected && 'ring-1 ring-ring')}
                 onFocus={() => setSelected(tag.key)}
                 onChange={({ target }) =>
-                  change(tag.key, { username: cleanUsername(target.value) })
+                  change(tag.key, { username: typedUsername(target.value) })
                 }
+                // Enter would submit the post form; a tag emptied and left is dropped, not kept blank. ~keep
+                onKeyDown={(event) => event.key === 'Enter' && event.preventDefault()}
+                onBlur={() => tag.username === '' && remove(tag.key)}
               />
               <IconButton
                 type="button"
@@ -135,13 +155,61 @@ export function TagPicker({ slides, tags, onChange }: TagPickerProps) {
           )
         })}
       </ul>
+      {pendingHere && (
+        <div
+          className="flex items-center gap-1.5 rounded-sm border border-dashed border-primary p-1.5"
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) discard()
+          }}
+        >
+          <Label className="sr-only" htmlFor="tag-pending">
+            {t('post.tags.pending')}
+          </Label>
+          <span aria-hidden className="text-muted-foreground">
+            @
+          </span>
+          <Input
+            id="tag-pending"
+            // The user just asked for this field, so it takes focus as it appears. ~keep
+            ref={(input) => input?.focus()}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            maxLength={30}
+            placeholder={t('post.tags.placeholder')}
+            value={name}
+            onChange={({ target }) => setName(typedUsername(target.value))}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                confirm()
+              } else if (event.key === 'Escape') {
+                // The dialog would close on Escape too; only the pending tag should go. ~keep
+                event.stopPropagation()
+                discard()
+              }
+            }}
+          />
+          <IconButton
+            type="button"
+            variant="ghost"
+            label={t('post.tags.confirm')}
+            disabled={name === ''}
+            // Keeps focus in the field, so confirming is not read as clicking elsewhere. ~keep
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={confirm}
+          >
+            <Check />
+          </IconButton>
+        </div>
+      )}
       {slide.video && (
         <Button
           type="button"
           size="sm"
           variant="outline"
           disabled={!mayAddTag(tags)}
-          onClick={() => add()}
+          onClick={() => place()}
         >
           {t('post.tags.add')}
         </Button>

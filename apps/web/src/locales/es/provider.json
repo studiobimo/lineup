@@ -78,7 +78,7 @@
     },
     "tags": {
       "title": "Etiquetar cuentas",
-      "hint": "Toca la imagen donde quieras una etiqueta y escribe el usuario. Arrastra una etiqueta para moverla o usa las flechas (con Mayús, pasos mayores). Hasta {{limit}} por publicación.",
+      "hint": "Toca la imagen donde quieras una etiqueta, escribe el usuario y pulsa Intro. Arrastra una etiqueta para moverla o usa las flechas (con Mayús, pasos mayores). Hasta {{limit}} por publicación.",
       "videoHint": "Añade las cuentas que quieras etiquetar en este vídeo. Hasta {{limit}} por publicación.",
       "slide": "Diapositiva {{position}} ({{count}})",
       "picture": "La imagen que etiquetar",
@@ -89,8 +89,9 @@
       "remove": "Quitar la etiqueta {{position}}",
       "add": "Añadir una cuenta",
       "full": "Es el máximo que permite Instagram en una publicación, {{limit}} etiquetas.",
-      "invalid": "Cada etiqueta necesita un usuario de letras, números, puntos y guiones bajos, de hasta 30 caracteres.",
-      "place": "Colocar una etiqueta en la imagen. Luego escribe el usuario."
+      "place": "Colocar una etiqueta en la imagen. Luego escribe el usuario.",
+      "pending": "Usuario de la nueva etiqueta",
+      "confirm": "Añadir la etiqueta"
     }
   },
   "published": {

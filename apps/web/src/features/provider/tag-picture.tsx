@@ -91,6 +91,7 @@ interface TagPictureProps {
   image: string
   ratio: number
   tags: TagDraft[]
+  pending: { x: number; y: number } | undefined
   selected: string | undefined
   full: boolean
   onAdd: (point: { x: number; y: number }) => void
@@ -103,6 +104,7 @@ export function TagPicture({
   image,
   ratio,
   tags,
+  pending,
   selected,
   full,
   onAdd,
@@ -136,6 +138,15 @@ export function TagPicture({
             )
         }}
       />
+      {pending && (
+        // Dashed and hollow, so it reads as not yet a tag; the username field below is its control. ~keep
+        <span
+          aria-hidden
+          data-testid="pending-tag"
+          className="pointer-events-none absolute z-10 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-dashed border-primary bg-background/60 shadow-sm"
+          style={{ left: percent(pending.x), top: percent(pending.y) }}
+        />
+      )}
       {tags.map((tag, index) => (
         <Marker
           key={tag.key}
