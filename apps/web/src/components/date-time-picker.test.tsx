@@ -3,16 +3,22 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
+import i18n from '@/i18n/config'
+
+import { centredScrollTop } from '@/lib/centred-scroll-top'
+
 import { DateTimePicker } from './date-time-picker'
 
 function Harness({
   initial = '2030-05-10T14:30',
   hourCycle = 12,
-  onBlur
+  onBlur,
+  minDate = new Date(2030, 4, 8)
 }: {
   initial?: string
   hourCycle?: 12 | 24
   onBlur?: () => void
+  minDate?: Date
 }) {
   const [value, setValue] = useState(initial)
   return (
@@ -23,7 +29,7 @@ function Harness({
         onChange={setValue}
         onBlur={onBlur}
         hourCycle={hourCycle}
-        minDate={new Date(2030, 4, 8)}
+        minDate={minDate}
       />
       <output data-testid="value">{value}</output>
     </>
@@ -112,11 +118,75 @@ describe('DateTimePicker', () => {
     const user = userEvent.setup()
     render(<Harness initial="" />)
     await user.click(screen.getByRole('button', { name: 'Pick a date and time' }))
-    await user.click(
-      await screen
-        .findByRole('button', { name: /today/i })
-        .catch(() => screen.getByRole('button', { name: 'Today' }))
-    )
+    await user.click(await screen.findByRole('button', { name: /Monday, May 20/ }))
     expect(current()).toHaveTextContent(/T09:00$/)
+  })
+
+  describe('minimum time', () => {
+    const min = new Date(2030, 4, 10, 14, 31)
+    const disabled = (list: string, name: string) => expect(option(list, name)).toBeDisabled()
+    const enabled = (list: string, name: string) => expect(option(list, name)).toBeEnabled()
+
+    it('disables earlier days, hours and minutes on the minimum day', async () => {
+      const user = userEvent.setup()
+      render(<Harness minDate={min} initial="2030-05-10T14:45" />)
+      await open(user)
+      expect(screen.getByRole('button', { name: /May 9, 2030/ })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /Friday, May 10/ })).toBeEnabled()
+      disabled('Hour', '01')
+      enabled('Hour', '02')
+      enabled('Hour', '03')
+      enabled('Minute', '45')
+    })
+
+    it('disables earlier minutes in the minimum hour and AM once the morning is past', async () => {
+      const user = userEvent.setup()
+      render(<Harness minDate={min} initial="2030-05-10T14:45" />)
+      await open(user)
+      disabled('AM or PM', 'AM')
+      enabled('AM or PM', 'PM')
+      await user.click(option('Hour', '02'))
+      disabled('Minute', '30')
+      enabled('Minute', '31')
+      await user.click(option('Hour', '03'))
+      enabled('Minute', '00')
+    })
+
+    it('frees every time on a later day', async () => {
+      const user = userEvent.setup()
+      render(<Harness minDate={min} initial="2030-05-11T09:00" />)
+      await open(user)
+      enabled('Hour', '01')
+      enabled('AM or PM', 'AM')
+    })
+
+    it('moves an unchosen default time to the next valid minute', async () => {
+      const user = userEvent.setup()
+      render(<Harness initial="" minDate={new Date(2030, 4, 10, 15, 7)} />)
+      await user.click(screen.getByRole('button', { name: 'Pick a date and time' }))
+      await user.click(screen.getByRole('button', { name: /Friday, May 10/ }))
+      expect(current()).toHaveTextContent('2030-05-10T15:07')
+    })
+  })
+
+  it('names weekdays and months in the active language', async () => {
+    const user = userEvent.setup()
+    await i18n.changeLanguage('es')
+    try {
+      render(<Harness />)
+      await user.click(screen.getByRole('button', { name: /2030/ }))
+      await screen.findByRole('listbox', { name: /Hora|Hour/ })
+      expect(screen.getByText(/mayo de 2030|mayo 2030/i)).toBeInTheDocument()
+      expect(screen.queryByText('May 2030')).not.toBeInTheDocument()
+    } finally {
+      await i18n.changeLanguage('en')
+    }
+  })
+
+  it('centres an item in its viewport', () => {
+    const item = { offsetTop: 300, offsetHeight: 32 } as HTMLElement
+    const viewport = { clientHeight: 200 } as HTMLElement
+    expect(centredScrollTop(item, viewport)).toBe(216)
+    expect(centredScrollTop({ offsetTop: 10, offsetHeight: 32 } as HTMLElement, viewport)).toBe(0)
   })
 })

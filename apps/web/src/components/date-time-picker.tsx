@@ -4,8 +4,11 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Popover, PopoverPopup, PopoverTrigger } from '@/components/ui/popover'
+import i18n from '@/i18n/config'
 import { dateTimeFormat } from '@/i18n/format'
+import { centredScrollTop } from '@/lib/centred-scroll-top'
 import { cn } from '@/lib/utils'
 
 const DEFAULT_HOUR = 9
@@ -30,6 +33,9 @@ function parse(value: string): Parts | null {
 const stringify = ({ date, hour, minute }: Parts) =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(hour)}:${pad(minute)}`
 
+const toDate = ({ date, hour, minute }: Parts) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour, minute)
+
 const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
 function prefersTwentyFourHour() {
@@ -40,6 +46,7 @@ function prefersTwentyFourHour() {
 interface Option {
   value: number
   label: string
+  disabled?: boolean
 }
 
 interface TimeColumnProps {
@@ -55,54 +62,84 @@ function TimeColumn({ label, options, selected, onSelect }: TimeColumnProps) {
 
   useEffect(() => {
     const item = list.current?.querySelector<HTMLElement>('[aria-selected="true"]')
-    // ~keep scrollIntoView would also scroll the page behind the popup.
-    if (item && list.current) list.current.scrollTop = item.offsetTop - list.current.offsetTop
+    const viewport = list.current?.closest<HTMLElement>('[data-slot="scroll-area-viewport"]')
+    if (item && viewport) viewport.scrollTop = centredScrollTop(item, viewport)
   }, [])
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    const index = options.findIndex(({ value }) => value === selected)
+    const enabled = options.filter(({ disabled }) => !disabled)
+    const index = enabled.findIndex(({ value }) => value === selected)
     const next = {
-      ArrowDown: Math.min(index + 1, options.length - 1),
+      ArrowDown: Math.min(index + 1, enabled.length - 1),
       ArrowUp: Math.max(index - 1, 0),
       Home: 0,
-      End: options.length - 1
+      End: enabled.length - 1
     }[event.key]
-    if (next === undefined) return
+    if (next === undefined || enabled.length === 0) return
     event.preventDefault()
-    onSelect(options[next].value)
-    list.current?.querySelectorAll<HTMLElement>('[role="option"]')[next]?.focus()
+    onSelect(enabled[next].value)
+    const at = options.indexOf(enabled[next])
+    list.current?.querySelectorAll<HTMLElement>('[role="option"]')[at]?.focus()
   }
 
-  const tabbable = selected ?? options[0].value
+  const tabbable = selected ?? options.find(({ disabled }) => !disabled)?.value
   return (
-    <div
-      ref={list}
-      role="listbox"
-      tabIndex={-1}
-      aria-label={label}
-      aria-orientation="vertical"
-      className="relative flex max-h-full min-w-12 flex-1 flex-col gap-0.5 overflow-y-auto rounded-lg border p-1"
-      onKeyDown={onKeyDown}
-    >
-      {options.map(({ value, label: text }) => (
-        <button
-          key={value}
-          type="button"
-          role="option"
-          tabIndex={value === tabbable ? 0 : -1}
-          aria-selected={value === selected}
-          className="flex h-8 w-full shrink-0 cursor-pointer items-center justify-center rounded-md text-sm tabular-nums outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring aria-selected:bg-primary aria-selected:text-primary-foreground"
-          onClick={() => onSelect(value)}
+    <div className="relative w-16 rounded-lg border">
+      <ScrollArea className="absolute inset-0" scrollFade>
+        <div
+          ref={list}
+          role="listbox"
+          tabIndex={-1}
+          aria-label={label}
+          aria-orientation="vertical"
+          className="relative flex flex-col gap-0.5 p-1"
+          onKeyDown={onKeyDown}
         >
-          {text}
-        </button>
-      ))}
+          {options.map(({ value, label: text, disabled }) => (
+            <button
+              key={value}
+              type="button"
+              role="option"
+              disabled={disabled}
+              tabIndex={value === tabbable ? 0 : -1}
+              aria-selected={value === selected}
+              className="flex h-8 w-full shrink-0 cursor-pointer items-center justify-center rounded-md text-sm tabular-nums outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 aria-selected:bg-primary aria-selected:text-primary-foreground"
+              onClick={() => onSelect(value)}
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+      </ScrollArea>
     </div>
   )
 }
 
 const range = (count: number, first = 0) =>
   Array.from({ length: count }, (_, i) => ({ value: first + i, label: pad(first + i) }))
+
+// ~keep The calendar library names days and months in English unless handed a date-fns locale,
+// which would ship every language; Intl already knows the active one.
+function calendarFormatters() {
+  const language = i18n.resolvedLanguage ?? i18n.language
+  const weekday = new Intl.DateTimeFormat(language, { weekday: 'short' })
+  const caption = new Intl.DateTimeFormat(language, { month: 'long', year: 'numeric' })
+  const month = new Intl.DateTimeFormat(language, { month: 'short' })
+  return {
+    formatWeekdayName: (date: Date) => weekday.format(date),
+    formatCaption: (date: Date) => caption.format(date),
+    formatMonthDropdown: (date: Date) => month.format(date)
+  }
+}
+
+function weekStart(): 0 | 1 | 2 | 3 | 4 | 5 | 6 {
+  const locale = new Intl.Locale(i18n.resolvedLanguage ?? i18n.language) as Intl.Locale & {
+    getWeekInfo?: () => { firstDay: number }
+    weekInfo?: { firstDay: number }
+  }
+  const firstDay = (locale.getWeekInfo?.() ?? locale.weekInfo)?.firstDay ?? 7
+  return (firstDay % 7) as 0 | 1 | 2 | 3 | 4 | 5 | 6
+}
 
 interface DateTimePickerProps {
   id?: string
@@ -138,19 +175,35 @@ export function DateTimePicker({
   }
 
   function commit(change: Partial<Parts>) {
-    onChange(
-      stringify({
-        date: parts?.date ?? startOfDay(new Date()),
-        hour: parts?.hour ?? DEFAULT_HOUR,
-        minute: parts?.minute ?? 0,
-        ...change
-      })
-    )
+    const next = {
+      date: parts?.date ?? startOfDay(new Date()),
+      hour: parts?.hour ?? DEFAULT_HOUR,
+      minute: parts?.minute ?? 0,
+      ...change
+    }
+    // ~keep Only a time nobody chose is moved: the default would otherwise land in the past.
+    if (!parts && minDate && toDate(next) < minDate) {
+      next.hour = minDate.getHours()
+      next.minute = minDate.getMinutes()
+      if (toDate(next) < minDate) next.date = startOfDay(minDate)
+    }
+    onChange(stringify(next))
   }
 
   const hour = parts?.hour
   const pm = hour === undefined ? undefined : hour >= 12
-  const hours = twentyFour ? range(24) : range(12, 1)
+  // ~keep Earlier times only matter on the minimum's own day.
+  const day = parts?.date ?? startOfDay(new Date())
+  const limited = minDate && startOfDay(minDate).getTime() === day.getTime() ? minDate : undefined
+  const minHour = limited?.getHours() ?? 0
+  const minMinute = limited && (hour ?? DEFAULT_HOUR) === minHour ? limited.getMinutes() : 0
+  const actualHour = (picked: number) =>
+    twentyFour ? picked : (picked % 12) + ((pm ?? false) ? 12 : 0)
+  const hours = (twentyFour ? range(24) : range(12, 1)).map((option) => ({
+    ...option,
+    disabled: actualHour(option.value) < minHour
+  }))
+  const minutes = range(60).map((option) => ({ ...option, disabled: option.value < minMinute }))
   const shownHour = hour === undefined ? undefined : twentyFour ? hour : hour % 12 || 12
   const setHour = (picked: number) =>
     commit({ hour: twentyFour ? picked : (picked % 12) + (pm ? 12 : 0) })
@@ -158,15 +211,7 @@ export function DateTimePicker({
     commit({ hour: ((hour ?? DEFAULT_HOUR) % 12) + (period ? 12 : 0) })
 
   const shown = parts
-    ? dateTimeFormat({ dateStyle: 'medium', timeStyle: 'short' }).format(
-        new Date(
-          parts.date.getFullYear(),
-          parts.date.getMonth(),
-          parts.date.getDate(),
-          parts.hour,
-          parts.minute
-        )
-      )
+    ? dateTimeFormat({ dateStyle: 'medium', timeStyle: 'short' }).format(toDate(parts))
     : t('dateTime.placeholder')
 
   return (
@@ -196,6 +241,8 @@ export function DateTimePicker({
               defaultMonth={parts?.date ?? minDate}
               disabled={minDate && { before: startOfDay(minDate) }}
               onSelect={(date) => commit({ date })}
+              formatters={calendarFormatters()}
+              weekStartsOn={weekStart()}
               classNames={{ weekday: 'text-muted-foreground' }}
               labels={{
                 // ~keep The default label spells the day as an ordinal, which does not contain the
@@ -218,7 +265,7 @@ export function DateTimePicker({
               </Button>
             </div>
           </div>
-          <div className="flex h-36 gap-1.5 sm:h-auto sm:max-h-80">
+          <div className="flex h-44 gap-1.5 sm:h-auto">
             <TimeColumn
               label={t('dateTime.hour')}
               options={hours}
@@ -227,7 +274,7 @@ export function DateTimePicker({
             />
             <TimeColumn
               label={t('dateTime.minute')}
-              options={range(60)}
+              options={minutes}
               selected={parts?.minute}
               onSelect={(minute) => commit({ minute })}
             />
@@ -235,7 +282,7 @@ export function DateTimePicker({
               <TimeColumn
                 label={t('dateTime.period')}
                 options={[
-                  { value: 0, label: t('dateTime.am') },
+                  { value: 0, label: t('dateTime.am'), disabled: minHour >= 12 },
                   { value: 1, label: t('dateTime.pm') }
                 ]}
                 selected={pm === undefined ? undefined : Number(pm)}
