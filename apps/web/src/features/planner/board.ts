@@ -54,12 +54,12 @@ export function move(board: Board, id: string, to: Container, index?: number): B
   return { ...without, [to]: cells }
 }
 
-export function moveToStartOfGrid(board: Board, id: string): Board {
-  const without = lift(board, [id])
+export function moveToStartOfGrid(board: Board, ids: string[]): Board {
+  const without = lift(board, ids)
   const locked = lockedCells(board)
   const cells = [...without.grid]
   const firstFree = cells.findIndex((cell) => !locked.has(cell))
-  cells.splice(firstFree === -1 ? cells.length : firstFree, 0, id)
+  cells.splice(firstFree === -1 ? cells.length : firstFree, 0, ...ids)
   return { ...without, grid: cells }
 }
 
@@ -67,6 +67,7 @@ export function moveCells(board: Board, ids: string[], to: Container): Board {
   const chosen = new Set(ids)
   const from = to === 'tray' ? board.grid : board.tray
   const moving = from.filter((id) => chosen.has(id))
+  if (to === 'grid') return moveToStartOfGrid(board, moving)
   return { ...lift(board, moving), [to]: [...board[to], ...moving] }
 }
 
@@ -163,7 +164,7 @@ export function flightsBetween(before: Board, after: Board) {
 
 export function moveAll(board: Board, from: Container): Board {
   return from === 'tray'
-    ? { ...board, tray: [], grid: [...board.grid, ...board.tray] }
+    ? moveToStartOfGrid(board, board.tray)
     : { ...board, tray: [...board.tray, ...board.grid], grid: [] }
 }
 

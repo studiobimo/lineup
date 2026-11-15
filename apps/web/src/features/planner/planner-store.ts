@@ -317,7 +317,7 @@ const arrangeSlice = ({
   | 'clear'
 > => ({
   move: (id, to, index) => commit(move(get().board, id, to, index)),
-  moveToStartOfGrid: (id) => commit(moveToStartOfGrid(get().board, id)),
+  moveToStartOfGrid: (id) => commit(moveToStartOfGrid(get().board, [id])),
   swap: (first, second) => commit(swap(get().board, first, second)),
   moveAll: (from) => commit(moveAll(get().board, from)),
   moveCells: (ids, to) => commit(moveCells(get().board, ids, to)),

@@ -251,7 +251,7 @@ describe('board operations', () => {
   })
 
   it('sends a tray cell to the start of the grid', () => {
-    expect(moveToStartOfGrid(board, 'a')).toEqual({ tray: ['b'], grid: ['a', 'c', 'd', 'e'] })
+    expect(moveToStartOfGrid(board, ['a'])).toEqual({ tray: ['b'], grid: ['a', 'c', 'd', 'e'] })
   })
 
   it('starts after the locked and posted cells, which keep their places', () => {
@@ -260,17 +260,17 @@ describe('board operations', () => {
       grid: ['b', 'c', 'd'],
       posts: { b: postFor('2030-01-01T10:00:00Z') }
     }
-    expect(moveToStartOfGrid(posted, 'a').grid).toEqual(['b', 'a', 'c', 'd'])
+    expect(moveToStartOfGrid(posted, ['a']).grid).toEqual(['b', 'a', 'c', 'd'])
     const locked = { tray: ['a'], grid: ['b', 'c'], locked: ['b'] }
-    expect(moveToStartOfGrid(locked, 'a').grid).toEqual(['b', 'a', 'c'])
+    expect(moveToStartOfGrid(locked, ['a']).grid).toEqual(['b', 'a', 'c'])
   })
 
   it('appends when every grid cell is locked or the grid is empty', () => {
-    expect(moveToStartOfGrid({ tray: ['a'], grid: ['b'], locked: ['b'] }, 'a').grid).toEqual([
+    expect(moveToStartOfGrid({ tray: ['a'], grid: ['b'], locked: ['b'] }, ['a']).grid).toEqual([
       'b',
       'a'
     ])
-    expect(moveToStartOfGrid({ tray: ['a'], grid: [] }, 'a').grid).toEqual(['a'])
+    expect(moveToStartOfGrid({ tray: ['a'], grid: [] }, ['a']).grid).toEqual(['a'])
   })
 
   it('swaps within a container and between them', () => {
@@ -278,8 +278,13 @@ describe('board operations', () => {
     expect(swap(board, 'a', 'd')).toEqual({ tray: ['d', 'b'], grid: ['c', 'a', 'e'] })
   })
 
-  it('moves everything at once, keeping the order', () => {
-    expect(moveAll(board, 'tray')).toEqual({ tray: [], grid: ['c', 'd', 'e', 'a', 'b'] })
+  it('moves the tray to the start of the grid, in tray order, ahead of the planned cells', () => {
+    expect(moveAll(board, 'tray')).toEqual({ tray: [], grid: ['a', 'b', 'c', 'd', 'e'] })
+    const locked = { tray: ['a', 'b'], grid: ['c', 'd'], locked: ['c'] }
+    expect(moveAll(locked, 'tray')).toEqual({ tray: [], grid: ['c', 'a', 'b', 'd'], locked: ['c'] })
+  })
+
+  it('moves the grid to the end of the tray, keeping the order', () => {
     expect(moveAll(board, 'grid')).toEqual({ tray: ['a', 'b', 'c', 'd', 'e'], grid: [] })
   })
 
@@ -315,17 +320,22 @@ describe('board operations', () => {
 describe('moving several cells', () => {
   const board: Board = { tray: ['a', 'b', 'c'], grid: ['d', 'e'] }
 
-  it('keeps their order on the board, whatever order they were chosen in', () => {
+  it('sends them to the start of the grid in tray order, whatever order they were chosen in', () => {
     expect(moveCells(board, ['c', 'a'], 'grid')).toEqual({
       tray: ['b'],
-      grid: ['d', 'e', 'a', 'c']
+      grid: ['a', 'c', 'd', 'e']
     })
+  })
+
+  it('starts after a locked cell, which keeps its place', () => {
+    const locked: Board = { tray: ['a', 'b', 'c'], grid: ['d', 'e'], locked: ['d'] }
+    expect(moveCells(locked, ['c', 'a'], 'grid').grid).toEqual(['d', 'a', 'c', 'e'])
   })
 
   it('leaves alone those already there', () => {
     expect(moveCells(board, ['a', 'd'], 'grid')).toEqual({
       tray: ['b', 'c'],
-      grid: ['d', 'e', 'a']
+      grid: ['a', 'd', 'e']
     })
   })
 })
