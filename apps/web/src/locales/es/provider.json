@@ -57,6 +57,11 @@
     "cancelDescription": "No se publicará y se eliminará de {{provider}}. La imagen vuelve a ser una celda planificada.",
     "cancelConfirm": "Cancelar publicación",
     "keep": "Mantenerla",
+    "live": {
+      "published": "Tu publicación ya salió.",
+      "view": "Ver publicación",
+      "failed": "Una publicación no se publicó."
+    },
     "view": "Ver en Instagram",
     "free": "Liberar esta celda",
     "freePublished": "Liberar esta celda deja la publicación en Instagram, y se muestra después de las celdas planificadas.",
