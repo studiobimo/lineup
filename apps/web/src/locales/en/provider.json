@@ -75,6 +75,22 @@
       "length": "Instagram takes a Reel of up to {{minutes}} minutes.",
       "count_one": "A carousel can hold one video.",
       "count_other": "A carousel can hold {{count}} videos."
+    },
+    "tags": {
+      "title": "Tag accounts",
+      "hint": "Tap the picture where you want a tag, then type the username. Drag a tag to move it, or use the arrow keys (hold Shift for bigger steps). Up to {{limit}} per post.",
+      "videoHint": "Add the accounts to tag in this video. Up to {{limit}} per post.",
+      "slide": "Slide {{position}} ({{count}})",
+      "picture": "The picture to tag",
+      "unnamed": "Tag {{position}}",
+      "marker": "{{name}}, {{x}} from the left, {{y}} from the top. Move with the arrow keys, remove with Delete.",
+      "username": "Username of tag {{position}}",
+      "placeholder": "username",
+      "remove": "Remove tag {{position}}",
+      "add": "Add an account",
+      "full": "That is the most Instagram allows on a post, {{limit}} tags.",
+      "invalid": "Every tag needs a username of letters, numbers, full stops and underscores, up to 30 characters.",
+      "place": "Place a tag on the picture. Then type the username."
     }
   },
   "published": {

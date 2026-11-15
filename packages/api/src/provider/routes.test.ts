@@ -287,6 +287,27 @@ describe('provider routes, with a key', () => {
 })
 
 describe('provider routes, with a key, scheduling', () => {
+  it('passes the tags on, and refuses an image tag with no point', async () => {
+    const headers = { ...(await signedIn()), 'Idempotency-Key': 'once' }
+    const tagged = { ...newPost(), userTags: [{ username: 'friend', x: 0.5, y: 0.5 }] }
+    const sentTags = await send('/scheduled-posts', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(tagged)
+    })
+    expect(sentTags.status).toBe(201)
+    expect(provider.schedule).toHaveBeenCalledWith(tagged, 'once')
+    vi.mocked(provider.schedule).mockClear()
+    const pointless = { ...newPost(), userTags: [{ username: 'friend' }] }
+    const refused = await send('/scheduled-posts', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(pointless)
+    })
+    expect(refused.status).toBe(400)
+    expect(provider.schedule).not.toHaveBeenCalled()
+  })
+
   it('refuses to schedule without an idempotency key', async () => {
     const headers = await signedIn()
     const response = await send('/scheduled-posts', {

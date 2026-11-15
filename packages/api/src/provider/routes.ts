@@ -262,7 +262,8 @@ const scheduleRoutes = (providerFor: ProviderFor) =>
     .post(
       '/scheduled-posts',
       documented({
-        description: 'Schedule. Needs `Idempotency-Key`, and refuses a time in the past',
+        description:
+          'Schedule, with tags if any. Needs `Idempotency-Key`, and refuses a time in the past',
         status: 201,
         answer: scheduledPostSchema,
         refuses: [400, 409, 422]
@@ -286,7 +287,7 @@ const scheduleRoutes = (providerFor: ProviderFor) =>
     .patch(
       '/scheduled-posts/:id',
       documented({
-        description: 'Change the time or the caption until it is published',
+        description: 'Change the time or the caption until it is published. Tags cannot change',
         answer: scheduledPostSchema,
         refuses: [400, 404, 409, 422]
       }),

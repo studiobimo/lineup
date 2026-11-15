@@ -6,7 +6,7 @@ import { toastManager } from '@/components/ui/toast'
 import { provider } from '@/config/provider'
 import { imagesOf } from '@/features/planner/board'
 import { instagram } from '@/features/planner/network-profile'
-import { plannerStore } from '@/features/planner/planner'
+import { plannerStore, usePlanner } from '@/features/planner/planner'
 
 import { PostForm, type PostFormValues } from './post-form'
 import {
@@ -17,6 +17,8 @@ import {
   toFieldTime
 } from './post-time'
 import { PROVIDER_KEY } from './queries'
+import { TagPicker } from './tag-picker'
+import { allNamed, InvalidTagError, toUserTags, type TagDraft } from './tags'
 import { MissingCopyError, sendPost, VideoLimitError } from './send-post'
 import { useProblemText } from './use-problem-text'
 
@@ -31,12 +33,23 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
   const problemText = useProblemText()
   const images = imagesOf(plannerStore.getState().board, cell)
   const [sending, setSending] = useState(0)
+  const [tags, setTags] = useState<TagDraft[]>([])
+  const records = usePlanner(({ images: known }) => known)
+  const slides = images.map((id) => ({ id, video: Boolean(records[id]?.video) }))
   const queryClient = useQueryClient()
 
   const send = useMutation({
     mutationFn: async ({ caption, when }: PostFormValues) => {
+      if (!allNamed(tags)) throw new InvalidTagError()
       const scheduledFor = fromFieldTime(when)
-      const post = { accountId, caption, scheduledFor, timeZone: localTimeZone() }
+      const userTags = toUserTags(tags)
+      const post = {
+        accountId,
+        caption,
+        scheduledFor,
+        timeZone: localTimeZone(),
+        ...(userTags.length > 0 && { userTags })
+      }
       return sendPost({ cell, images, post, onImage: setSending })
     },
     onSuccess: (post) => {
@@ -53,13 +66,15 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
   const problem =
     error instanceof MissingCopyError
       ? t('post.missingCopy')
-      : error instanceof VideoLimitError
-        ? t(`post.videoLimit.${error.limit}`, {
-            size: instagram.videoSizeLimit / 1024 / 1024,
-            minutes: instagram.reelLengthLimit / 60,
-            count: instagram.videosPerPost
-          })
-        : problemText(error)
+      : error instanceof InvalidTagError
+        ? t('post.tags.invalid')
+        : error instanceof VideoLimitError
+          ? t(`post.videoLimit.${error.limit}`, {
+              size: instagram.videoSizeLimit / 1024 / 1024,
+              minutes: instagram.reelLengthLimit / 60,
+              count: instagram.videosPerPost
+            })
+          : problemText(error)
 
   return (
     <PostForm
@@ -74,6 +89,7 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
       problem={problem}
       onSubmit={send.mutateAsync}
     >
+      <TagPicker slides={slides} tags={tags} onChange={setTags} />
       <p className="text-sm text-muted-foreground">
         {t('post.notice', { provider: provider.name })}
       </p>

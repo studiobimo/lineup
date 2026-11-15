@@ -87,3 +87,14 @@ export function StoredVideo({ id, label, className }: ImageProps & { className?:
 export function FullSizeImage({ className, ...props }: ImageProps & { className?: string }) {
   return <StoredImage {...props} read={readFullSize} className={cn('object-contain', className)} />
 }
+
+export function PictureImage({ className, ...props }: ImageProps & { className?: string }) {
+  return (
+    <StoredImage
+      {...props}
+      read={readFullSize}
+      className={cn('block size-full', className)}
+      cover
+    />
+  )
+}
