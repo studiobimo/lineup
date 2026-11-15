@@ -85,32 +85,36 @@ function TimeColumn({ label, options, selected, onSelect }: TimeColumnProps) {
   const tabbable = selected ?? options.find(({ disabled }) => !disabled)?.value
   return (
     <div className="relative w-16 rounded-lg border">
-      <ScrollArea className="absolute inset-0" scrollFade>
-        <div
-          ref={list}
-          role="listbox"
-          tabIndex={-1}
-          aria-label={label}
-          aria-orientation="vertical"
-          className="relative flex flex-col gap-0.5 p-1"
-          onKeyDown={onKeyDown}
-        >
-          {options.map(({ value, label: text, disabled }) => (
-            <button
-              key={value}
-              type="button"
-              role="option"
-              disabled={disabled}
-              tabIndex={value === tabbable ? 0 : -1}
-              aria-selected={value === selected}
-              className="flex h-8 w-full shrink-0 cursor-pointer items-center justify-center rounded-md text-sm tabular-nums outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 aria-selected:bg-primary aria-selected:text-primary-foreground"
-              onClick={() => onSelect(value)}
-            >
-              {text}
-            </button>
-          ))}
-        </div>
-      </ScrollArea>
+      {/* ~keep The scroll area sets its own position, so it cannot be the absolute element: it
+          would size the row to its list and make the columns taller than the calendar. */}
+      <div className="absolute inset-0">
+        <ScrollArea scrollFade>
+          <div
+            ref={list}
+            role="listbox"
+            tabIndex={-1}
+            aria-label={label}
+            aria-orientation="vertical"
+            className="relative flex flex-col gap-0.5 p-1"
+            onKeyDown={onKeyDown}
+          >
+            {options.map(({ value, label: text, disabled }) => (
+              <button
+                key={value}
+                type="button"
+                role="option"
+                disabled={disabled}
+                tabIndex={value === tabbable ? 0 : -1}
+                aria-selected={value === selected}
+                className="flex h-8 w-full shrink-0 cursor-pointer items-center justify-center rounded-md text-sm tabular-nums outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 aria-selected:bg-primary aria-selected:text-primary-foreground"
+                onClick={() => onSelect(value)}
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
     </div>
   )
 }
@@ -181,11 +185,15 @@ export function DateTimePicker({
       minute: parts?.minute ?? 0,
       ...change
     }
-    // ~keep Only a time nobody chose is moved: the default would otherwise land in the past.
-    if (!parts && minDate && toDate(next) < minDate) {
-      next.hour = minDate.getHours()
-      next.minute = minDate.getMinutes()
-      if (toDate(next) < minDate) next.date = startOfDay(minDate)
+    // ~keep Every change is held to the minimum, not just the default: choosing the minimum hour
+    // or day would otherwise leave minutes the columns show as disabled.
+    if (minDate && toDate(next) < minDate) {
+      const first = startOfDay(minDate)
+      if (next.date < first) next.date = first
+      if (toDate(next) < minDate) {
+        if (next.hour !== minDate.getHours()) next.hour = minDate.getHours()
+        next.minute = minDate.getMinutes()
+      }
     }
     onChange(stringify(next))
   }
@@ -231,7 +239,10 @@ export function DateTimePicker({
         <CalendarIcon aria-hidden="true" />
         {shown}
       </PopoverTrigger>
-      <PopoverPopup align="start" className="max-w-[calc(100vw-2*var(--spacing-gutter))]">
+      <PopoverPopup
+        align="start"
+        className="max-h-(--available-height) max-w-[calc(100vw-2*var(--spacing-gutter))]"
+      >
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex flex-col gap-2">
             <Calendar

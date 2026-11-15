@@ -160,6 +160,24 @@ describe('DateTimePicker', () => {
       enabled('AM or PM', 'AM')
     })
 
+    it('moves the minute up when the minimum hour is chosen', async () => {
+      const user = userEvent.setup()
+      render(<Harness minDate={min} initial="2030-05-10T15:00" />)
+      await open(user)
+      await user.click(option('Hour', '02'))
+      expect(current()).toHaveTextContent('2030-05-10T14:31')
+    })
+
+    it('moves the time to the minimum when the day becomes the minimum day', async () => {
+      const user = userEvent.setup()
+      render(<Harness minDate={min} initial="2030-05-11T09:15" />)
+      await open(user)
+      await user.click(screen.getByRole('button', { name: /Friday, May 10/ }))
+      expect(current()).toHaveTextContent('2030-05-10T14:31')
+      await user.click(option('AM or PM', 'PM'))
+      expect(current()).toHaveTextContent('2030-05-10T14:31')
+    })
+
     it('moves an unchosen default time to the next valid minute', async () => {
       const user = userEvent.setup()
       render(<Harness initial="" minDate={new Date(2030, 4, 10, 15, 7)} />)
