@@ -147,6 +147,7 @@ FINDING_MARKERS_REPEATED="block '%s' appears more than once; keep one copy"
 MSG_SYNC_UPDATED='%s: updated'
 MSG_SYNC_CREATED="%s: created with block '%s'"
 MSG_SYNC_APPENDED="%s: block '%s' appended; move it to where it belongs"
+MSG_SYNC_ADOPTED="%s: block '%s' now wraps the whole file, which already matched it"
 MSG_SYNC_BLOCK_UPDATED="%s: block '%s' updated"
 
 MSG_SYNC_DRIFT='%d difference(s) from %s@%s (last synced: %s).'
@@ -165,6 +166,9 @@ MSG_GH_NO_SHARED='%s@%s has no %s, so the shared settings and rulesets were skip
 MSG_GH_FINDING='    %s'
 MSG_GH_DESCRIPTION='description: %s -> %s'
 MSG_GH_ENV_MISSING='environment %s: missing'
+MSG_GH_LABEL_MISSING='label %s: missing'
+CI_FULL_LABEL='ci:full'
+CI_FULL_LABEL_DESC='Run the full CI now, with full test suites'
 MSG_GH_DIFFERS="%s differs. Apply with: ${DEVTOOLS} github"
 MSG_GH_SET_UP='%s is set up%s'
 MSG_GH_SKIPPED=', apart from the shared settings and rulesets'
