@@ -57,4 +57,8 @@ api-breaking: ## Fail if the API reference breaks v1, against BASE (a new docume
 bundle-report: ## Build, and write a picture of the bundle to dist/bundle-report.html
 	$(APP_CD) && ANALYZE=1 $(MISE) exec -- pnpm exec vite build
 
-ci: e2e memory-budget first-load worker-budget knip duplication
+# Browser suites run only in a full run (a pull request into main, a push, the ci:full label), so a
+# pull request into develop skips them; `ci` runs them after its own checks unless CI_FULL=false.
+# first-load and worker-budget need no browser but build the app, which is most of the cost.
+# Each target names its own prerequisites, so the order here is only the run order.
+FULL_CI_TARGETS += playwright-install e2e memory-budget first-load worker-budget
