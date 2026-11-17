@@ -108,7 +108,7 @@ weekly workflow reports as an issue.
 
 | To change | Edit it in | It reaches this repo by |
 | --- | --- | --- |
-| CI behaviour (lint, PR checks, release) | `studiobimo/.github`, `.github/workflows/` | the `@v1` tag moving |
+| CI behaviour (baseline, validate, release) | `studiobimo/.github`, `.github/workflows/` | the `@v1` tag moving |
 | Branch and PR-size rules | `studiobimo/.github`, `.devtools/` | the `@v1` tag moving; lefthook refetches it daily |
 | Shared hooks and tool versions | `studiobimo/project-template` | `make -C .devtools sync` |
 | Files and blocks listed in the template's `.template/manifest`, and in the manifest of each profile in `.template-profiles` | `studiobimo/project-template` | `make -C .devtools sync` |
@@ -213,8 +213,9 @@ add only what is particular to it.
 - **Server state:** TanStack Query. **Forms:** TanStack Form. **Validation:** zod.
 - **Strings:** i18next with react-i18next, from catalogs in `src/locales/`.
 - **Styling:** Tailwind CSS v4, configured in `src/index.css`. Components: shadcn/ui in
-  `src/components/ui/`, added with `pnpm exec shadcn add <name>`: the CLI is a devDependency,
-  so the lockfile pins it like every other package (`pnpm add -D shadcn` in an older project).
+  `src/components/ui/`, added through the shadcn MCP server or, failing that, with
+  `pnpm exec shadcn add <name>`: the CLI is a devDependency, so the lockfile pins it like every
+  other package (`pnpm add -D shadcn` in an older project).
 - **Tests:** Vitest with Testing Library, next to the code as `*.test.ts(x)`.
 - **Packages:** pnpm, pinned in `mise.toml`. Never add `package-lock.json` or `yarn.lock`.
 - **Hosting** is another profile's job. Nothing in `src/` should know where the app runs:
@@ -258,8 +259,10 @@ package by its `src/`, not from a list:
   router). A hardcoded string in a `.tsx` file fails in any package.
 - **Vitest:** `base` is the React setup: jsdom, `globals`, the React plugin, `src/test/setup.ts`
   when there is one. `make test` runs a package with no `vitest.config.ts` on it as it is.
-- **tsc:** `make typecheck` runs `tsc -b` in a package that has a `src/`, and fails when it has
-  no `tsconfig.json`. No list to edit.
+- **tsc:** `make typecheck` runs `tsc -p tsconfig.json --noEmit --incremental` in a package that
+  has a `src/`, and fails when it has no `tsconfig.json`. No list to edit. An app's `TSC_PROJECTS`
+  are expanded to the configs their `references` name and each one is checked the same way, so a
+  rerun only rechecks what changed (`tsc -b` is never incremental with `noEmit`).
 - **Apps:** a package with a `vite.config.ts` that is not in `APPS` (or `APP_DIR`) fails
   `make budget`, so an app cannot go without a build and a budget.
 
@@ -306,6 +309,14 @@ export default mergeConfig(base, defineConfig({ test: { environment: 'node' } })
 
 ### Conventions
 
+- **shadcn MCP first.** `.mcp.json` (Claude Code) and `.codex/config.toml` (Codex) register the
+  shadcn MCP server, started by `.devtools/scripts/shadcn-mcp.mjs` in `APP_DIR`, so it finds
+  `components.json` in a workspace as in a single app. At the start of UI work, check that its
+  tools are loaded. Search, view and add registry items with them before writing a component
+  by hand. If they are not loaded, say so and fall back to the CLI from `APP_DIR`:
+  `pnpm exec shadcn search <registry> -q <term>`, `pnpm exec shadcn view <item>` and
+  `pnpm exec shadcn add <item>`. `src/components/ui/` is only ever added or regenerated with
+  shadcn, never hand-edited.
 - **Scaffold with the generator** rather than copying the nearest file: it writes code that
   is formatted, lint-clean and tested from the start. `pnpm gen` runs it too.
 
@@ -337,12 +348,48 @@ export default mergeConfig(base, defineConfig({ test: { environment: 'node' } })
   a parallel one. knip fails on unused files, exports and dependencies; `knip.json` exempts the
   shadcn/ui primitives and the dependencies a new app has before its first feature.
 
+### Narrowed CI and the full-only targets
+
+CI can narrow a pull request's checks to what it changes. `ci / validate`, which a draft and the
+middle of a stack defer, runs `make -C .devtools ci` with two variables, and a laptop sets neither, so a local `make ci` runs
+everything:
+
+| Variable | Meaning |
+| --- | --- |
+| `AFFECTED_BASE` | `origin/<base>` to narrow tests to what the pull request changed; empty for the full suite |
+| `CI_FULL` | `false` when the run was narrowed; anything else, or unset, is a full run |
+
+- **Tests.** `scripts/affected.sh` prints `AFFECTED_BASE` when it is a commit and the diff
+  `AFFECTED_BASE...HEAD` (plus uncommitted changes) touches no file that can change every test:
+  lockfiles and workspace files, any `package.json`, `mise.toml`, `mise.lock`, `.devtools/`, any
+  `tsconfig*.json`, Vite, Vitest, ESLint, knip and jscpd configs, `wrangler.jsonc` and
+  `src/test/setup.*`. Then `make test` runs `vitest run --changed <base> --passWithNoTests` in
+  each package, which runs the files importing something that changed. Otherwise it prints
+  nothing and the whole suite runs. Add a file to its list when a change to it must not be
+  narrowed.
+- **ESLint, Prettier and tsc** are never narrowed. They keep content caches under
+  `node_modules/.cache/` and `.tsbuildinfo` files under `node_modules/.tmp/`, so a rerun is fast
+  and a cold CI run costs what it did.
+- **End-to-end and other browser suites** (Playwright, memory, first-load and worker budgets)
+  run only in a full run. List them in `FULL_CI_TARGETS` instead of as prerequisites of `ci`,
+  after the `include`, in `.devtools/Makefile` or a host's `host.mk`:
+
+  ```make
+  # before: ci: e2e budget-memory
+  FULL_CI_TARGETS += playwright-install e2e budget-memory
+  ```
+
+  `ci` runs them, in that order, after its own checks unless `CI_FULL=false`, and says what it
+  skipped. Give a target the prerequisites it needs (`e2e: build playwright-install`) rather
+  than relying on the order. Pull requests into `main`, pushes and the `ci:full` label are full
+  runs; pull requests into `develop` are narrowed. Adding `ci:full` runs the full suites at once.
+
 ### Commands
 
 ```sh
 make -C .devtools install   # the packages pnpm-lock.yaml pins
 make -C .devtools dev       # Vite dev server on http://localhost:5173
-make -C .devtools ci        # build, types, ESLint, knip, jscpd, Prettier, tests, budget, audit
+make -C .devtools ci        # build, types, ESLint, knip, jscpd, Prettier, tests, budget, audit, FULL_CI_TARGETS
 make -C .devtools fmt       # Prettier over the web sources
 ```
 <!-- <<< template:vite -->
@@ -359,7 +406,9 @@ every entry of `APPS`), so run `wrangler` there.
 - **One Worker serves the app.** Static files come from `dist/client`, and any path that is
   not a file falls back to `index.html` for the router. Only `/api/*` runs the Hono app in
   `worker/index.ts`. `make -C .devtools dev` runs it in workerd beside the client, with
-  the bindings in `wrangler.jsonc` simulated locally.
+  the bindings in `wrangler.jsonc` simulated locally. Every app keeps that local D1, KV and R2
+  in `.dev-state/` at the repository's root, so in a workspace each app sees what another
+  wrote. Give other local `wrangler` commands `--persist-to <root>/.dev-state` to reach it.
 - **Environments.** The top level of `wrangler.jsonc` is local development. Deploys go to
   `env.development` or `env.production`, as `<name>-development` and `<name>-production`.
   Neither inherits bindings or vars from the top level, so restate them in each. A project
