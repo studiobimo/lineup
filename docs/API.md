@@ -132,10 +132,38 @@ from 0 to 1 from the top left and are required on an image; a video ignores them
 the slide of a carousel, from 0. The API sends them as `platformSpecificData.userTags` on the
 Instagram entry of `platforms`, and sends no `platformSpecificData` when there are none.
 
+## Telemetry
+
+`POST /api/v1/telemetry/publish-delay` takes one anonymous event when a post scheduled through
+Lineup is seen as published ([ADR-0026](adr/0026-anonymous-publish-delay-telemetry.md)). It needs
+no key and no cookie, is origin-checked, and answers 204 with no body. The body holds only:
+
+| Field                         | Meaning                                                             |
+| ----------------------------- | ------------------------------------------------------------------- |
+| `eventId`                     | A random UUID made in the browser, linked to nothing else           |
+| `scheduledFor`, `publishedAt` | ISO times: the one chosen, and the one the provider recorded        |
+| `delaySeconds`                | `publishedAt` minus `scheduledFor`, in whole seconds, never below 0 |
+| `kind`                        | `image`, `carousel` or `reel`                                       |
+| `images`, `videos`            | How many of each the post held                                      |
+| `totalBytes`                  | The size of everything uploaded for the post                        |
+| `largestVideoBytes`           | Optional: the biggest video's size                                  |
+| `largestVideoSeconds`         | Optional: the longest video's duration                              |
+| `appVersion`                  | The build that sent it                                              |
+
+`account` is optional: the connected account's handle, trimmed and lowercased. The Worker never logs it.
+It logs `account` as the first 12 hex characters of HMAC-SHA-256 of the handle keyed with the secret
+`TELEMETRY_SALT`, and leaves the field out when no salt is set.
+
+Any other key is refused with a 400. The Worker writes the validated fields as one JSON log line
+with `event.name: "lineup.publish_delay"` and OpenTelemetry-style attributes (`lineup.post.id`,
+`lineup.post.media_kind`, `lineup.account.tag`, `service.version` and so on, listed in ADR-0026), and
+stores nothing. A body is never logged as received.
+
 ## Rate limiting
 
 - A limited request gets a 429 with a `Retry-After` header in seconds.
 - Setting a provider key is limited, so the route cannot be used to test stolen keys in bulk.
+- Telemetry is limited by address, with its own limit, so it cannot be used to fill the logs.
 
 ## Headers
 
@@ -149,7 +177,8 @@ Instagram entry of `platforms`, and sends no `platformSpecificData` when there a
 ## Logging
 
 Logs record the method, the path template, the status, the duration and the request id. They
-never record bodies, query strings, cookies, authorisation headers or keys.
+never record bodies, query strings, cookies, authorisation headers or keys. The one exception is
+the telemetry route, which logs its validated fields and nothing from the request.
 
 ## Reference
 
