@@ -12,6 +12,28 @@ Thanks for helping! This project follows a few strict conventions, and tooling e
 
 `make -C .devtools help` lists all targets.
 
+## Testing the provider flow without Zernio
+
+`.devtools/scripts/zernio-mock.mjs` is a fake Zernio: any key works, you pick one of two fake
+Instagram accounts, and scheduling, rescheduling, cancelling, publishing and the published grid all
+run against it, with no real account. It keeps everything in memory.
+
+1. Copy `apps/web/.dev.vars.example` to `apps/web/.dev.vars` (git ignores it), fill in
+   `PROVIDER_KEY_SECRET_V1` (`openssl rand -base64 32`) and add `ZERNIO_BASE_URL=http://localhost:8788`.
+2. Run `make -C .devtools zernio-mock` in one terminal and `make -C .devtools dev` in another
+   (`.claude/launch.json` has both, as `zernio-mock` and `dev`).
+3. Paste any key of eight characters or more. `bad-key-401` answers 401, for the bad-key path.
+
+A post stays `scheduled` until its time, is `publishing` for 20 seconds, then is `published` and
+joins the published grid. A caption with `#fail` ends as `failed` instead. The mock prints each
+`POST /posts` body, so you can see exactly what the Worker sent. `ZERNIO_MOCK_PUBLISH_MS`,
+`ZERNIO_MOCK_PORT` and `ZERNIO_MOCK_BAD_KEY` change the delay, port and bad key.
+
+The Worker honours `ZERNIO_BASE_URL` only for an `http://localhost` or `http://127.0.0.1` address,
+so a deploy can never send keys elsewhere. Use the dev server: it sends no content security policy,
+so the browser can upload to and show pictures from the mock. The policy in `public/_headers` still
+blocks `localhost:8788` in a built app, on purpose, and is never loosened for this.
+
 ## Project layout
 
 | Path | Purpose |

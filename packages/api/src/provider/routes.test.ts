@@ -38,7 +38,7 @@ function stubProvider(): Provider {
 
 let provider: ReturnType<typeof stubProvider>
 
-let providerFor: ReturnType<typeof vi.fn<(key: string) => Provider>>
+let providerFor: ReturnType<typeof vi.fn<(key: string, baseUrl?: string) => Provider>>
 
 let limit: ReturnType<typeof vi.fn>
 
@@ -112,14 +112,22 @@ describe('provider routes, the key', () => {
   it('uses the narrow key from then on, not the pasted one', async () => {
     const headers = await signedIn()
     await send('/accounts', { headers })
-    expect(providerFor).toHaveBeenLastCalledWith(NARROW)
+    expect(providerFor).toHaveBeenLastCalledWith(NARROW, undefined)
+  })
+
+  it('hands the provider the local base URL from the environment', async () => {
+    env.ZERNIO_BASE_URL = 'http://localhost:8788'
+    await putKey()
+    expect(providerFor).toHaveBeenLastCalledWith(NARROW, 'http://localhost:8788')
+    await send('/accounts', { headers: await signedIn() })
+    expect(providerFor).toHaveBeenLastCalledWith(NARROW, 'http://localhost:8788')
   })
 
   it('says what the key can do, and asks it of the key that will be used', async () => {
     vi.mocked(provider.canPost).mockResolvedValue(false)
     const saved = await putKey()
     expect(await saved.clone().json()).toMatchObject({ canPost: false })
-    expect(providerFor).toHaveBeenLastCalledWith(NARROW)
+    expect(providerFor).toHaveBeenLastCalledWith(NARROW, undefined)
 
     const cookie = saved.headers.get('Set-Cookie') ?? ''
     const read = await send('/key', { headers: { Cookie: cookie.split(';')[0] } })
@@ -130,7 +138,7 @@ describe('provider routes, the key', () => {
     vi.mocked(provider.narrowed).mockResolvedValue(undefined)
     const headers = await signedIn()
     await send('/accounts', { headers })
-    expect(providerFor).toHaveBeenLastCalledWith(KEY)
+    expect(providerFor).toHaveBeenLastCalledWith(KEY, undefined)
   })
 })
 

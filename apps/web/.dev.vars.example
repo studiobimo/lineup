@@ -5,3 +5,6 @@
 # new one is added beside the old, which stays for 30 days, so nobody loses their key.
 PROVIDER_KEY_SECRET_V1=
 ZERNIO_API_KEY=
+# Local development only: send the provider calls to the fake Zernio (make -C .devtools zernio-mock)
+# instead of zernio.com. Only an http://localhost or http://127.0.0.1 address is honoured.
+# ZERNIO_BASE_URL=http://localhost:8788

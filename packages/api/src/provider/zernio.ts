@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { type Provider, ProviderError, type ProviderFailure } from './provider'
 
 const BASE_URL = 'https://zernio.com/api/v1'
+// ~keep Only a local fake may stand in for Zernio, so a misconfigured deploy cannot send keys elsewhere.
+const LOCAL_BASE_URL = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/[\w./-]*)?$/
 const PLATFORM = 'instagram'
 const TIMEOUT_MS = 15_000
 const RECENT_POSTS = 30
@@ -172,12 +174,13 @@ type Call = <Schema extends z.ZodType>(
 ) => Promise<z.output<Schema>>
 
 async function request<Schema extends z.ZodType>(
+  base: string,
   key: string,
   path: string,
   schema: Schema,
   { body, headers, method }: { body?: unknown; headers?: HeadersInit; method?: string } = {}
 ): Promise<z.output<Schema>> {
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const response = await fetch(`${base}${path}`, {
     method,
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', ...headers },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -349,8 +352,12 @@ const writeMethods = (call: Call): Pick<Provider, 'schedule' | 'update' | 'cance
   }
 })
 
-export function zernio(key: string): Provider {
-  const call: Call = (path, schema, options) => request(key, path, schema, options)
+export const baseUrlFor = (override?: string) =>
+  override && LOCAL_BASE_URL.test(override) ? override.replace(/\/$/, '') : BASE_URL
+
+export function zernio(key: string, baseUrl?: string): Provider {
+  const base = baseUrlFor(baseUrl)
+  const call: Call = (path, schema, options) => request(base, key, path, schema, options)
   return {
     ...keyMethods(call),
     ...accountMethods(call),

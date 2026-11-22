@@ -25,7 +25,7 @@ include vite.mk
 # Nothing imports these yet, so tsc would not reach them through the app.
 TSC_PROJECTS += ../../packages/api ../../packages/contract
 
-.PHONY: e2e memory-budget first-load worker-budget bundle-report openapi api-breaking
+.PHONY: e2e memory-budget first-load worker-budget bundle-report openapi api-breaking zernio-mock
 
 e2e: build playwright-install ## Playwright, against the built app
 	$(APP_PNPM) exec playwright test --project=chromium
@@ -40,6 +40,9 @@ first-load: build ## Fail if the script a first visit downloads passes the PRD's
 worker-budget: build ## Fail if the Worker outgrows its gzip budget
 	$(APP_CD) && $(MISE) exec -- node $(ROOT)/.devtools/scripts/worker-budget.mjs \
 		--gzip-kib $(WORKER_GZIP_KIB)
+
+zernio-mock: ## Run a fake Zernio on :8788 for the provider flow (set ZERNIO_BASE_URL in apps/web/.dev.vars)
+	$(MISE) exec -- node $(ROOT)/.devtools/scripts/zernio-mock.mjs
 
 openapi: ## Regenerate the API reference from the routes
 	$(PNPM) --filter lineup-api exec vitest run src/openapi.test.ts --update

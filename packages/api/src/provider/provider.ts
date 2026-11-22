@@ -23,7 +23,7 @@ export interface Provider {
   cancel(id: string): Promise<void>
 }
 
-export type ProviderFor = (key: string) => Provider
+export type ProviderFor = (key: string, baseUrl?: string) => Provider
 
 export type ProviderFailure =
   'key' | 'forbidden' | 'missing' | 'limited' | 'refused' | 'busy' | 'down'

@@ -38,6 +38,8 @@ const cookieOptions = {
 } as const
 
 export interface ProviderBindings extends SecretEnv {
+  // ~keep Local development only: a fake provider's address. zernio.ts ignores anything but localhost.
+  ZERNIO_BASE_URL?: string
   KEY_RATE_LIMIT: { limit(options: { key: string }): Promise<{ success: boolean }> }
 }
 
@@ -93,7 +95,7 @@ const withKey = (providerFor: ProviderFor) =>
       throw new ProblemError({ status: 401, code: 'key_missing', title: 'Add your key again' })
     }
     c.set('sealed', sealed)
-    c.set('provider', providerFor(sealed.key))
+    c.set('provider', providerFor(sealed.key, c.env.ZERNIO_BASE_URL))
     await next()
   })
 
@@ -123,14 +125,19 @@ async function chooseProfile(provider: Provider, profileId: string | undefined) 
   })
 }
 
-async function sealNewKey(providerFor: ProviderFor, key: string, profileId: string | undefined) {
-  const provider = providerFor(key)
+async function sealNewKey(
+  providerFor: ProviderFor,
+  key: string,
+  profileId: string | undefined,
+  baseUrl: string | undefined
+) {
+  const provider = providerFor(key, baseUrl)
   const profile = await chooseProfile(provider, profileId)
   const narrowed = await provider.narrowed(profile.id, KEY_DAYS)
   const maxAge = KEY_DAYS * DAY_SECONDS
   const expiresAt = new Date(Date.now() + maxAge * 1000).toISOString()
   const usable = narrowed ?? key
-  const canPost = await providerFor(usable).canPost()
+  const canPost = await providerFor(usable, baseUrl).canPost()
   const sealed = { key: usable, last4: key.slice(-4), expiresAt, profileId: profile.id, canPost }
   return { sealed, maxAge }
 }
@@ -149,7 +156,12 @@ const keyRoutes = (providerFor: ProviderFor) =>
       async (c) => {
         const { key, profileId } = c.req.valid('json')
         await allowTry(c.env, c.req.header('cf-connecting-ip') ?? 'unknown')
-        const { sealed, maxAge } = await sealNewKey(providerFor, key, profileId)
+        const { sealed, maxAge } = await sealNewKey(
+          providerFor,
+          key,
+          profileId,
+          c.env.ZERNIO_BASE_URL
+        )
         setCookie(c, COOKIE, await seal(sealed, c.env), { ...cookieOptions, maxAge })
         const { last4, expiresAt, canPost } = sealed
         return c.json({ last4, expiresAt, canPost })
