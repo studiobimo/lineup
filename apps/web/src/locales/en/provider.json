@@ -108,7 +108,8 @@
       "video": "A post with a video can take several minutes to go live, and Instagram orders posts by when they go live.",
       "image": "Instagram can take a few minutes to publish a post, and orders posts by when they go live.",
       "noRoom": "There is no time between these posts that leaves enough room. You can still schedule it.",
-      "use": "Use {{time}}"
+      "use": "Use {{time}}",
+      "legend": "Marked times are too near a post already scheduled: {{image}} minutes for pictures, {{video}} for a video, and more for a large one."
     }
   },
   "published": {

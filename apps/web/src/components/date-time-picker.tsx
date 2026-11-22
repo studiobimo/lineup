@@ -1,5 +1,5 @@
 import { CalendarIcon } from 'lucide-react'
-import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
+import { Fragment, type KeyboardEvent, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -47,6 +47,22 @@ interface Option {
   value: number
   label: string
   disabled?: boolean
+  note?: string
+}
+
+// ~keep From `start` up to but not including `end`, in epoch milliseconds.
+export interface TimeMark {
+  start: number
+  end: number
+  label: string
+}
+
+const MINUTE_MS = 60_000
+const HOUR_MS = 60 * MINUTE_MS
+
+const noteFor = (marks: TimeMark[], from: number, to: number) => {
+  const hit = marks.filter(({ start, end }) => from < end && to > start)
+  return hit.length > 0 ? hit.map(({ label }) => label).join(' ') : undefined
 }
 
 interface TimeColumnProps {
@@ -59,6 +75,7 @@ interface TimeColumnProps {
 // ~keep A listbox whose selection follows focus, as the native picker's columns do.
 function TimeColumn({ label, options, selected, onSelect }: TimeColumnProps) {
   const list = useRef<HTMLDivElement>(null)
+  const uid = useId()
 
   useEffect(() => {
     const item = list.current?.querySelector<HTMLElement>('[aria-selected="true"]')
@@ -98,19 +115,33 @@ function TimeColumn({ label, options, selected, onSelect }: TimeColumnProps) {
             className="relative flex flex-col gap-0.5 p-1"
             onKeyDown={onKeyDown}
           >
-            {options.map(({ value, label: text, disabled }) => (
-              <button
-                key={value}
-                type="button"
-                role="option"
-                disabled={disabled}
-                tabIndex={value === tabbable ? 0 : -1}
-                aria-selected={value === selected}
-                className="flex h-8 w-full shrink-0 cursor-pointer items-center justify-center rounded-md text-sm tabular-nums outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 aria-selected:bg-primary aria-selected:text-primary-foreground"
-                onClick={() => onSelect(value)}
-              >
-                {text}
-              </button>
+            {options.map(({ value, label: text, disabled, note }) => (
+              <Fragment key={value}>
+                <button
+                  type="button"
+                  role="option"
+                  disabled={disabled}
+                  title={note}
+                  aria-describedby={note ? `${uid}-${value}` : undefined}
+                  tabIndex={value === tabbable ? 0 : -1}
+                  aria-selected={value === selected}
+                  className="relative flex h-8 w-full shrink-0 cursor-pointer items-center justify-center rounded-md text-sm tabular-nums outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 aria-selected:bg-primary aria-selected:text-primary-foreground"
+                  onClick={() => onSelect(value)}
+                >
+                  {text}
+                  {note && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-warning"
+                    />
+                  )}
+                </button>
+                {note && (
+                  <span id={`${uid}-${value}`} hidden>
+                    {note}
+                  </span>
+                )}
+              </Fragment>
             ))}
           </div>
         </ScrollArea>
@@ -154,6 +185,8 @@ interface DateTimePickerProps {
   'aria-describedby'?: string
   minDate?: Date
   hourCycle?: 12 | 24
+  marks?: TimeMark[]
+  markNote?: string
 }
 
 export function DateTimePicker({
@@ -164,7 +197,9 @@ export function DateTimePicker({
   invalid,
   'aria-describedby': describedBy,
   minDate,
-  hourCycle
+  hourCycle,
+  marks = [],
+  markNote
 }: DateTimePickerProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -207,11 +242,25 @@ export function DateTimePicker({
   const minMinute = limited && (hour ?? DEFAULT_HOUR) === minHour ? limited.getMinutes() : 0
   const actualHour = (picked: number) =>
     twentyFour ? picked : (picked % 12) + ((pm ?? false) ? 12 : 0)
-  const hours = (twentyFour ? range(24) : range(12, 1)).map((option) => ({
-    ...option,
-    disabled: actualHour(option.value) < minHour
-  }))
-  const minutes = range(60).map((option) => ({ ...option, disabled: option.value < minMinute }))
+  // ~keep An hour is marked when any of its minutes is; a minute only when it is itself.
+  const startOf = (pickedHour: number, minute = 0) =>
+    toDate({ date: day, hour: pickedHour, minute })
+  const hours = (twentyFour ? range(24) : range(12, 1)).map((option) => {
+    const from = startOf(actualHour(option.value)).getTime()
+    return {
+      ...option,
+      disabled: actualHour(option.value) < minHour,
+      note: noteFor(marks, from, from + HOUR_MS - MINUTE_MS + 1)
+    }
+  })
+  const minutes = range(60).map((option) => {
+    const from = startOf(hour ?? DEFAULT_HOUR, option.value).getTime()
+    return {
+      ...option,
+      disabled: option.value < minMinute,
+      note: noteFor(marks, from, from + 1)
+    }
+  })
   const shownHour = hour === undefined ? undefined : twentyFour ? hour : hour % 12 || 12
   const setHour = (picked: number) =>
     commit({ hour: twentyFour ? picked : (picked % 12) + (pm ? 12 : 0) })
@@ -302,6 +351,12 @@ export function DateTimePicker({
             )}
           </div>
         </div>
+        {markNote && marks.length > 0 && (
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-warning" />
+            {markNote}
+          </p>
+        )}
       </PopoverPopup>
     </Popover>
   )

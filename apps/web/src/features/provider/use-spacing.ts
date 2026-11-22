@@ -1,11 +1,12 @@
 import { soonestSchedule } from 'lineup-contract'
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { imagesOf } from '@/features/planner/board'
 import { boardStore, usePlanner } from '@/features/planner/planner'
 
 import { fromFieldTime } from './post-time'
-import { spacingFor } from './publish-timing'
+import { defaultTime, gapWindows, spacingFor } from './publish-timing'
 
 // ~keep
 // Sizes are read from the stored publish copies, only for the cells whose gap depends on them
@@ -52,4 +53,35 @@ export function useSpacing(cell: string, when: string) {
     if (time < soonest) return undefined
     return spacingFor({ board, images, sizes, cell, when: time, soonest })
   }, [board, images, sizes, cell, when])
+}
+
+// ~keep
+// What the picker marks: the times too near the posts already scheduled, each saying why.
+export function useGapMarks(cell: string) {
+  const { t } = useTranslation('provider')
+  const sizes = useSizes(cell)
+  const board = usePlanner(({ board }) => board)
+  const images = usePlanner(({ images }) => images)
+  return useMemo(
+    () =>
+      gapWindows({ board, images, sizes, cell }).map(({ start, end, side, position, gap }) => ({
+        start,
+        end,
+        label: t(side === 'before' ? 'post.spacing.before' : 'post.spacing.after', {
+          position,
+          minutes: Math.round(gap / 60_000)
+        })
+      })),
+    [board, images, sizes, cell, t]
+  )
+}
+
+export function useDefaultTime(cell: string, from: number) {
+  const sizes = useSizes(cell)
+  const board = usePlanner(({ board }) => board)
+  const images = usePlanner(({ images }) => images)
+  return useMemo(
+    () => defaultTime({ board, images, sizes, cell, from, soonest: soonestSchedule().getTime() }),
+    [board, images, sizes, cell, from]
+  )
 }

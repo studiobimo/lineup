@@ -48,7 +48,7 @@ export function PostForm({
     >
       {fields.map(([name, Input]) => (
         <form.Field key={name} name={name}>
-          {(field) => <Input {...fieldProps(field)} />}
+          {(field) => <Input cell={cell} {...fieldProps(field)} />}
         </form.Field>
       ))}
       <ScheduleWarning cell={cell} when={when} onUse={(time) => form.setFieldValue('when', time)} />

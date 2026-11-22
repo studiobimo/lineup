@@ -11,6 +11,7 @@ vi.mock('./post-thumbnail', () => ({ PostThumbnail: () => <div data-testid="thum
 vi.mock('./tag-picker', () => ({ TagPicker: () => <p>picker</p> }))
 vi.mock('./use-misordered', () => ({ isMisordered: () => false }))
 vi.mock('./use-spacing', () => ({
+  useGapMarks: () => [],
   useSpacing: () => ({
     near: [{ side: 'before', slot: { cell: 'c', at: 0, gap: 300_000, video: false }, position: 2 }],
     suggested: new Date('2999-01-01T10:05:00')

@@ -20,6 +20,7 @@ import {
 import { PROVIDER_KEY } from './queries'
 import { toUserTags, type TagDraft } from './tags'
 import { MissingCopyError, sendPost, VideoLimitError } from './send-post'
+import { useDefaultTime } from './use-spacing'
 import { useProblemText } from './use-problem-text'
 
 interface NewPostProps {
@@ -37,6 +38,8 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
   const records = usePlanner(({ images: known }) => known)
   const slides = images.map((id) => ({ id, video: Boolean(records[id]?.video) }))
   const queryClient = useQueryClient()
+  const [from] = useState(() => nextFreeHour().getTime())
+  const start = useDefaultTime(cell, from)
 
   const send = useMutation({
     mutationFn: async ({ caption, when }: PostFormValues) => {
@@ -79,7 +82,7 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
       slides={slides}
       tags={tags}
       onTagsChange={setTags}
-      initial={{ caption: '', when: toFieldTime(nextFreeHour()) }}
+      initial={{ caption: '', when: toFieldTime(start) }}
       submitLabel={
         sending > 0
           ? t('post.sending', { position: sending, count: images.length })

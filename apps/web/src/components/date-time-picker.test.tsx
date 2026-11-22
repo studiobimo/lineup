@@ -207,4 +207,28 @@ describe('DateTimePicker', () => {
     expect(centredScrollTop(item, viewport)).toBe(216)
     expect(centredScrollTop({ offsetTop: 10, offsetHeight: 32 } as HTMLElement, viewport)).toBe(0)
   })
+
+  it('marks the hours and minutes that fall in a flagged stretch, and still allows them', async () => {
+    const user = userEvent.setup()
+    const start = new Date(2030, 4, 10, 14, 32).getTime()
+    render(
+      <DateTimePicker
+        value="2030-05-10T14:30"
+        onChange={() => {}}
+        hourCycle={24}
+        minDate={new Date(2030, 4, 8)}
+        marks={[{ start, end: start + 3 * 60_000, label: 'Too near post 2.' }]}
+        markNote="Marked times are too near."
+      />
+    )
+    await user.click(screen.getByRole('button', { name: /2030/ }))
+    expect(option('Minute', '32')).toHaveAccessibleDescription('Too near post 2.')
+    expect(option('Minute', '32')).toBeEnabled()
+    expect(option('Minute', '34')).toHaveAccessibleDescription('Too near post 2.')
+    expect(option('Minute', '31')).not.toHaveAccessibleDescription(/Too near/)
+    expect(option('Minute', '35')).not.toHaveAccessibleDescription(/Too near/)
+    expect(option('Hour', '14')).toHaveAccessibleDescription('Too near post 2.')
+    expect(option('Hour', '15')).not.toHaveAccessibleDescription(/Too near/)
+    expect(screen.getByText('Marked times are too near.')).toBeInTheDocument()
+  })
 })
