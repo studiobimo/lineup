@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button'
 
 import { MediaFields } from './media-fields'
 import { fieldProps, usePostForm } from './use-post-form'
-import { isMisordered } from './use-misordered'
 import { CaptionField, TimeField } from './post-fields'
 import { type PostFormValues } from './post-schema'
+import { ScheduleWarning } from './schedule-warning'
 import { PostThumbnail } from './post-thumbnail'
 import { TagPicker } from './tag-picker'
 import type { TagDraft } from './tags'
@@ -46,7 +46,6 @@ export function PostScreens({
   const moved = useRef(false)
   const form = usePostForm(initial, onSubmit)
   const when = useStore(form.store, ({ values }) => values.when)
-  const misordered = isMisordered(cell, when)
 
   // A refusal from the server, such as a time already past, shows on the main screen. ~keep
   const [seen, setSeen] = useState(problem)
@@ -97,11 +96,11 @@ export function PostScreens({
                 {t('post.screens.tagged', { count: tags.length, usernames })}
               </p>
             )}
-            {misordered && (
-              <Alert variant="warning">
-                <AlertDescription>{t('post.outOfOrder')}</AlertDescription>
-              </Alert>
-            )}
+            <ScheduleWarning
+              cell={cell}
+              when={when}
+              onUse={(time) => form.setFieldValue('when', time)}
+            />
             {children}
             {problem && (
               <Alert variant="error">

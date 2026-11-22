@@ -11,6 +11,7 @@ import { cellShape, instagram } from '@/features/planner/network-profile'
 import { usePlanner } from '@/features/planner/planner'
 import { dateTimeFormat } from '@/i18n/format'
 
+import { OrderNoticeDialog } from './order-notice-dialog'
 import { ProviderQueries } from './provider-queries'
 import { PublishedPicture } from './published-picture'
 import { usePublishedPosts } from './use-connected-account'
@@ -60,15 +61,22 @@ function Cells({ accountId }: { accountId: string }) {
   const planned = usePlanner(({ board }) => board.grid.length)
   const { posts, error, refetch } = usePublishedPosts(accountId)
   usePostSync(accountId)
-  if (posts) {
-    return posts.map((post, index) => (
-      <PublishedCell key={post.id} post={post} position={planned + index} />
-    ))
-  }
-  if (error) return <Failure error={error} onRetry={() => void refetch()} />
-  return Array.from({ length: instagram.columns }, (_, cell) => (
-    <Skeleton key={cell} style={cellShape} />
-  ))
+  return (
+    <>
+      {posts ? (
+        posts.map((post, index) => (
+          <PublishedCell key={post.id} post={post} position={planned + index} />
+        ))
+      ) : error ? (
+        <Failure error={error} onRetry={() => void refetch()} />
+      ) : (
+        Array.from({ length: instagram.columns }, (_, cell) => (
+          <Skeleton key={cell} style={cellShape} />
+        ))
+      )}
+      <OrderNoticeDialog posts={posts ?? []} />
+    </>
+  )
 }
 
 export function PublishedCells({ accountId }: { accountId: string }) {

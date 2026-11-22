@@ -1,14 +1,13 @@
 import { useStore } from '@tanstack/react-form'
 import type { ReactNode } from 'react'
-import { useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 
 import { fieldProps, usePostForm } from './use-post-form'
-import { isMisordered } from './use-misordered'
 import { CaptionField, TimeField } from './post-fields'
 import { type PostFormValues } from './post-schema'
+import { ScheduleWarning } from './schedule-warning'
 
 const fields = [
   ['caption', CaptionField],
@@ -36,10 +35,8 @@ export function PostForm({
   actions,
   onSubmit
 }: PostFormProps) {
-  const { t } = useTranslation('provider')
   const form = usePostForm(initial, onSubmit)
   const when = useStore(form.store, ({ values }) => values.when)
-  const misordered = isMisordered(cell, when)
 
   return (
     <form
@@ -54,11 +51,7 @@ export function PostForm({
           {(field) => <Input {...fieldProps(field)} />}
         </form.Field>
       ))}
-      {misordered && (
-        <Alert variant="warning">
-          <AlertDescription>{t('post.outOfOrder')}</AlertDescription>
-        </Alert>
-      )}
+      <ScheduleWarning cell={cell} when={when} onUse={(time) => form.setFieldValue('when', time)} />
       {children}
       {problem && (
         <Alert variant="error">

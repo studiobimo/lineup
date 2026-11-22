@@ -101,6 +101,14 @@
       "tagCount": "Tag accounts ({{count}})",
       "tagged_one": "Tagged: {{usernames}}",
       "tagged_other": "{{count}} accounts tagged: {{usernames}}"
+    },
+    "spacing": {
+      "before": "The post at position {{position}} on your grid needs about {{minutes}} minutes to go live before this one.",
+      "after": "This post needs about {{minutes}} minutes to go live before the post at position {{position}} on your grid.",
+      "video": "A post with a video can take several minutes to go live, and Instagram orders posts by when they go live.",
+      "image": "Instagram can take a few minutes to publish a post, and orders posts by when they go live.",
+      "noRoom": "There is no time between these posts that leaves enough room. You can still schedule it.",
+      "use": "Use {{time}}"
     }
   },
   "published": {
@@ -125,5 +133,14 @@
     "provider_busy": "This is still being worked on. Try again in a moment.",
     "provider_failed": "The scheduling service did not answer. Try again in a moment."
   },
-  "disclaimer": "Lineup is an independent app. It is not affiliated with, endorsed by or sponsored by Instagram or Meta, and Instagram is a trademark of Meta Platforms, Inc."
+  "disclaimer": "Lineup is an independent app. It is not affiliated with, endorsed by or sponsored by Instagram or Meta, and Instagram is a trademark of Meta Platforms, Inc.",
+  "swapped": {
+    "title": "Some posts went live in a different order",
+    "description": "Instagram orders your posts by when they actually went live, not by the time you scheduled, so these two swapped places on your profile.",
+    "tip": "Leaving more time between posts, especially posts with a video, avoids this.",
+    "scheduled": "Scheduled for {{time}}",
+    "live": "Live at {{time}}",
+    "picture": "A post that went live out of order",
+    "dismiss": "Got it"
+  }
 }

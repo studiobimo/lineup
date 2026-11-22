@@ -10,6 +10,7 @@ import type { Board } from '@/features/planner/board-store'
 import { publishedCells } from '@/features/planner/board'
 import { plannerStore, usePlanner } from '@/features/planner/planner'
 
+import { noteOrder } from './order-notice'
 import { postsQuery, publishedQuery } from './queries'
 
 export function postChanges(board: Board, latest: ScheduledPost[]) {
@@ -110,7 +111,10 @@ export function usePostSync(accountId: string) {
     for (const cell of cells) settling.current.add(cell)
     queryClient
       .fetchQuery({ ...publishedQuery(accountId), staleTime: 0 })
-      .then(() => plannerStore.getState().dropPublished(cells))
+      .then((list) => {
+        noteOrder(cells, list)
+        plannerStore.getState().dropPublished(cells)
+      })
       .catch(() => undefined)
       .finally(() => {
         for (const cell of cells) settling.current.delete(cell)
