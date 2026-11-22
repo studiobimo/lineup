@@ -1,30 +1,21 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { ExternalLink } from '@/components/external-link'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import {
-  AlertDialog,
-  AlertDialogClose,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogPopup,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { provider } from '@/config/provider'
 import type { CellPost } from '@/features/planner/board-schema'
 import { plannerStore } from '@/features/planner/planner'
 
-import { answer, providerApi, ProviderRequestError } from './api'
+import { providerApi, ProviderRequestError } from './api'
 import { mayPost, useConnection } from './connection'
+import { ErrorNotice } from './error-notice'
 import { PostForm } from './post-form'
 import type { PostFormValues } from './post-schema'
 import { fromFieldTime, localTimeZone, toFieldTime } from './post-time'
-import { PROVIDER_KEY } from './queries'
 import { useProblemText } from './use-problem-text'
+import { useProviderAction } from './use-provider-action'
 
 interface PostProps {
   cell: string
@@ -43,55 +34,37 @@ function Caption({ caption }: { caption: string }) {
 
 function CancelPost({ cell, post, onDone }: PostProps) {
   const { t } = useTranslation('provider')
-  const problemText = useProblemText()
-  const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const free = () => {
     freeCell(cell)
-    void queryClient.invalidateQueries({ queryKey: [PROVIDER_KEY] })
     setOpen(false)
     onDone()
   }
-  const cancel = useMutation({
-    mutationFn: () =>
-      answer(providerApi['scheduled-posts'][':id'].$delete({ param: { id: post.id } })),
-    onSuccess: free,
-    onError: (error) => {
-      if (error instanceof ProviderRequestError && error.problem?.status === NOT_FOUND) free()
+  const cancel = useProviderAction(
+    () => providerApi['scheduled-posts'][':id'].$delete({ param: { id: post.id } }),
+    {
+      onSuccess: free,
+      onError: (error) => {
+        if (error instanceof ProviderRequestError && error.problem?.status === NOT_FOUND) free()
+      }
     }
-  })
+  )
   return (
     <>
       <Button variant="destructive-outline" onClick={() => setOpen(true)}>
         {t('post.cancel')}
       </Button>
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogPopup>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('post.cancelTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('post.cancelDescription', { provider: provider.name })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {cancel.error && (
-            <Alert variant="error" className="mx-6 w-auto">
-              <AlertDescription>{problemText(cancel.error)}</AlertDescription>
-            </Alert>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="ghost" />}>
-              {t('post.keep')}
-            </AlertDialogClose>
-            <Button
-              variant="destructive"
-              loading={cancel.isPending}
-              onClick={() => cancel.mutate()}
-            >
-              {t('post.cancelConfirm')}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogPopup>
-      </AlertDialog>
+      <ConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={t('post.cancelTitle')}
+        description={t('post.cancelDescription', { provider: provider.name })}
+        cancelLabel={t('post.keep')}
+        confirmLabel={t('post.cancelConfirm')}
+        pending={cancel.isPending}
+        onConfirm={() => cancel.mutate()}
+        error={<ErrorNotice error={cancel.error} className="mx-6 w-auto" />}
+      />
     </>
   )
 }
@@ -99,28 +72,24 @@ function CancelPost({ cell, post, onDone }: PostProps) {
 function ChangePost({ cell, post, onDone }: PostProps) {
   const { t } = useTranslation('provider')
   const problemText = useProblemText()
-  const queryClient = useQueryClient()
-  const change = useMutation({
-    mutationFn: ({ caption, when }: PostFormValues) =>
-      answer(
-        providerApi['scheduled-posts'][':id'].$patch({
-          param: { id: post.id },
-          json: { caption, scheduledFor: fromFieldTime(when), timeZone: localTimeZone() }
-        })
-      ),
-    onSuccess: (fresh) => {
-      plannerStore.getState().updatePosts({ [cell]: { ...post, ...fresh, failure: fresh.failure } })
-      void queryClient.invalidateQueries({ queryKey: [PROVIDER_KEY] })
-      onDone()
+  const change = useProviderAction(
+    ({ caption, when }: PostFormValues) =>
+      providerApi['scheduled-posts'][':id'].$patch({
+        param: { id: post.id },
+        json: { caption, scheduledFor: fromFieldTime(when), timeZone: localTimeZone() }
+      }),
+    {
+      onSuccess: (fresh) => {
+        plannerStore
+          .getState()
+          .updatePosts({ [cell]: { ...post, ...fresh, failure: fresh.failure } })
+        onDone()
+      }
     }
-  })
+  )
   return (
     <div className="flex flex-col gap-3">
-      {post.failure && (
-        <Alert variant="error">
-          <AlertDescription>{post.failure}</AlertDescription>
-        </Alert>
-      )}
+      <ErrorNotice text={post.failure} />
       <PostForm
         cell={cell}
         initial={{ caption: post.caption, when: toFieldTime(post.scheduledFor) }}

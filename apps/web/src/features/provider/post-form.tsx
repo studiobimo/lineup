@@ -1,9 +1,9 @@
 import { useStore } from '@tanstack/react-form'
 import type { ReactNode } from 'react'
 
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 
+import { ErrorNotice } from './error-notice'
 import { fieldProps, usePostForm } from './use-post-form'
 import { CaptionField, TimeField } from './post-fields'
 import { type PostFormValues } from './post-schema'
@@ -53,11 +53,7 @@ export function PostForm({
       ))}
       <ScheduleWarning cell={cell} when={when} onUse={(time) => form.setFieldValue('when', time)} />
       {children}
-      {problem && (
-        <Alert variant="error">
-          <AlertDescription>{problem}</AlertDescription>
-        </Alert>
-      )}
+      <ErrorNotice text={problem} />
       <div className="flex flex-wrap justify-end gap-2">
         {actions}
         <Button type="submit" loading={pending}>
