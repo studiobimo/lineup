@@ -69,7 +69,8 @@ export const scheduledPostSchema = z.object({
   timeZone: z.string().optional(),
   caption: z.string().optional(),
   url: z.url().optional(),
-  failure: z.string().optional()
+  failure: z.string().optional(),
+  publishedAt: z.iso.datetime({ offset: true }).optional()
 })
 export type ScheduledPost = z.infer<typeof scheduledPostSchema>
 

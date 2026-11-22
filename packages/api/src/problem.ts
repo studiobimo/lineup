@@ -3,9 +3,10 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import type { Problem } from 'lineup-contract'
 
 import type { ProviderBindings } from './provider/routes'
+import type { TelemetryBindings } from './telemetry/routes'
 
 export interface ApiEnv {
-  Bindings: ProviderBindings
+  Bindings: ProviderBindings & TelemetryBindings
   Variables: { requestId: string }
 }
 

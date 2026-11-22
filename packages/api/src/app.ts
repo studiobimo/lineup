@@ -8,6 +8,7 @@ import { ProviderError, type ProviderFailure, type ProviderFor } from './provide
 import { providerRoutes } from './provider/routes'
 import { zernio } from './provider/zernio'
 import { documented } from './route-docs'
+import { telemetryRoutes } from './telemetry/routes'
 
 const contentSecurityPolicy = { defaultSrc: ["'none'"], frameAncestors: ["'none'"] }
 
@@ -65,7 +66,9 @@ export function createApi(providerFor: ProviderFor = zernio) {
     return problem(c, { status: 500, code: 'internal', title: 'Something went wrong' })
   })
 
-  return api.route('/v1/provider', providerRoutes(providerFor))
+  return api
+    .route('/v1/provider', providerRoutes(providerFor))
+    .route('/v1/telemetry', telemetryRoutes())
 }
 
 export type ApiRoutes = ReturnType<typeof createApi>

@@ -111,7 +111,8 @@ function toScheduledPost(post: ZernioPost): ScheduledPost {
     timeZone: post.timezone ?? undefined,
     caption: post.content ?? undefined,
     url: target?.platformPostUrl ?? undefined,
-    failure: target?.errorMessage ?? undefined
+    failure: target?.errorMessage ?? undefined,
+    publishedAt: target?.publishedAt ?? undefined
   }
 }
 
