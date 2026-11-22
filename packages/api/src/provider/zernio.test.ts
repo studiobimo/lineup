@@ -390,6 +390,24 @@ describe('zernio, video and cancelling', () => {
     expect(post).toMatchObject({ status: expected, failure: 'Too wide' })
   })
 
+  it('passes on when the platform published a post, for the delay telemetry', async () => {
+    stub.mockResolvedValue(
+      respond({
+        posts: [
+          {
+            _id: 'post',
+            status: 'published',
+            platforms: [{ publishedAt: '2030-01-01T10:03:20Z', platformPostUrl: null }]
+          },
+          { _id: 'soon', status: 'scheduled', platforms: [] }
+        ]
+      })
+    )
+    const posts = await provider.scheduledPosts('account')
+    expect(posts[0]).toMatchObject({ publishedAt: '2030-01-01T10:03:20Z' })
+    expect(posts[1].publishedAt).toBeUndefined()
+  })
+
   it('treats cancelling a post that has already gone as done', async () => {
     stub.mockResolvedValue(respond({ error: 'gone' }, 404))
     await expect(provider.cancel('post')).resolves.toBeUndefined()

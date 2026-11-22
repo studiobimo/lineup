@@ -1,7 +1,6 @@
 import { Hono } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { createMiddleware } from 'hono/factory'
-import { validator } from 'hono-openapi'
 import {
   accountSchema,
   connectUrlSchema,
@@ -10,7 +9,6 @@ import {
   listOf,
   newPostSchema,
   postChangesSchema,
-  type Problem,
   publishedPostSchema,
   scheduledPostSchema,
   SOONEST_MS,
@@ -19,6 +17,7 @@ import {
 } from 'lineup-contract'
 import { z } from 'zod'
 
+import { allowTry, type Limiter, sameOrigin, valid } from '../guards'
 import { type ApiEnv, ProblemError } from '../problem'
 import { documented } from '../route-docs'
 import type { Provider, ProviderFor } from './provider'
@@ -27,7 +26,6 @@ import { seal, type SealedKey, type SecretEnv, unseal } from './sealed-key'
 const COOKIE = 'provider-key'
 const KEY_DAYS = 30
 const DAY_SECONDS = 86_400
-const LIMIT_PERIOD_SECONDS = 60
 
 const cookieOptions = {
   prefix: 'host',
@@ -40,29 +38,12 @@ const cookieOptions = {
 export interface ProviderBindings extends SecretEnv {
   // ~keep Local development only: a fake provider's address. zernio.ts ignores anything but localhost.
   ZERNIO_BASE_URL?: string
-  KEY_RATE_LIMIT: { limit(options: { key: string }): Promise<{ success: boolean }> }
+  KEY_RATE_LIMIT: Limiter
 }
 
 interface ProviderEnv extends ApiEnv {
   Variables: ApiEnv['Variables'] & { sealed: SealedKey; provider: Provider }
 }
-
-const invalid = (errors: Problem['errors']) =>
-  new ProblemError({ status: 400, code: 'validation', title: 'The request is not valid', errors })
-
-type Segment = PropertyKey | { key: PropertyKey }
-
-const pathOf = (path: readonly Segment[] = []) =>
-  path.map((part) => String(typeof part === 'object' ? part.key : part)).join('.')
-
-const valid = <Target extends 'json' | 'query', Schema extends z.ZodType>(
-  target: Target,
-  schema: Schema
-) =>
-  validator(target, schema, (result) => {
-    if (result.success) return
-    throw invalid(result.error.map(({ path, message }) => ({ path: pathOf(path), message })))
-  })
 
 function notInThePast(scheduledFor: string) {
   if (Date.parse(scheduledFor) >= Date.now() + SOONEST_MS) return
@@ -72,18 +53,6 @@ function notInThePast(scheduledFor: string) {
     title: 'Pick a time later than now'
   })
 }
-
-const sameOrigin = createMiddleware<ProviderEnv>(async (c, next) => {
-  const reading = c.req.method === 'GET' || c.req.method === 'HEAD'
-  if (!reading && c.req.header('Origin') !== new URL(c.req.url).origin) {
-    throw new ProblemError({
-      status: 403,
-      code: 'origin',
-      title: 'This request came from another site'
-    })
-  }
-  await next()
-})
 
 const sealedKey = async (cookie: string | undefined, env: ProviderBindings) =>
   cookie ? unseal(cookie, env) : undefined
@@ -98,16 +67,6 @@ const withKey = (providerFor: ProviderFor) =>
     c.set('provider', providerFor(sealed.key, c.env.ZERNIO_BASE_URL))
     await next()
   })
-
-async function allowTry(env: ProviderBindings, caller: string) {
-  if ((await env.KEY_RATE_LIMIT.limit({ key: caller })).success) return
-  throw new ProblemError({
-    status: 429,
-    code: 'rate_limited',
-    title: 'Too many tries. Wait a minute',
-    retryAfter: LIMIT_PERIOD_SECONDS
-  })
-}
 
 async function chooseProfile(provider: Provider, profileId: string | undefined) {
   const profiles = await provider.profiles()
@@ -155,7 +114,7 @@ const keyRoutes = (providerFor: ProviderFor) =>
       valid('json', keyInputSchema),
       async (c) => {
         const { key, profileId } = c.req.valid('json')
-        await allowTry(c.env, c.req.header('cf-connecting-ip') ?? 'unknown')
+        await allowTry(c.env.KEY_RATE_LIMIT, c.req.header('cf-connecting-ip') ?? 'unknown')
         const { sealed, maxAge } = await sealNewKey(
           providerFor,
           key,
