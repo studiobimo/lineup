@@ -189,10 +189,11 @@ export function clear(board: Board, containers: Container[]): Board {
 export const isLocked = (board: Board, id: string) =>
   board.posts?.[id] !== undefined || (board.locked?.includes(id) ?? false)
 
-export function neighbour(board: Board, id: string, step: 1 | -1): string | undefined {
-  const free = freeCells(board, containerOf(board, id))
-  return free[free.indexOf(id) + step]
-}
+export const adjacent = <T>(list: readonly T[], item: T, step: 1 | -1): T | undefined =>
+  list[list.indexOf(item) + step]
+
+export const neighbour = (board: Board, id: string, step: 1 | -1) =>
+  adjacent(freeCells(board, containerOf(board, id)), id, step)
 
 export function freeCells(board: Board, container: Container) {
   const locked = lockedCells(board)

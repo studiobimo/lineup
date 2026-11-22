@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  adjacent,
   addToTray,
   cellOf,
   cellsThatCrossed,
@@ -39,6 +40,15 @@ import type { CellPost } from './board-schema'
 import type { Board } from './board-store'
 
 const board = { tray: ['a', 'b'], grid: ['c', 'd', 'e'] }
+
+describe('adjacent', () => {
+  it('is the item one step along, or undefined at the ends', () => {
+    expect(adjacent(['a', 'b', 'c'], 'b', -1)).toBe('a')
+    expect(adjacent(['a', 'b', 'c'], 'b', 1)).toBe('c')
+    expect(adjacent(['a', 'b', 'c'], 'a', -1)).toBeUndefined()
+    expect(adjacent(['a', 'b', 'c'], 'c', 1)).toBeUndefined()
+  })
+})
 
 describe('neighbour', () => {
   const board = { tray: ['a'], grid: ['b', 'c', 'd', 'e'], locked: ['c'] }
