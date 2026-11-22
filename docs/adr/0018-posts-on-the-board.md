@@ -1,6 +1,6 @@
 # ADR-0018: Scheduled posts on the board
 
-- **Status:** Accepted, in part superseded by [ADR-0023](0023-published-cells-leave-the-plan.md): a published cell is drawn among the published posts, not where it was planned
+- **Status:** Accepted, in part superseded by [ADR-0024](0024-published-cells-leave-the-board.md): a published cell leaves the board and shows only as the provider's copy
 - **Date:** 2026-11-01
 
 ## Context

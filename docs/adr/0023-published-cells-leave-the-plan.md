@@ -1,6 +1,6 @@
 # ADR-0023: A published cell leaves the plan and joins the published posts
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0024](0024-published-cells-leave-the-board.md): a published cell leaves the board
 - **Date:** 2026-11-15
 
 ## Context
