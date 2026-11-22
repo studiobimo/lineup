@@ -87,6 +87,30 @@ describe('sending a post', () => {
     expect(linked).toMatchObject({ id: 'post', accountId: 'account', status: 'scheduled' })
   })
 
+  it('returns the shape of the post, for the publish-delay telemetry', async () => {
+    provider()
+    const image = await send(['a'])
+    expect(image.media).toEqual({
+      kind: 'image',
+      images: 1,
+      videos: 0,
+      totalBytes: 1,
+      largestVideoBytes: undefined,
+      largestVideoSeconds: undefined
+    })
+    addVideo('v', { duration: 42, size: 5_000 })
+    const carousel = await send(['a', 'v'])
+    expect(carousel.media).toMatchObject({
+      kind: 'carousel',
+      images: 1,
+      videos: 1,
+      totalBytes: 5_001,
+      largestVideoBytes: 5_000,
+      largestVideoSeconds: 42
+    })
+    expect((await send(['v'])).media).toMatchObject({ kind: 'reel', videos: 1, images: 0 })
+  })
+
   it('says which image is on its way', async () => {
     provider()
     const positions: number[] = []

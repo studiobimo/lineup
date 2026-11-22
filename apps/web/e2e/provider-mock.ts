@@ -18,6 +18,8 @@ export interface MockProvider {
   requests: string[]
   bodies: Record<string, unknown>[]
   headers: Record<string, string>[]
+  // ~keep The anonymous publish-delay events the app sent (ADR-0026)
+  telemetry: Record<string, unknown>[]
   loseNextAnswer?: boolean
   readOnly?: boolean
   storageFails?: boolean
@@ -180,10 +182,15 @@ export async function mockProvider(page: Page, seed: Partial<MockProvider> = {})
     requests: [],
     bodies: [],
     headers: [],
+    telemetry: [],
     ...seed
   }
   const mock: Mock = { state, session: { hasKey: false }, answered: new Map() }
   await page.route('**/api/v1/provider/**', (route) => answer(callOf(route, mock), mock))
+  await page.route('**/api/v1/telemetry/publish-delay', (route) => {
+    state.telemetry.push(route.request().postDataJSON() as Record<string, unknown>)
+    return route.fulfill({ status: 204 })
+  })
   await page.route('https://*.r2.cloudflarestorage.com/**', (route) => storageRoute(route, mock))
   return state
 }

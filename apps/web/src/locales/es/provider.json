@@ -47,7 +47,7 @@
     "timeZone": "En tu zona horaria, {{zone}}.",
     "timeInvalid": "Elige una hora que aún no haya pasado.",
     "outOfOrder": "Con esta hora, las publicaciones no saldrán en el orden de tu cuadrícula.",
-    "notice": "Al programar, las imágenes y el pie de foto se envían a {{provider}} y a Instagram. Nada más sale de este dispositivo.",
+    "notice": "Al programar, las imágenes y el pie de foto se envían a {{provider}} y a Instagram. Cuando se publica, se envía a Lineup una nota anónima con su tipo, tamaño y retraso. Nada más sale de este dispositivo.",
     "noKey": "Añade tu clave en Ajustes para programar esto.",
     "readOnly": "Esta clave es de solo lectura. Sustitúyela en Ajustes por una clave de lectura y escritura para programar esto.",
     "noAccount": "Conecta una cuenta de Instagram en Ajustes para programar esto. Instagram solo lo permite con una cuenta profesional.",

@@ -1,5 +1,5 @@
 {
-  "updated": "Last updated 7 November 2026",
+  "updated": "Last updated 22 November 2026",
   "privacy": {
     "title": "Privacy policy",
     "summary": "Lineup is a planner that runs in your browser. Your images stay on your device and there are no accounts. This page lists everything that is stored, and where.",
@@ -35,7 +35,14 @@
         "paragraphs": [
           "We keep none of your images, plans or keys. We have no database and no accounts.",
           "Lineup is hosted on Cloudflare, which handles your IP address and the pages you request, as any web host does, to serve the app and protect it. Requests to our API are also kept in Cloudflare's logs for up to seven days, to help us fix faults. Those logs do not include your images or your key.",
-          "There are no analytics, no advertising and no third-party scripts. Fonts are served from our own address."
+          "There is no advertising, no tracking across visits and no third-party scripts. Fonts are served from our own address."
+        ]
+      },
+      {
+        "heading": "What we log when a post is published",
+        "paragraphs": [
+          "When a post you scheduled is seen as published, your browser sends us one anonymous note so we can learn how long Zernio and Instagram take. It holds a random number made on the spot, the time you chose and the time it went out, whether the post was an image, a carousel or a video, how many images and videos it had, their total size, the size and length of the longest video, the version of Lineup and an anonymous tag of your Instagram account.",
+          "The tag is a scrambled code made from your account's username with a secret only we hold. We log the code and never the username, so the code cannot be turned back into a name, and no one can tell which account it came from without already knowing the username. The note holds no caption, tag, username, link, post id, key or image, and is sent once for each post. We keep it in our logs for up to seven days, and nothing else is stored."
         ]
       },
       {

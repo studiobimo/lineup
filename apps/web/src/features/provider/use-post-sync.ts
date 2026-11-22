@@ -11,6 +11,7 @@ import { publishedCells } from '@/features/planner/board'
 import { plannerStore, usePlanner } from '@/features/planner/planner'
 
 import { noteOrder } from './order-notice'
+import { reportPublished } from './publish-telemetry'
 import { postsQuery, publishedQuery } from './queries'
 
 export function postChanges(board: Board, latest: ScheduledPost[]) {
@@ -113,6 +114,7 @@ export function usePostSync(accountId: string) {
       .fetchQuery({ ...publishedQuery(accountId), staleTime: 0 })
       .then((list) => {
         noteOrder(cells, list)
+        reportPublished(cells, queryClient, accountId)
         plannerStore.getState().dropPublished(cells)
       })
       .catch(() => undefined)

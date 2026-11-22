@@ -258,7 +258,14 @@ test('a post that goes out leaves the board and shows only as the provider’s c
   const provider = await scheduledCell(page)
   const url = 'https://www.instagram.com/p/abc/'
   await expect(grid(page)).toHaveCount(1)
-  provider.scheduled[0] = { ...provider.scheduled[0], status: 'published', url }
+  provider.scheduled[0] = {
+    ...provider.scheduled[0],
+    status: 'published',
+    url,
+    publishedAt: new Date(
+      Date.parse(String(provider.scheduled[0].scheduledFor)) + 90_000
+    ).toISOString()
+  }
   provider.published.push({ id: provider.scheduled[0].id, url, publishedAt: YESTERDAY })
   await page.reload()
 
@@ -271,6 +278,20 @@ test('a post that goes out leaves the board and shows only as the provider’s c
   await page.reload()
   await expect(publishedCells(page)).toHaveCount(1)
   await expect(grid(page)).toHaveCount(0)
+
+  // ~keep
+  // One anonymous event, sent once and not again after the reloads, with nothing of the post in it.
+  expect(provider.telemetry).toHaveLength(1)
+  expect(provider.telemetry[0]).toMatchObject({
+    kind: 'image',
+    images: 1,
+    videos: 0,
+    delaySeconds: 90,
+    account: 'studio'
+  })
+  expect(JSON.stringify(provider.telemetry)).not.toContain(url)
+  expect(JSON.stringify(provider.telemetry)).not.toContain('Hello')
+  expect(JSON.stringify(provider.telemetry)).not.toContain(String(provider.scheduled[0].id))
 })
 
 const MINUTES = 60_000

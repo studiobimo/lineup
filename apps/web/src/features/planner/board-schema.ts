@@ -1,4 +1,4 @@
-import { postStatusSchema } from 'lineup-contract'
+import { postShapeSchema, postStatusSchema } from 'lineup-contract'
 import { z } from 'zod'
 
 export const videoTypeSchema = z.enum(['video/mp4', 'video/quicktime'])
@@ -13,7 +13,12 @@ const cellPostSchema = z.object({
   caption: z.string(),
   status: postStatusSchema,
   url: z.string().optional(),
-  failure: z.string().optional()
+  failure: z.string().optional(),
+  // ~keep ADR-0026. All three are optional, so a board saved before them opens as it was: a post
+  // without a shape or a time is never measured.
+  media: postShapeSchema.optional(),
+  publishedAt: z.string().optional(),
+  reported: z.literal(true).optional()
 })
 export type CellPost = z.infer<typeof cellPostSchema>
 
