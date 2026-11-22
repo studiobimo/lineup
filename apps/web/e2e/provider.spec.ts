@@ -145,6 +145,12 @@ test('a planned image is sent, scheduled and held in place', async ({ page }) =>
 
   const dialog = await openSchedule(page)
   await expect(dialog.getByText(/sent to Zernio and Instagram/)).toBeVisible()
+  await dialog.getByRole('button', { name: 'Tag accounts', exact: true }).click()
+  await dialog.getByTestId('tag-picture').click()
+  await dialog.getByRole('textbox', { name: 'Username for the new tag' }).fill('friend')
+  await page.keyboard.press('Enter')
+  await dialog.getByRole('button', { name: 'Done', exact: true }).click()
+  await expect(dialog.getByText('Tagged: @friend')).toBeVisible()
   await schedule(dialog)
   await expect(dialog).toBeHidden()
   await expect(page.getByRole('heading', { name: /^Scheduled for/ })).toBeVisible()

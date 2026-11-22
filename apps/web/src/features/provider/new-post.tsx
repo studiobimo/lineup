@@ -8,7 +8,8 @@ import { imagesOf } from '@/features/planner/board'
 import { instagram } from '@/features/planner/network-profile'
 import { plannerStore, usePlanner } from '@/features/planner/planner'
 
-import { PostForm, type PostFormValues } from './post-form'
+import { type PostFormValues } from './post-schema'
+import { PostScreens } from './post-screens'
 import {
   formatPostTime,
   fromFieldTime,
@@ -17,7 +18,6 @@ import {
   toFieldTime
 } from './post-time'
 import { PROVIDER_KEY } from './queries'
-import { TagPicker } from './tag-picker'
 import { toUserTags, type TagDraft } from './tags'
 import { MissingCopyError, sendPost, VideoLimitError } from './send-post'
 import { useProblemText } from './use-problem-text'
@@ -74,8 +74,11 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
         : problemText(error)
 
   return (
-    <PostForm
+    <PostScreens
       cell={cell}
+      slides={slides}
+      tags={tags}
+      onTagsChange={setTags}
       initial={{ caption: '', when: toFieldTime(nextFreeHour()) }}
       submitLabel={
         sending > 0
@@ -86,10 +89,9 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
       problem={problem}
       onSubmit={send.mutateAsync}
     >
-      <TagPicker slides={slides} tags={tags} onChange={setTags} />
       <p className="text-sm text-muted-foreground">
         {t('post.notice', { provider: provider.name })}
       </p>
-    </PostForm>
+    </PostScreens>
   )
 }

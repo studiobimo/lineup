@@ -13,7 +13,7 @@ const TIME_FIELD = 'post-time'
 const CAPTION_COUNT = 'post-caption-count'
 const TIME_NOTE = 'post-time-note'
 
-interface FieldProps {
+export interface FieldProps {
   value: string
   invalid: boolean
   onBlur: () => void

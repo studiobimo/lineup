@@ -91,7 +91,16 @@
       "full": "That is the most Instagram allows on a post, {{limit}} tags.",
       "place": "Place a tag on the picture. Then type the username.",
       "pending": "Username for the new tag",
-      "confirm": "Add the tag"
+      "confirm": "Add the tag",
+      "none": "No tags yet.",
+      "tapPicture": "Tap the picture to add a tag."
+    },
+    "screens": {
+      "done": "Done",
+      "tag": "Tag accounts",
+      "tagCount": "Tag accounts ({{count}})",
+      "tagged_one": "Tagged: {{usernames}}",
+      "tagged_other": "{{count}} accounts tagged: {{usernames}}"
     }
   },
   "published": {
