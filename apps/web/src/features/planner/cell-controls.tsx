@@ -90,11 +90,7 @@ export const CellActions = memo(function CellActions({
         <>
           <CellButton
             label={t(toTray ? 'moveToTray' : 'moveToGrid')}
-            onClick={() =>
-              toTray
-                ? plannerStore.getState().move(id, 'tray')
-                : plannerStore.getState().moveToStartOfGrid(id)
-            }
+            onClick={() => plannerStore.getState().moveToStart([id], toTray ? 'tray' : 'grid')}
           >
             <ArrowRightLeft />
           </CellButton>

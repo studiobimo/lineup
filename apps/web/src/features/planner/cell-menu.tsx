@@ -106,11 +106,7 @@ function EditItems({
       )}
       <MenuItem
         onClick={() =>
-          leave(() =>
-            toTray
-              ? plannerStore.getState().move(id, 'tray')
-              : plannerStore.getState().moveToStartOfGrid(id)
-          )
+          leave(() => plannerStore.getState().moveToStart([id], toTray ? 'tray' : 'grid'))
         }
       >
         <ArrowRightLeft />

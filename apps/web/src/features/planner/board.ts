@@ -54,21 +54,24 @@ export function move(board: Board, id: string, to: Container, index?: number): B
   return { ...without, [to]: cells }
 }
 
-export function moveToStartOfGrid(board: Board, ids: string[]): Board {
+export function moveToStart(board: Board, ids: string[], to: Container): Board {
   const without = lift(board, ids)
-  const locked = lockedCells(board)
-  const cells = [...without.grid]
-  const firstFree = cells.findIndex((cell) => !locked.has(cell))
-  cells.splice(firstFree === -1 ? cells.length : firstFree, 0, ...ids)
-  return { ...without, grid: cells }
+  const cells = [...without[to]]
+  if (to === 'grid') {
+    const locked = lockedCells(board)
+    const firstFree = cells.findIndex((cell) => !locked.has(cell))
+    cells.splice(firstFree === -1 ? cells.length : firstFree, 0, ...ids)
+  } else {
+    cells.unshift(...ids)
+  }
+  return { ...without, [to]: cells }
 }
 
 export function moveCells(board: Board, ids: string[], to: Container): Board {
   const chosen = new Set(ids)
   const from = to === 'tray' ? board.grid : board.tray
   const moving = from.filter((id) => chosen.has(id))
-  if (to === 'grid') return moveToStartOfGrid(board, moving)
-  return { ...lift(board, moving), [to]: [...board[to], ...moving] }
+  return moveToStart(board, moving, to)
 }
 
 export function groupProblem(board: Board, cells: string[]) {
@@ -164,8 +167,8 @@ export function flightsBetween(before: Board, after: Board) {
 
 export function moveAll(board: Board, from: Container): Board {
   return from === 'tray'
-    ? moveToStartOfGrid(board, board.tray)
-    : { ...board, tray: [...board.tray, ...board.grid], grid: [] }
+    ? moveToStart(board, board.tray, 'grid')
+    : moveToStart(board, board.grid, 'tray')
 }
 
 export function shuffle(board: Board, container: Container, random = Math.random): Board {

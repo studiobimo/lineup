@@ -200,7 +200,7 @@ describe('the planner store, every action can be undone and redone exactly', () 
     ['import', (state) => state.addImages([processed, processed])],
     ['move', (state) => state.move('a', 'grid')],
     ['insert', (state) => state.move('a', 'grid', 1)],
-    ['move to the start of the grid', (state) => state.moveToStartOfGrid('a')],
+    ['move to the start of the grid', (state) => state.moveToStart(['a'], 'grid')],
     ['swap', (state) => state.swap('a', 'd')],
     ['move all', (state) => state.moveAll('tray')],
     ['move selection to the grid', (state) => state.moveCells(['b', 'a'], 'grid')],
@@ -251,7 +251,7 @@ describe('the planner store, every action can be undone and redone exactly', () 
 describe('the planner store', () => {
   it('puts a tray image at the start of the grid, and undo and redo restore it', async () => {
     const { state } = await loaded()
-    state().moveToStartOfGrid('a')
+    state().moveToStart(['a'], 'grid')
     expect(state().board).toEqual({ tray: ['b'], grid: ['a', 'c', 'd', 'e'] })
     state().undo()
     expect(state().board).toEqual(start)
