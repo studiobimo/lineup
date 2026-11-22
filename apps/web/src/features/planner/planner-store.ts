@@ -27,7 +27,8 @@ import {
   takeFromAlbum,
   toggleLock,
   ungroup,
-  withKnownImages
+  withKnownImages,
+  withoutImages
 } from './board'
 import type { Backup } from './backup'
 import { boardJournal, type BoardJournal } from './board-journal'
@@ -72,6 +73,7 @@ export interface PlannerState {
   toggleLock(id: string): void
   linkPost(cell: string, post: CellPost): void
   updatePosts(changes: Record<string, CellPost | undefined>): void
+  dropPublished(cells: string[]): void
   restore(backup: Backup): Promise<void>
   remove(ids: string[]): void
   clear(containers: Container[]): void
@@ -369,7 +371,7 @@ const postSlice = ({
   save,
   purge,
   record
-}: Context): Pick<PlannerState, 'linkPost' | 'updatePosts' | 'restore'> => ({
+}: Context): Pick<PlannerState, 'linkPost' | 'updatePosts' | 'dropPublished' | 'restore'> => ({
   linkPost(cell, post) {
     const { board, past, future, session } = get()
     if (session !== 'active') return
@@ -393,6 +395,41 @@ const postSlice = ({
     if (sameBoard(board, next)) return
     set({ board: next })
     save()
+  },
+
+  // ~keep
+  // Like the status sync, this is not a step of the history: the post went out whatever the
+  // person does, so it is taken out of the steps too, instead of adding one.
+  dropPublished(cells) {
+    const { board, past, future, session } = get()
+    if (session !== 'active') return
+    const gone = cells.filter((cell) => board.posts?.[cell]?.status === 'published')
+    if (gone.length === 0) return
+    const images = gone.flatMap((cell) => imagesOf(board, cell))
+    const next = withoutImages(board, images)
+    // ~keep
+    // Steps that differed only by the cell are now the same as their neighbour. Undo restores
+    // today's posts anyway, so they are compared by arrangement alone.
+    const arrangement = (step: Board): Board => ({ ...step, posts: undefined })
+    const distinct = (steps: Board[], from: Board) => {
+      const kept: Board[] = []
+      let last = from
+      for (const step of steps) {
+        if (!sameBoard(arrangement(last), arrangement(step))) kept.push(step)
+        last = step
+      }
+      return kept
+    }
+    set({
+      board: next,
+      past: distinct(past.map((step) => withoutImages(step, images)).reverse(), next).reverse(),
+      future: distinct(
+        future.map((step) => withoutImages(step, images)),
+        next
+      )
+    })
+    save()
+    purge()
   },
 
   async restore({ board, images }) {

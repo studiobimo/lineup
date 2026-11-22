@@ -252,46 +252,25 @@ async function scheduledCell(page: Page) {
 const postBadge = (page: Page, name: RegExp | string) =>
   grid(page).first().getByRole('button', { name })
 
-test('a post that goes out says so, links to it, and is not shown twice', async ({ page }) => {
+test('a post that goes out leaves the board and shows only as the provider’s copy', async ({
+  page
+}) => {
   const provider = await scheduledCell(page)
   const url = 'https://www.instagram.com/p/abc/'
+  await expect(grid(page)).toHaveCount(1)
   provider.scheduled[0] = { ...provider.scheduled[0], status: 'published', url }
   provider.published.push({ id: provider.scheduled[0].id, url, publishedAt: YESTERDAY })
   await page.reload()
 
-  await postBadge(page, 'Published').click()
-  const dialog = page.getByRole('dialog', { name: 'Your post' })
-  await expect(dialog.getByRole('link', { name: 'View on Instagram' })).toHaveAttribute('href', url)
-  await expect(dialog.getByRole('button', { name: 'Save changes' })).toHaveCount(0)
-  await page.keyboard.press('Escape')
-  await expect(publishedCells(page)).toHaveCount(0)
-
-  await postBadge(page, 'Published').click()
-  await dialog.getByRole('button', { name: 'Free this cell' }).click()
-  await expect(dialog).toBeHidden()
+  await expect(page.getByText('Your post is published.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'View post' })).toBeVisible()
   await expect(publishedCells(page)).toHaveCount(1)
-})
+  await expect(grid(page)).toHaveCount(0)
+  await expect(postBadge(page, 'Published')).toHaveCount(0)
 
-test('a cell that went out moves among the published posts, newest first', async ({ page }) => {
-  const provider = await mockProvider(page, { published: [post('older')] })
-  await planOnGrid(page, 2)
-  await connect(page)
-  const dialog = await openSchedule(page)
-  await schedule(dialog)
-  await expect(dialog).toBeHidden()
-
-  const url = 'https://www.instagram.com/p/abc/'
-  provider.scheduled[0] = { ...provider.scheduled[0], status: 'published', url }
-  const hour = new Date(Date.now() - 3_600_000).toISOString()
-  provider.published.unshift({ id: provider.scheduled[0].id, url, publishedAt: hour })
   await page.reload()
-  await expect(grid(page)).toHaveCount(2)
-  await expect(grid(page).nth(1).getByRole('button', { name: 'Published' })).toBeVisible()
-  await expect(grid(page).first().getByRole('button', { name: 'Published' })).toHaveCount(0)
   await expect(publishedCells(page)).toHaveCount(1)
-  const cell = await grid(page).nth(1).boundingBox()
-  const older = await publishedCells(page).first().boundingBox()
-  expect(older?.x).toBeGreaterThan(cell?.x ?? Infinity)
+  await expect(grid(page)).toHaveCount(0)
 })
 
 test('a post that failed gives the reason, and a new time tries again', async ({ page }) => {

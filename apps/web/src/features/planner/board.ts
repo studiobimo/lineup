@@ -186,19 +186,6 @@ export function clear(board: Board, containers: Container[]): Board {
 export const isLocked = (board: Board, id: string) =>
   board.posts?.[id] !== undefined || (board.locked?.includes(id) ?? false)
 
-export const isPublished = (board: Board, id: string) => board.posts?.[id]?.status === 'published'
-
-// A published cell stays in `grid` so freeing it puts it back where it was planned, but it is ~keep
-// drawn among the published posts, as Instagram would show it.
-export const plannedCells = (board: Board) => board.grid.filter((id) => !isPublished(board, id))
-
-export const publishedCells = (board: Board) => board.grid.filter((id) => isPublished(board, id))
-
-export function publishedTime(board: Board, id: string) {
-  const post = board.posts?.[id]
-  return post ? Date.parse(post.publishedAt ?? post.scheduledFor) : Number.NaN
-}
-
 export function neighbour(board: Board, id: string, step: 1 | -1): string | undefined {
   const free = freeCells(board, containerOf(board, id))
   return free[free.indexOf(id) + step]
@@ -244,6 +231,19 @@ export function keepPosted(today: Board, snapshot: Board): Board {
   return holdCells(today, restored, new Set(postedCells(today)))
 }
 
+export const publishedCells = (board: Board) =>
+  Object.entries(board.posts ?? {}).flatMap(([cell, post]) =>
+    post.status === 'published' ? [cell] : []
+  )
+
+// ~keep
+// A published cell is gone for good: its images go from the board and from every step of the
+// history, so no undo or redo can bring one back or leave a step pointing at a cell that is gone.
+export function withoutImages(board: Board, images: string[]): Board {
+  const gone = new Set(images)
+  return withKnownImages(board, (image) => !gone.has(image))
+}
+
 export function holdsCell(snapshot: Board, cell: string, images: string[]) {
   const held = imagesOf(snapshot, cell)
   return (
@@ -258,8 +258,7 @@ export function outOfOrder(board: Board, cell: string, time: string) {
   const when = Date.parse(time)
   return board.grid.some((other, index) => {
     const post = other !== cell && board.posts?.[other]
-    // A published cell is drawn after every planned one, whatever place it was planned in. ~keep
-    if (!post || post.status === 'published') return false
+    if (!post) return false
     const then = Date.parse(post.scheduledFor)
     return index < at ? then < when : then > when
   })

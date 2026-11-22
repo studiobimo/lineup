@@ -1,42 +1,25 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import type { PublishedPost, ScheduledPost } from 'lineup-contract'
-import { useEffect } from 'react'
+import type { ScheduledPost } from 'lineup-contract'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { toastManager } from '@/components/ui/toast'
 
 import type { CellPost } from '@/features/planner/board-schema'
 import type { Board } from '@/features/planner/board-store'
+import { publishedCells } from '@/features/planner/board'
 import { plannerStore, usePlanner } from '@/features/planner/planner'
 
-import { PROVIDER_KEY, postsQuery, publishedQuery } from './queries'
+import { postsQuery, publishedQuery } from './queries'
 
-// The time a published post went out, which orders it among the others, comes from the provider's ~keep
-// list of published posts and is kept so the board can place it with no connection.
-function publishedAt(post: CellPost, published: PublishedPost[]) {
-  const url = post.url
-  const match = published.find((other) => other.id === post.id || (url && other.url === url))
-  return match?.publishedAt ?? post.publishedAt
-}
-
-export function postChanges(
-  board: Board,
-  latest: ScheduledPost[],
-  published: PublishedPost[] = []
-) {
+export function postChanges(board: Board, latest: ScheduledPost[]) {
   const byId = new Map(latest.map((post) => [post.id, post]))
   const changes: Record<string, CellPost | undefined> = {}
   for (const [cell, post] of Object.entries(board.posts ?? {})) {
     const fresh = byId.get(post.id)
     if (!fresh) continue
     const cancelled = fresh.status === 'cancelled'
-    if (cancelled) {
-      changes[cell] = undefined
-      continue
-    }
-    const next = { ...post, ...fresh, failure: fresh.failure }
-    changes[cell] =
-      next.status === 'published' ? { ...next, publishedAt: publishedAt(next, published) } : next
+    changes[cell] = cancelled ? undefined : { ...post, ...fresh, failure: fresh.failure }
   }
   return changes
 }
@@ -84,11 +67,10 @@ export function usePostSync(accountId: string) {
     // Read at each tick, so it follows the board without resubscribing.
     refetchInterval: () => pollInterval(plannerStore.getState().board.posts)
   })
-  const { data: published } = useQuery({ ...publishedQuery(accountId), enabled: tracking })
   useEffect(() => {
     if (!latest) return
     const { board, updatePosts } = plannerStore.getState()
-    const changes = postChanges(board, latest, published)
+    const changes = postChanges(board, latest)
     // ~keep
     // Under StrictMode this runs twice; the second pass finds the board already updated,
     // so it has nothing to announce.
@@ -96,7 +78,6 @@ export function usePostSync(accountId: string) {
     updatePosts(changes)
     for (const { kind, post } of notices) {
       if (kind === 'published') {
-        void queryClient.invalidateQueries({ queryKey: [PROVIDER_KEY, 'published', accountId] })
         toastManager.add({
           type: 'success',
           title: t('post.live.published'),
@@ -115,5 +96,24 @@ export function usePostSync(accountId: string) {
         })
       }
     }
-  }, [latest, published, accountId, queryClient, t])
+  }, [latest, t])
+
+  const published = usePlanner(({ board }) => publishedCells(board).join('\n'))
+  const settling = useRef(new Set<string>())
+  useEffect(() => {
+    // ~keep
+    // A published cell is dropped only once the provider's list has been read again, so the
+    // post is never missing in between. A failed read leaves the cell, and the next sync tries
+    // again. This also cleans a board saved while published cells stayed on it (ADR-0024).
+    const cells = published.split('\n').filter((cell) => cell && !settling.current.has(cell))
+    if (cells.length === 0) return
+    for (const cell of cells) settling.current.add(cell)
+    queryClient
+      .fetchQuery({ ...publishedQuery(accountId), staleTime: 0 })
+      .then(() => plannerStore.getState().dropPublished(cells))
+      .catch(() => undefined)
+      .finally(() => {
+        for (const cell of cells) settling.current.delete(cell)
+      })
+  }, [published, latest, accountId, queryClient])
 }

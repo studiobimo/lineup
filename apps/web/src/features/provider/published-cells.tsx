@@ -1,16 +1,45 @@
+import type { PublishedPost } from 'lineup-contract'
+import { Lock } from 'lucide-react'
+import { m } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { CellBadge } from '@/features/planner/cell-controls'
+import { settle } from '@/features/planner/motion'
 import { cellShape, instagram } from '@/features/planner/network-profile'
+import { usePlanner } from '@/features/planner/planner'
+import { dateTimeFormat } from '@/i18n/format'
 
-import { FeedCells } from './feed-cells'
 import { ProviderQueries } from './provider-queries'
-import { PublishedCell } from './published-cell'
+import { PublishedPicture } from './published-picture'
 import { usePublishedPosts } from './use-connected-account'
 import { usePostSync } from './use-post-sync'
-import { usePublishedFeed } from './use-published-feed'
 import { useProblemText } from './use-problem-text'
+
+function PublishedCell({ post, position }: { post: PublishedPost; position: number }) {
+  const { t } = useTranslation('provider')
+  const { publishedAt } = post
+  const label = publishedAt
+    ? t('published.cellOn', {
+        date: dateTimeFormat({ dateStyle: 'medium' }).format(new Date(publishedAt))
+      })
+    : t('published.cell')
+  return (
+    <m.div
+      layout
+      layoutDependency={position}
+      transition={{ layout: settle }}
+      className="relative overflow-hidden bg-muted"
+      style={cellShape}
+    >
+      <PublishedPicture post={post} label={label} />
+      <div className="pointer-events-none absolute bottom-1 left-1">
+        <CellBadge icon={Lock} />
+      </div>
+    </m.div>
+  )
+}
 
 function Failure({ error, onRetry }: { error: Error; onRetry: () => void }) {
   const { t } = useTranslation('provider')
@@ -28,23 +57,18 @@ function Failure({ error, onRetry }: { error: Error; onRetry: () => void }) {
 }
 
 function Cells({ accountId }: { accountId: string }) {
+  const planned = usePlanner(({ board }) => board.grid.length)
   const { posts, error, refetch } = usePublishedPosts(accountId)
-  const feed = usePublishedFeed(posts)
   usePostSync(accountId)
-  return (
-    <>
-      <FeedCells
-        feed={feed}
-        post={(post, position) => <PublishedCell key={post.id} post={post} position={position} />}
-      />
-      {!posts && error && <Failure error={error} onRetry={() => void refetch()} />}
-      {!posts &&
-        !error &&
-        Array.from({ length: instagram.columns }, (_, cell) => (
-          <Skeleton key={cell} style={cellShape} />
-        ))}
-    </>
-  )
+  if (posts) {
+    return posts.map((post, index) => (
+      <PublishedCell key={post.id} post={post} position={planned + index} />
+    ))
+  }
+  if (error) return <Failure error={error} onRetry={() => void refetch()} />
+  return Array.from({ length: instagram.columns }, (_, cell) => (
+    <Skeleton key={cell} style={cellShape} />
+  ))
 }
 
 export function PublishedCells({ accountId }: { accountId: string }) {
