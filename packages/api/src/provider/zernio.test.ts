@@ -326,6 +326,28 @@ describe('zernio, scheduling', () => {
       ]
     })
     expect(body).not.toHaveProperty('publishNow')
+    expect(JSON.stringify(body)).not.toContain('platformSpecificData')
+  })
+
+  it('puts the tags in the Instagram options of the platform', async () => {
+    stub.mockResolvedValue(respond({ post: { _id: 'post', status: 'scheduled' } }, 201))
+    const userTags = [{ username: 'friend', x: 0.25, y: 0.5, mediaIndex: 1 }]
+    await provider.schedule(
+      {
+        accountId: 'account',
+        caption: '',
+        scheduledFor: '2030-01-01T10:00:00Z',
+        timeZone: 'Europe/Madrid',
+        mediaUrls: ['https://media.zernio.com/1.jpg', 'https://media.zernio.com/2.jpg'],
+        userTags
+      },
+      'once'
+    )
+    expect(sent().body).toMatchObject({
+      platforms: [
+        { platform: 'instagram', accountId: 'account', platformSpecificData: { userTags } }
+      ]
+    })
   })
 })
 

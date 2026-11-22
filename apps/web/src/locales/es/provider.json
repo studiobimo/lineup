@@ -75,6 +75,23 @@
       "length": "Instagram acepta reels de hasta {{minutes}} minutos.",
       "count_one": "Un carrusel puede tener un video.",
       "count_other": "Un carrusel puede tener {{count}} videos."
+    },
+    "tags": {
+      "title": "Etiquetar cuentas",
+      "hint": "Toca la imagen donde quieras una etiqueta, escribe el usuario y pulsa Intro. Arrastra una etiqueta para moverla o usa las flechas (con Mayús, pasos mayores). Hasta {{limit}} por publicación.",
+      "videoHint": "Añade las cuentas que quieras etiquetar en este vídeo. Hasta {{limit}} por publicación.",
+      "slide": "Diapositiva {{position}} ({{count}})",
+      "picture": "La imagen que etiquetar",
+      "unnamed": "Etiqueta {{position}}",
+      "marker": "{{name}}, {{x}} desde la izquierda, {{y}} desde arriba. Muévela con las flechas y bórrala con Supr.",
+      "username": "Usuario de la etiqueta {{position}}",
+      "placeholder": "usuario",
+      "remove": "Quitar la etiqueta {{position}}",
+      "add": "Añadir una cuenta",
+      "full": "Es el máximo que permite Instagram en una publicación, {{limit}} etiquetas.",
+      "place": "Colocar una etiqueta en la imagen. Luego escribe el usuario.",
+      "pending": "Usuario de la nueva etiqueta",
+      "confirm": "Añadir la etiqueta"
     }
   },
   "published": {

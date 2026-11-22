@@ -315,7 +315,7 @@ const readMethods = (call: Call): Pick<Provider, 'publishedPosts' | 'scheduledPo
 
 const writeMethods = (call: Call): Pick<Provider, 'schedule' | 'update' | 'cancel'> => ({
   async schedule(
-    { accountId, caption, scheduledFor, timeZone, mediaUrls, mediaTypes },
+    { accountId, caption, scheduledFor, timeZone, mediaUrls, mediaTypes, userTags },
     idempotencyKey
   ) {
     const { post } = await call('/posts', postSchema, {
@@ -329,7 +329,13 @@ const writeMethods = (call: Call): Pick<Provider, 'schedule' | 'update' | 'cance
           type: mediaTypes?.[index] ?? 'image',
           url
         })),
-        platforms: [{ platform: PLATFORM, accountId }]
+        platforms: [
+          {
+            platform: PLATFORM,
+            accountId,
+            ...(userTags?.length && { platformSpecificData: { userTags } })
+          }
+        ]
       }
     })
     return toScheduledPost(post)

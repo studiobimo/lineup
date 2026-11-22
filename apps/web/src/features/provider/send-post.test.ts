@@ -187,4 +187,16 @@ describe('sending a post, with video and what is gone', () => {
     await expect(sending).rejects.toMatchObject({ limit })
     expect(sent).toEqual([])
   })
+
+  it('sends the tags with the post', async () => {
+    const { posts } = provider()
+    const userTags = [{ username: 'friend', x: 0.5, y: 0.25 }]
+    await sendPost({
+      cell: 'tagged',
+      images: ['a'],
+      post: { ...post, userTags },
+      onImage: () => undefined
+    })
+    expect(posts()[0].body).toMatchObject({ userTags })
+  })
 })
