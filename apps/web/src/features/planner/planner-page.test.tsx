@@ -101,7 +101,7 @@ describe('PlannerPage', () => {
     await user.click(screen.getByRole('button', { name: 'Move all to the grid' }))
     expect(plannerStore.getState().board).toEqual({
       tray: [],
-      grid: [...before.grid, ...before.tray]
+      grid: [...before.tray, ...before.grid]
     })
     await user.click(screen.getByRole('button', { name: 'Undo' }))
     expect(plannerStore.getState().board).toEqual(before)

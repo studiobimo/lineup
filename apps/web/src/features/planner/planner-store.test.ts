@@ -200,8 +200,10 @@ describe('the planner store, every action can be undone and redone exactly', () 
     ['import', (state) => state.addImages([processed, processed])],
     ['move', (state) => state.move('a', 'grid')],
     ['insert', (state) => state.move('a', 'grid', 1)],
+    ['move to the start of the grid', (state) => state.moveToStartOfGrid('a')],
     ['swap', (state) => state.swap('a', 'd')],
     ['move all', (state) => state.moveAll('tray')],
+    ['move selection to the grid', (state) => state.moveCells(['b', 'a'], 'grid')],
     ['shuffle', (state) => state.shuffle('grid')],
     ['lock', (state) => state.toggleLock('d')],
     [
@@ -247,6 +249,32 @@ describe('the planner store, every action can be undone and redone exactly', () 
 })
 
 describe('the planner store', () => {
+  it('puts a tray image at the start of the grid, and undo and redo restore it', async () => {
+    const { state } = await loaded()
+    state().moveToStartOfGrid('a')
+    expect(state().board).toEqual({ tray: ['b'], grid: ['a', 'c', 'd', 'e'] })
+    state().undo()
+    expect(state().board).toEqual(start)
+    state().redo()
+    expect(state().board).toEqual({ tray: ['b'], grid: ['a', 'c', 'd', 'e'] })
+  })
+
+  it.each([
+    ['a selection', (state: PlannerState) => state.moveCells(['b', 'a'], 'grid')],
+    ['the whole tray', (state: PlannerState) => state.moveAll('tray')]
+  ])(
+    'sends %s to the start of the grid in tray order, and undo and redo restore it',
+    async (_name, act) => {
+      const { state } = await loaded()
+      act(state())
+      expect(state().board).toEqual({ tray: [], grid: ['a', 'b', 'c', 'd', 'e'] })
+      state().undo()
+      expect(state().board).toEqual(start)
+      state().redo()
+      expect(state().board).toEqual({ tray: [], grid: ['a', 'b', 'c', 'd', 'e'] })
+    }
+  )
+
   it('clears redo on a new change', async () => {
     const { state } = await loaded()
     state().move('a', 'grid')

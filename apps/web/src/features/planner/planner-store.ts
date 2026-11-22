@@ -18,6 +18,7 @@ import {
   move,
   moveAll,
   moveCells,
+  moveToStartOfGrid,
   remove,
   reorderAlbum,
   sameBoard,
@@ -57,6 +58,7 @@ export interface PlannerState {
   addImages(images: ProcessedImage[]): Promise<void>
   beginImport(): ImageImport
   move(id: string, to: Container, index?: number): void
+  moveToStartOfGrid(id: string): void
   swap(first: string, second: string): void
   moveAll(from: Container): void
   moveCells(ids: string[], to: Container): void
@@ -301,6 +303,7 @@ const arrangeSlice = ({
 }: Context): Pick<
   PlannerState,
   | 'move'
+  | 'moveToStartOfGrid'
   | 'swap'
   | 'moveAll'
   | 'moveCells'
@@ -314,6 +317,7 @@ const arrangeSlice = ({
   | 'clear'
 > => ({
   move: (id, to, index) => commit(move(get().board, id, to, index)),
+  moveToStartOfGrid: (id) => commit(moveToStartOfGrid(get().board, [id])),
   swap: (first, second) => commit(swap(get().board, first, second)),
   moveAll: (from) => commit(moveAll(get().board, from)),
   moveCells: (ids, to) => commit(moveCells(get().board, ids, to)),
