@@ -17,7 +17,8 @@ const mocks = vi.hoisted(() => ({
   scheduled: [] as unknown[],
   published: 0,
   listFails: false,
-  toasts: [] as { title: string; actionProps?: unknown }[]
+  toasts: [] as { title: string; actionProps?: unknown }[],
+  reported: [] as string[][]
 }))
 
 vi.mock('@/features/planner/planner', async () => {
@@ -32,6 +33,9 @@ vi.mock('@/features/planner/planner', async () => {
 })
 vi.mock('@/components/ui/toast', () => ({
   toastManager: { add: (toast: { title: string }) => mocks.toasts.push(toast) }
+}))
+vi.mock('./publish-telemetry', () => ({
+  reportPublished: (cells: string[]) => mocks.reported.push(cells)
 }))
 vi.mock('./queries', () => ({
   postsQuery: () => ({ queryKey: ['scheduled'], queryFn: async () => mocks.scheduled }),
@@ -131,6 +135,14 @@ describe('syncing a post that goes out', () => {
       expect.objectContaining({ title: 'Your post is published.', actionProps: expect.anything() })
     ])
     expect(store.getState().images).not.toHaveProperty('one')
+    expect(mocks.reported).toEqual([['one']])
+  })
+
+  it('reports nothing for a failed cell, and nothing when the list cannot be read', async () => {
+    await syncHarness({ stored: 'failed' })
+    await syncHarness({ stored: 'published', listFails: true })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(mocks.reported).toEqual([])
   })
 
   it('cleans a board saved with a published cell, without a notice', async () => {
@@ -182,6 +194,7 @@ async function syncHarness({ stored, latest, listFails = false }: Harness) {
   mocks.published = 0
   mocks.listFails = listFails
   mocks.toasts = []
+  mocks.reported = []
   mocks.scheduled = [latest ?? { id: 'post', status: stored }]
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const wrapper = ({ children }: { children: ReactNode }) =>

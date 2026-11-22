@@ -47,7 +47,7 @@
     "timeZone": "In your time zone, {{zone}}.",
     "timeInvalid": "Pick a time that is still to come.",
     "outOfOrder": "With this time, posts will not go out in the order of your grid.",
-    "notice": "When you schedule, the images and caption are sent to {{provider}} and Instagram. Nothing else leaves this device.",
+    "notice": "When you schedule, the images and caption are sent to {{provider}} and Instagram. When it is published, one anonymous note of its kind, size and delay is sent to Lineup. Nothing else leaves this device.",
     "noKey": "Add your key in Settings to schedule this.",
     "readOnly": "This key is read-only. Replace it in Settings with a read and write key to schedule this.",
     "noAccount": "Connect an Instagram account in Settings to schedule this. Instagram only allows it for a professional account.",

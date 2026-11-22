@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { rm } from 'node:fs/promises'
 
 import { visualizer } from 'rollup-plugin-visualizer'
@@ -10,6 +11,15 @@ import { site } from './src/config/site.ts'
 const report = process.env.ANALYZE
   ? [visualizer({ filename: 'dist/bundle-report.html', gzipSize: true, template: 'treemap' })]
   : []
+
+// ~keep The build that sends a telemetry event (ADR-0026): the release tag and commit, or 'dev'.
+const version = (() => {
+  try {
+    return execFileSync('git', ['describe', '--tags', '--always'], { encoding: 'utf8' }).trim()
+  } catch {
+    return 'dev'
+  }
+})()
 
 const vendors = {
   tanstack: /[\\/]node_modules[\\/]@tanstack[\\/](?!react-form|form-core|react-query|query-core)/
@@ -28,6 +38,7 @@ const noReferenceInProduction = (): Plugin => ({
 export default defineConfig(
   mergeConfig(await app({ site, vendors }), {
     build: { assetsInlineLimit: 0 },
+    define: { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(version) },
     plugins: [
       ...report,
       noReferenceInProduction(),

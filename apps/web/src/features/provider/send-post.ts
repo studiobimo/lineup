@@ -7,6 +7,7 @@ import { boardStore, plannerStore } from '@/features/planner/planner'
 import { createStoredStore } from '@/lib/stored-store'
 
 import { answer, providerApi, ProviderRequestError } from './api'
+import { postShape } from './publish-telemetry'
 
 const IDEMPOTENCY_WINDOW_MS = 23 * 3_600_000
 
@@ -121,5 +122,11 @@ export async function sendPost({ cell, images, post, onImage }: PostToSend): Pro
   )
   forget(cell)
   const { accountId, scheduledFor, timeZone, caption } = post
-  return { accountId, scheduledFor, timeZone, caption, ...sent }
+  // ~keep The sizes are not kept once the images are uploaded, so the shape goes with the post.
+  const { images: records } = plannerStore.getState()
+  const shape = postShape(
+    copies,
+    images.map((image) => records[image]?.video?.duration)
+  )
+  return { accountId, scheduledFor, timeZone, caption, ...sent, media: shape }
 }
