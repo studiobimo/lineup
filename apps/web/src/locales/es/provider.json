@@ -101,6 +101,14 @@
       "tagCount": "Etiquetar cuentas ({{count}})",
       "tagged_one": "Etiquetada: {{usernames}}",
       "tagged_other": "{{count}} cuentas etiquetadas: {{usernames}}"
+    },
+    "spacing": {
+      "before": "La publicación en la posición {{position}} de tu cuadrícula necesita unos {{minutes}} minutos para salir antes que esta.",
+      "after": "Esta publicación necesita unos {{minutes}} minutos para salir antes que la de la posición {{position}} de tu cuadrícula.",
+      "video": "Una publicación con vídeo puede tardar varios minutos en salir, e Instagram ordena las publicaciones según cuándo salen.",
+      "image": "Instagram puede tardar unos minutos en publicar, y ordena las publicaciones según cuándo salen.",
+      "noRoom": "No hay un momento entre estas publicaciones que deje espacio suficiente. Aun así puedes programarla.",
+      "use": "Usar {{time}}"
     }
   },
   "published": {

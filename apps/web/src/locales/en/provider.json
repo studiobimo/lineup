@@ -101,6 +101,14 @@
       "tagCount": "Tag accounts ({{count}})",
       "tagged_one": "Tagged: {{usernames}}",
       "tagged_other": "{{count}} accounts tagged: {{usernames}}"
+    },
+    "spacing": {
+      "before": "The post at position {{position}} on your grid needs about {{minutes}} minutes to go live before this one.",
+      "after": "This post needs about {{minutes}} minutes to go live before the post at position {{position}} on your grid.",
+      "video": "A post with a video can take several minutes to go live, and Instagram orders posts by when they go live.",
+      "image": "Instagram can take a few minutes to publish a post, and orders posts by when they go live.",
+      "noRoom": "There is no time between these posts that leaves enough room. You can still schedule it.",
+      "use": "Use {{time}}"
     }
   },
   "published": {

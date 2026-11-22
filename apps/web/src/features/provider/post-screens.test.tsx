@@ -10,6 +10,12 @@ import { PostScreens } from './post-screens'
 vi.mock('./post-thumbnail', () => ({ PostThumbnail: () => <div data-testid="thumbnail" /> }))
 vi.mock('./tag-picker', () => ({ TagPicker: () => <p>picker</p> }))
 vi.mock('./use-misordered', () => ({ isMisordered: () => false }))
+vi.mock('./use-spacing', () => ({
+  useSpacing: () => ({
+    near: [{ side: 'before', slot: { cell: 'c', at: 0, gap: 300_000, video: false }, position: 2 }],
+    suggested: new Date('2999-01-01T10:05:00')
+  })
+}))
 vi.mock('@/features/planner/planner', () => ({
   plannerStore: { getState: () => ({ board: {} }) }
 }))
@@ -53,6 +59,17 @@ describe('PostScreens', () => {
     const { onSubmit } = setup()
     await user.click(screen.getByRole('button', { name: 'Schedule' }))
     expect(onSubmit).toHaveBeenCalledWith({ caption: '', when: FUTURE })
+  })
+
+  it('warns about spacing without blocking Schedule, and the suggestion fills the time', async () => {
+    const user = userEvent.setup()
+    const { onSubmit } = setup()
+    expect(screen.getByText(/position 2 on your grid/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Schedule' }))
+    expect(onSubmit).toHaveBeenCalledWith({ caption: '', when: FUTURE })
+    await user.click(screen.getByRole('button', { name: /^Use / }))
+    await user.click(screen.getByRole('button', { name: 'Schedule' }))
+    expect(onSubmit).toHaveBeenLastCalledWith({ caption: '', when: '2999-01-01T10:05' })
   })
 
   it('opens the tag screen and returns to the main one with the caption kept', async () => {

@@ -273,6 +273,53 @@ test('a post that goes out leaves the board and shows only as the provider’s c
   await expect(grid(page)).toHaveCount(0)
 })
 
+const MINUTES = 60_000
+const later = (minutes: number) => new Date(IN_A_WEEK.getTime() + minutes * MINUTES)
+
+// The first cell of the grid is the newest post, so the second is scheduled earlier. ~keep
+async function scheduleTwo(page: Page, minutes: number) {
+  const provider = await mockProvider(page)
+  await planOnGrid(page, 2)
+  await connect(page)
+  const first = await openSchedule(page)
+  await schedule(first, IN_A_WEEK, 'First')
+  await expect(first).toBeHidden()
+  const second = await openSchedule(page, 1)
+  await second.getByLabel('Caption').fill('Second')
+  await pickTime(second, later(-minutes))
+  return { provider, second }
+}
+
+test('a post too close to the one before warns, suggests a time, and can still be scheduled', async ({
+  page
+}) => {
+  const { provider, second } = await scheduleTwo(page, 2)
+  await expect(
+    second.getByText(/about 5 minutes to go live before the post at position 1 on your grid/)
+  ).toBeVisible()
+  await expect(second.getByRole('button', { name: 'Schedule', exact: true })).toBeEnabled()
+
+  await second.getByRole('button', { name: /^Use / }).click()
+  await expect(second.getByText(/about 5 minutes to go live/)).toHaveCount(0)
+  await second.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await expect(second).toBeHidden()
+  const [one, two] = provider.bodies.filter((body) => body.scheduledFor)
+  expect(Date.parse(String(one.scheduledFor)) - Date.parse(String(two.scheduledFor))).toBe(
+    5 * MINUTES
+  )
+})
+
+test('a warning can be ignored, and the post is scheduled as chosen', async ({ page }) => {
+  const { provider, second } = await scheduleTwo(page, 2)
+  await expect(second.getByText(/about 5 minutes to go live/)).toBeVisible()
+  await second.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await expect(second).toBeHidden()
+  const [one, two] = provider.bodies.filter((body) => body.scheduledFor)
+  expect(Date.parse(String(one.scheduledFor)) - Date.parse(String(two.scheduledFor))).toBe(
+    2 * MINUTES
+  )
+})
+
 test('a post that failed gives the reason, and a new time tries again', async ({ page }) => {
   const provider = await scheduledCell(page)
   const failure = 'The image is too wide'
