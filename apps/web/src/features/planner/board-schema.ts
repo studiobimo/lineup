@@ -12,7 +12,6 @@ const cellPostSchema = z.object({
   timeZone: z.string(),
   caption: z.string(),
   status: postStatusSchema,
-  publishedAt: z.string().optional(),
   url: z.string().optional(),
   failure: z.string().optional()
 })

@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { boardSchema } from './board-schema'
-
 import {
   addToTray,
   cellOf,
@@ -23,12 +21,8 @@ import {
   move,
   moveAll,
   moveCells,
-  isPublished,
   moveToStartOfGrid,
   outOfOrder,
-  plannedCells,
-  publishedCells,
-  publishedTime,
   remove,
   reorderAlbum,
   sameBoard,
@@ -37,7 +31,9 @@ import {
   takeFromAlbum,
   toggleLock,
   ungroup,
-  withKnownImages
+  withKnownImages,
+  withoutImages,
+  publishedCells
 } from './board'
 import type { CellPost } from './board-schema'
 import type { Board } from './board-store'
@@ -529,51 +525,32 @@ describe('flightsBetween', () => {
   })
 })
 
-describe('a board saved before a post stored when it went out', () => {
-  it('still opens, and is placed by its due time', () => {
-    const saved = {
-      tray: [],
-      grid: ['a'],
-      posts: { a: { ...postFor('2030-01-01T10:00:00Z'), status: 'published' } }
-    }
-    expect(boardSchema.safeParse(saved).success).toBe(true)
-    expect(publishedTime(saved as Board, 'a')).toBe(Date.parse('2030-01-01T10:00:00Z'))
-  })
-})
-
-describe('a cell whose post is published', () => {
-  const published = (publishedAt?: string): CellPost => ({
-    ...postFor('2030-01-01T10:00:00Z'),
-    status: 'published',
-    publishedAt
-  })
-  const board: Board = {
-    tray: [],
-    grid: ['a', 'b', 'c', 'd'],
-    posts: { a: published('2030-01-02T10:00:00Z'), c: postFor('2030-02-01T10:00:00Z') }
+describe('a published cell', () => {
+  const post = {
+    id: 'post',
+    accountId: 'account',
+    scheduledFor: '2030-01-01T10:00:00.000Z',
+    timeZone: 'Europe/London',
+    caption: ''
   }
 
-  it('leaves the planned cells, which keep the order the person gave them', () => {
-    expect(isPublished(board, 'a')).toBe(true)
-    expect(isPublished(board, 'c')).toBe(false)
-    expect(plannedCells(board)).toEqual(['b', 'c', 'd'])
-    expect(publishedCells(board)).toEqual(['a'])
-    expect(board.grid).toEqual(['a', 'b', 'c', 'd'])
+  it('is found by the status of its post alone', () => {
+    const posts = {
+      c: { ...post, status: 'published' as const },
+      d: { ...post, status: 'scheduled' as const },
+      e: { ...post, status: 'failed' as const }
+    }
+    expect(publishedCells({ ...board, posts })).toEqual(['c'])
+    expect(publishedCells(board)).toEqual([])
   })
 
-  it('goes back to where it was planned once it is freed', () => {
-    const freed: Board = { ...board, posts: { c: board.posts!.c } }
-    expect(plannedCells(freed)).toEqual(['a', 'b', 'c', 'd'])
-  })
-
-  it('is placed by when it went out, or failing that when it was due', () => {
-    expect(publishedTime(board, 'a')).toBe(Date.parse('2030-01-02T10:00:00Z'))
-    const unknown: Board = { ...board, posts: { a: published() } }
-    expect(publishedTime(unknown, 'a')).toBe(Date.parse('2030-01-01T10:00:00Z'))
-  })
-
-  it('does not stand in the way of a time for a planned cell', () => {
-    expect(outOfOrder(board, 'd', '2030-01-05T10:00:00Z')).toBe(false)
-    expect(outOfOrder(board, 'b', '2030-01-05T10:00:00Z')).toBe(true)
+  it('goes with its images, from a step that held it as loose cells or in an album', () => {
+    const step = { tray: ['a'], grid: ['b', 'c', 'd'], albums: { x: ['b', 'c'] }, posts: undefined }
+    expect(withoutImages({ ...step, grid: ['x', 'd'] }, ['b', 'c'])).toEqual({
+      tray: ['a'],
+      grid: ['d'],
+      albums: {}
+    })
+    expect(withoutImages(step, ['b', 'c']).grid).toEqual(['d'])
   })
 })

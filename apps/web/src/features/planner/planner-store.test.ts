@@ -495,19 +495,6 @@ describe('the planner store, with a post on the board', () => {
     expect(state().board.posts).toEqual({ d: post })
   })
 
-  it('keeps a published cell where it was planned, through undo and redo', async () => {
-    const { state } = await loaded()
-    state().linkPost('c', post)
-    state().updatePosts({ c: { ...post, status: 'published', publishedAt: post.scheduledFor } })
-    state().swap('d', 'e')
-    expect(state().board.grid).toEqual(['c', 'e', 'd'])
-    state().undo()
-    expect(state().board.grid.indexOf('c')).toBe(0)
-    state().redo()
-    expect(state().board.grid.indexOf('c')).toBe(0)
-    expect(state().board.posts?.c.publishedAt).toBe(post.scheduledFor)
-  })
-
   it('holds a posted cell where it is when an undo would move it', async () => {
     const { state } = await loaded()
     state().swap('c', 'd')
@@ -567,6 +554,89 @@ describe('the planner store, with a post on the board, after a reload', () => {
     const reopened = createPlannerStore(boardStore)
     await reopened.getState().load()
     expect(reopened.getState().board.posts).toEqual({ d: post })
+  })
+})
+
+describe('the planner store, when a post goes out', () => {
+  const published: CellPost = { ...post, status: 'published' }
+
+  it('drops the cell, its post and its images, which are purged', async () => {
+    const { boardStore, state } = await loaded()
+    state().linkPost('d', post)
+    state().updatePosts({ d: published })
+
+    state().dropPublished(['d'])
+    expect(state().board.grid).toEqual(['c', 'e'])
+    expect(state().board.posts).toEqual({})
+    expect(state().images).not.toHaveProperty('d')
+    expect(boardStore.deleteImages).toHaveBeenCalledWith(['d'])
+    expect(boardStore.saved.grid).toEqual(['c', 'e'])
+  })
+
+  it('drops an album with all of its images, and no loose album is left', async () => {
+    const { state } = await loaded()
+    const album = state().group(['a', 'b'])!
+    state().move(album, 'grid')
+    state().linkPost(album, post)
+    state().updatePosts({ [album]: published })
+
+    state().dropPublished([album])
+    expect(state().board.grid).toEqual(['c', 'd', 'e'])
+    expect(state().board.albums).toEqual({})
+    expect(Object.keys(state().images).sort()).toEqual(['c', 'd', 'e'])
+  })
+
+  it('leaves a scheduled, publishing or failed cell, and one the person has not seen published', async () => {
+    const { state } = await loaded()
+    state().linkPost('c', post)
+    state().linkPost('d', { ...post, id: 'other', status: 'failed' })
+    state().linkPost('e', { ...post, id: 'third', status: 'publishing' })
+
+    state().dropPublished(['c', 'd', 'e'])
+    expect(state().board.grid).toEqual(['c', 'd', 'e'])
+    expect(Object.keys(state().board.posts ?? {})).toEqual(['c', 'd', 'e'])
+  })
+
+  it('is not a step of its own, and undo and redo cannot bring the cell back', async () => {
+    const { state } = await loaded()
+    state().move('a', 'grid')
+    state().linkPost('d', post)
+    state().swap('c', 'e')
+    state().updatePosts({ d: published })
+    state().dropPublished(['d'])
+
+    const board = state().board
+    expect(board.grid).not.toContain('d')
+    for (const step of [...state().past, ...state().future]) {
+      expect([...step.tray, ...step.grid]).not.toContain('d')
+    }
+    while (state().past.length > 0) {
+      state().undo()
+      expect([...state().board.tray, ...state().board.grid]).not.toContain('d')
+      expect(state().board.posts).toEqual({})
+    }
+    while (state().future.length > 0) {
+      state().redo()
+      expect([...state().board.tray, ...state().board.grid]).not.toContain('d')
+    }
+    expect(state().board.grid).toEqual(board.grid)
+  })
+
+  it('cleans a board saved with a published cell, after a reload', async () => {
+    const saved = { tray: ['a'], grid: ['c', 'd'], posts: { d: published } }
+    const { state } = await loaded(saved)
+    expect(state().board.grid).toEqual(['c', 'd'])
+
+    state().dropPublished(['d'])
+    expect(state().board).toEqual({ tray: ['a'], grid: ['c'], posts: {} })
+  })
+
+  it('does nothing when the board is not open here', async () => {
+    const { state } = await loaded()
+    state().linkPost('d', published)
+    state().suspend()
+    state().dropPublished(['d'])
+    expect(state().board.grid).toContain('d')
   })
 })
 

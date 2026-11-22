@@ -21,7 +21,6 @@ import { useConnectedAccount } from '@/features/provider/use-connected-account'
 import { dateTimeFormat } from '@/i18n/format'
 import { cn } from '@/lib/utils'
 
-import { usePlannedCells } from './use-planned-cells'
 import { cellShape, gridColumns, instagram } from './network-profile'
 import { usePlanner } from './planner'
 import { useProfile } from './profile-store'
@@ -186,9 +185,9 @@ function PreviewCell({ id, position }: { id: string; position: number }) {
 
 export function PhoneScreen({ feed }: { feed: RefObject<HTMLDivElement | null> }) {
   const { t } = useTranslation('planner')
-  const grid = usePlannedCells('grid')
+  const grid = usePlanner(({ board }) => board.grid)
   const typed = useProfile()
-  const { account, feed: published } = useConnectedAccount()
+  const { account, published } = useConnectedAccount()
   const posts = grid.length + published.length
   const emptySlots = Math.max(0, MINIMUM_SLOTS - posts)
   return (
@@ -218,16 +217,14 @@ export function PhoneScreen({ feed }: { feed: RefObject<HTMLDivElement | null> }
           {grid.map((id, index) => (
             <PreviewCell key={id} id={id} position={index + 1} />
           ))}
-          {published.map((entry, index) => {
-            const position = grid.length + index + 1
-            if ('cell' in entry)
-              return <PreviewCell key={entry.cell} id={entry.cell} position={position} />
-            return (
-              <div key={entry.post.id} className="bg-foreground/5" style={cellShape}>
-                <PublishedPicture post={entry.post} label={t('cell', { position })} />
-              </div>
-            )
-          })}
+          {published.map((post, index) => (
+            <div key={post.id} className="bg-foreground/5" style={cellShape}>
+              <PublishedPicture
+                post={post}
+                label={t('cell', { position: grid.length + index + 1 })}
+              />
+            </div>
+          ))}
           {Array.from({ length: emptySlots }, (_, slot) => (
             <div key={slot} data-empty-slot className="bg-foreground/5" style={cellShape} />
           ))}
