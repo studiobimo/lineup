@@ -57,6 +57,11 @@
     "cancelDescription": "It will not go out, and is removed from {{provider}}. The image goes back to being a planned cell.",
     "cancelConfirm": "Cancel post",
     "keep": "Keep it",
+    "live": {
+      "published": "Your post is published.",
+      "view": "View post",
+      "failed": "A post did not go out."
+    },
     "view": "View on Instagram",
     "free": "Free this cell",
     "freePublished": "Freeing this cell leaves the post on Instagram, and it shows after the planned cells.",
