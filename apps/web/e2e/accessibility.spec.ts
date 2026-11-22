@@ -63,7 +63,7 @@ test.describe('in light', () => {
     expect(await violations(page)).toEqual([])
     await page.keyboard.press('Escape')
     await page.locator('section').getByRole('img').first().dblclick()
-    await page.getByRole('dialog').waitFor()
+    await settled(page)
     expect(await violations(page)).toEqual([])
   })
 })
@@ -145,7 +145,7 @@ test('focus opens a picture without a tooltip, so Escape goes straight to closin
 test('focus does not land under the header', async ({ page }) => {
   await fillBoard(page)
   await page.setViewportSize({ width: 640, height: 360 })
-  const undo = page.getByRole('button', { name: 'Undo' })
+  const undo = page.getByRole('button', { name: 'Undo' }).first()
   await undo.evaluate((button) => scrollTo(0, scrollY + button.getBoundingClientRect().top))
   await undo.focus()
   const header = await page.getByRole('banner').boundingBox()
@@ -169,7 +169,7 @@ test('a focused photo is marked in two colours, one of which shows on any photo'
 
 async function openClear(page: Page) {
   await fillBoard(page)
-  await page.getByRole('button', { name: 'Clear' }).click()
+  await page.getByRole('button', { name: 'Clear', exact: true }).click()
   await settled(page, 'alertdialog')
 }
 
@@ -189,7 +189,7 @@ test('a mouse reorders without dragging, and undo puts it back', async ({ page }
   const swapped = [before[1], before[0], ...before.slice(2)]
   await expect.poll(async () => (await savedBoard(page)).grid).toEqual(swapped)
 
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect.poll(async () => (await savedBoard(page)).grid).toEqual(before)
 })
 
@@ -280,7 +280,7 @@ test('the schedule form says what is wrong, beside the field it is about', async
       Promise.all(element.getAnimations({ subtree: true }).map(({ finished }) => finished))
     )
   expect(await violations(page)).toEqual([])
-  await page.getByRole('button', { name: 'Clear' }).click()
+  await page.getByRole('button', { name: 'Clear', exact: true }).click()
   await page.keyboard.press('Escape')
   await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
   await expect(dialog.getByLabel('Caption')).toHaveAccessibleDescription('1 over the limit of 2200')

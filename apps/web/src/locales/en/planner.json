@@ -63,6 +63,8 @@
     "bands4": "Bands, 4 rows"
   },
   "clear": "Clear",
+  "clearTray": "Clear tray",
+  "clearTrayTitle": "Clear the tray?",
   "clearTitle": "Clear which images?",
   "clearDescription": "They leave the board, and Undo brings them back.",
   "clearDescriptionLocked": "They leave the board, and Undo brings them back. Locked images stay.",

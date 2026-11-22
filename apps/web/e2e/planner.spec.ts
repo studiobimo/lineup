@@ -34,9 +34,9 @@ test('imports, arranges, undoes and comes back after a reload', async ({ page })
   const grid = page.locator('section')
   await expect(grid.getByRole('img')).toHaveCount(1)
 
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect(grid.getByRole('img')).toHaveCount(0)
-  await page.getByRole('button', { name: 'Redo' }).click()
+  await page.getByRole('button', { name: 'Redo' }).first().click()
   await expect(grid.getByRole('img')).toHaveCount(1)
 
   await reloadWhenSaved(page, ({ grid }) => grid.length === 1)
@@ -67,12 +67,12 @@ test('undo reaches past a reload, and brings back a deleted image', async ({ pag
 
   await reloadWhenSaved(page, ({ grid }) => grid.length === 2)
   await expect(cells).toHaveCount(2)
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect(cells).toHaveCount(3)
   await expect.poll(async () => (await savedBoard(page)).grid).toEqual(before.grid)
   await expect(cells.first()).toHaveJSProperty('width', 2)
 
-  await page.getByRole('button', { name: 'Redo' }).click()
+  await page.getByRole('button', { name: 'Redo' }).first().click()
   await expect(cells).toHaveCount(2)
 })
 
@@ -89,7 +89,7 @@ test('one tab at a time changes a board', async ({ context, page }) => {
 
   await page.getByRole('button', { name: 'Delete' }).first().click()
   await expect(page.getByRole('img')).toHaveCount(1)
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect(page.getByRole('img')).toHaveCount(2)
 
   await second.getByRole('button', { name: 'Use it here' }).click()
@@ -99,7 +99,7 @@ test('one tab at a time changes a board', async ({ context, page }) => {
   await second.close()
   await expect(page.getByRole('img')).toHaveCount(2)
 
-  await page.getByRole('button', { name: 'Redo' }).click()
+  await page.getByRole('button', { name: 'Redo' }).first().click()
   await expect(page.getByRole('img')).toHaveCount(1)
 })
 
@@ -190,7 +190,7 @@ test('dragging a cell onto another swaps them, and undo puts them back', async (
   await expect.poll(async () => (await savedBoard(page)).grid).toEqual([c, b, a])
 
   await page.waitForTimeout(100)
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect.poll(async () => (await savedBoard(page)).grid).toEqual([a, b, c])
   expect(errors).toEqual([])
 })
@@ -214,14 +214,14 @@ test('clearing asks first, says how many, and can be undone', async ({ page }) =
   const errors = watchErrors(page)
   const { before } = await boardOfFour(page)
 
-  await page.getByRole('button', { name: 'Clear' }).click()
+  await page.getByRole('button', { name: 'Clear', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Tray (1)' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Grid (3)' })).toBeVisible()
   await page.getByRole('button', { name: 'Both (4)' }).click()
   await expect(page.getByRole('alertdialog')).toHaveCount(0)
   await expect.poll(() => savedBoard(page)).toEqual({ tray: [], grid: [] })
 
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect.poll(() => savedBoard(page)).toEqual(before)
   expect(errors).toEqual([])
 })

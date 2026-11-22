@@ -3,6 +3,7 @@ import { m } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 
 import { AreaBoundary } from '@/components/area-boundary'
+import { HeaderPortal } from '@/components/header-slot'
 import { IconButton } from '@/components/icon-button'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,7 +19,7 @@ import { Intro } from '@/features/help/intro'
 import { PublishedPosts } from '@/features/provider/published-posts'
 import { cn } from '@/lib/utils'
 
-import { ClearBoard, ContainerActions, PreviewOnPhone } from './board-actions'
+import { ClearBoard, ClearTray, ContainerActions, PreviewOnPhone } from './board-actions'
 import { Cells } from './board-cells'
 import { useEmptyAreaMark } from './drag-target'
 import { ImportButtons, ImportProgress } from './import-controls'
@@ -32,7 +33,6 @@ function History() {
   return (
     <Group aria-label={t('history')}>
       <IconButton
-        variant="outline"
         label={t('undo')}
         disabled={!canUndo}
         onClick={() => plannerStore.getState().undo()}
@@ -40,7 +40,6 @@ function History() {
         <Undo2 />
       </IconButton>
       <IconButton
-        variant="outline"
         label={t('redo')}
         disabled={!canRedo}
         onClick={() => plannerStore.getState().redo()}
@@ -71,11 +70,26 @@ function MobileTray() {
   )
 }
 
-function TrayToolbar() {
+function TrayToolbar({ history = false }: { history?: boolean }) {
   return (
-    <div className="flex flex-wrap gap-2 px-gutter pb-gutter">
+    <div className={cn('flex flex-wrap gap-2 px-gutter pb-gutter', history && 'pt-gutter')}>
       <ImportButtons />
-      <ContainerActions container="tray" />
+      <ContainerActions container="tray">
+        <ClearTray />
+      </ContainerActions>
+      {history && <History />}
+    </div>
+  )
+}
+
+function GridActions() {
+  return (
+    <div className="flex items-center gap-2">
+      <ContainerActions container="grid">
+        <ClearBoard />
+        <PreviewOnPhone />
+      </ContainerActions>
+      <History />
     </div>
   )
 }
@@ -95,8 +109,8 @@ export function TrayPanel() {
         marked && 'ring-3 ring-primary ring-inset'
       )}
     >
-      <h2 className="p-gutter text-xl">{t('tray')}</h2>
-      <TrayToolbar />
+      <h2 className="sr-only">{t('tray')}</h2>
+      <TrayToolbar history />
       <ImportProgress />
       <AreaBoundary>
         <Cells container="tray" className="px-gutter pb-gutter" />
@@ -113,27 +127,27 @@ export function GridPanel({ desktop }: { desktop: boolean }) {
     <section
       ref={ref}
       {...dropArea}
-      className={cn('min-w-0 flex-1', marked && 'ring-3 ring-primary ring-inset')}
+      className={cn('min-w-0 flex-1 bg-feed', marked && 'ring-3 ring-primary ring-inset')}
     >
       <div className="mx-auto max-w-3xl">
         <Intro />
-        <div className="flex items-center justify-between gap-2 p-gutter">
-          <h2 className="text-xl">{t('grid')}</h2>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {!desktop && <MobileTray />}
-            <ContainerActions container="grid">
-              <ClearBoard />
-              <PreviewOnPhone />
-            </ContainerActions>
-            <History />
+        <h2 className="sr-only">{t('grid')}</h2>
+        {desktop ? (
+          <HeaderPortal>
+            <GridActions />
+          </HeaderPortal>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-2 p-gutter">
+            <MobileTray />
+            <GridActions />
           </div>
-        </div>
+        )}
         {!desktop && <TrayToolbar />}
         {!desktop && <ImportProgress />}
         <AreaBoundary>
           <Cells
             container="grid"
-            className={cn(desktop && 'px-gutter pb-gutter')}
+            className={cn(desktop && 'p-gutter')}
             after={<PublishedPosts />}
           />
         </AreaBoundary>

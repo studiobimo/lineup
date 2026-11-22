@@ -63,6 +63,8 @@
     "bands4": "Bandas, 4 filas"
   },
   "clear": "Vaciar",
+  "clearTray": "Vaciar la bandeja",
+  "clearTrayTitle": "¿Vaciar la bandeja?",
   "clearTitle": "¿Qué imágenes quieres quitar?",
   "clearDescription": "Salen del tablero, y Deshacer las recupera.",
   "clearDescriptionLocked": "Salen del tablero, y Deshacer las recupera. Las imágenes bloqueadas se quedan.",

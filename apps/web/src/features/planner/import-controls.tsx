@@ -111,20 +111,10 @@ export function ImportButtons() {
       />
       <input ref={folder} type="file" multiple hidden onChange={choose} />
       <Group aria-label={t('addToTray')}>
-        <IconButton
-          label={t('addImages')}
-          variant="outline"
-          disabled={busy}
-          onClick={() => files.current?.click()}
-        >
+        <IconButton label={t('addImages')} disabled={busy} onClick={() => files.current?.click()}>
           <ImagePlus />
         </IconButton>
-        <IconButton
-          label={t('addFolder')}
-          variant="outline"
-          disabled={busy}
-          onClick={() => folder.current?.click()}
-        >
+        <IconButton label={t('addFolder')} disabled={busy} onClick={() => folder.current?.click()}>
           <FolderPlus />
         </IconButton>
       </Group>

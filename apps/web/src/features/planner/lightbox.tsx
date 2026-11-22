@@ -83,24 +83,14 @@ function LightboxHeader({
       </div>
       <div className="flex shrink-0 gap-2">
         <Group aria-label={t('zoom')}>
-          <IconButton
-            variant="outline"
-            label={t('zoomOut')}
-            disabled={video || !zoomed}
-            onClick={zoomOut}
-          >
+          <IconButton label={t('zoomOut')} disabled={video || !zoomed} onClick={zoomOut}>
             <ZoomOut />
           </IconButton>
-          <IconButton
-            variant="outline"
-            label={t('zoomIn')}
-            disabled={video || !canZoomIn}
-            onClick={zoomIn}
-          >
+          <IconButton label={t('zoomIn')} disabled={video || !canZoomIn} onClick={zoomIn}>
             <ZoomIn />
           </IconButton>
         </Group>
-        <IconButton variant="outline" label={t('close')} onClick={close}>
+        <IconButton label={t('close')} onClick={close}>
           <X />
         </IconButton>
       </div>
@@ -125,7 +115,6 @@ function LightboxNav({
   return (
     <>
       <IconButton
-        variant="outline"
         className="absolute left-4"
         label={t('previous')}
         disabled={!previous}
@@ -134,7 +123,6 @@ function LightboxNav({
         <ChevronLeft />
       </IconButton>
       <IconButton
-        variant="outline"
         className="absolute right-4"
         label={t('next')}
         disabled={!next}
@@ -145,7 +133,7 @@ function LightboxNav({
       {zoomed && (
         <Group aria-label={t('pan')} className="absolute top-4 right-4">
           {PAN_BUTTONS.map(({ key, label, icon: Icon }) => (
-            <IconButton key={key} variant="outline" label={t(label)} onClick={() => pan(key)}>
+            <IconButton key={key} label={t(label)} onClick={() => pan(key)}>
               <Icon />
             </IconButton>
           ))}
