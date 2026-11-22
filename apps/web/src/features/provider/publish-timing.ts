@@ -98,3 +98,57 @@ export function spacingFor({
   const suggested = start <= latest ? Math.max(start, Math.min(when, latest)) : undefined
   return { near, suggested: suggested === undefined ? undefined : new Date(suggested) }
 }
+
+// ~keep
+// A stretch of time that would sit too near another post, for the picker to mark. `start` is the
+// first such time and `end` the first that is clear again. A time before the post is held to the
+// gap of the post being scheduled, a time after it to the gap of that post.
+export interface GapWindow {
+  start: number
+  end: number
+  side: 'before' | 'after'
+  position: number
+  gap: number
+}
+
+interface GapInput {
+  board: Board
+  images: Record<string, ImageRecord | undefined>
+  sizes: Record<string, number | undefined>
+  cell: string
+}
+
+export function gapWindows({ board, images, sizes, cell }: GapInput): GapWindow[] {
+  const own = slotOf(board, images, sizes, cell, 0)
+  return scheduledSlots(board, images, sizes, cell).flatMap((slot) => {
+    const position = board.grid.indexOf(slot.cell) + 1
+    return [
+      { start: slot.at - own.gap + MINUTE_MS, end: slot.at, side: 'after', position, gap: own.gap },
+      { start: slot.at, end: slot.at + slot.gap, side: 'before', position, gap: slot.gap }
+    ] as const
+  })
+}
+
+interface DefaultInput extends GapInput {
+  from: number
+  soonest: number
+}
+
+// ~keep
+// Where a new post starts out: after every post older on the grid has had its gap, and before the
+// newer ones need theirs, so the order of the grid is the order of the times. With no room
+// between them it falls back to the time that suits the older ones, and the warning says why.
+export function defaultTime({ from, soonest, ...input }: DefaultInput) {
+  const { board, images, sizes, cell } = input
+  const place = board.grid.indexOf(cell)
+  const own = slotOf(board, images, sizes, cell, 0)
+  const others = place < 0 ? [] : scheduledSlots(board, images, sizes, cell)
+  const whole = (time: number) => Math.ceil(time / MINUTE_MS) * MINUTE_MS
+  const older = others.filter((slot) => board.grid.indexOf(slot.cell) > place)
+  const newer = others.filter((slot) => board.grid.indexOf(slot.cell) < place)
+  const lowest = Math.max(whole(soonest), ...older.map((slot) => whole(slot.at + slot.gap)))
+  const preferred = Math.max(lowest, whole(from))
+  const highest = Math.min(...newer.map((slot) => slot.at - own.gap))
+  if (preferred <= highest || lowest > highest) return new Date(preferred)
+  return new Date(highest)
+}

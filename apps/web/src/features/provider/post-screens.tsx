@@ -90,7 +90,9 @@ export function PostScreens({
             <form.Field name="caption">
               {(field) => <CaptionField {...fieldProps(field)} />}
             </form.Field>
-            <form.Field name="when">{(field) => <TimeField {...fieldProps(field)} />}</form.Field>
+            <form.Field name="when">
+              {(field) => <TimeField cell={cell} {...fieldProps(field)} />}
+            </form.Field>
             {tags.length > 0 && (
               <p className="text-xs text-muted-foreground wrap-anywhere">
                 {t('post.screens.tagged', { count: tags.length, usernames })}

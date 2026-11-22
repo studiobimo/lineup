@@ -108,7 +108,8 @@
       "video": "Una publicación con vídeo puede tardar varios minutos en salir, e Instagram ordena las publicaciones según cuándo salen.",
       "image": "Instagram puede tardar unos minutos en publicar, y ordena las publicaciones según cuándo salen.",
       "noRoom": "No hay un momento entre estas publicaciones que deje espacio suficiente. Aun así puedes programarla.",
-      "use": "Usar {{time}}"
+      "use": "Usar {{time}}",
+      "legend": "Las horas marcadas quedan demasiado cerca de una publicación ya programada: {{image}} minutos para fotos, {{video}} para un vídeo y más si es grande."
     }
   },
   "published": {

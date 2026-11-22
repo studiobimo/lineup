@@ -9,6 +9,7 @@ import { instagram } from '@/features/planner/network-profile'
 import { cn } from '@/lib/utils'
 
 import { localTimeZone } from './post-time'
+import { useGapMarks } from './use-spacing'
 
 const CAPTION_FIELD = 'post-caption'
 const TIME_FIELD = 'post-time'
@@ -22,7 +23,7 @@ export interface FieldProps {
   onChange: (value: string) => void
 }
 
-export function CaptionField({ value, invalid, onBlur, onChange }: FieldProps) {
+export function CaptionField({ value, invalid, onBlur, onChange }: FieldProps & { cell?: string }) {
   const { t } = useTranslation('provider')
   const { captionLimit: limit } = instagram
   const over = value.length - limit
@@ -52,8 +53,16 @@ export function CaptionField({ value, invalid, onBlur, onChange }: FieldProps) {
   )
 }
 
-export function TimeField({ value, invalid, onBlur, onChange }: FieldProps) {
+export function TimeField({
+  cell,
+  value,
+  invalid,
+  onBlur,
+  onChange
+}: FieldProps & { cell: string }) {
   const { t } = useTranslation('provider')
+  const marks = useGapMarks(cell)
+  const { imageMs, videoMs } = instagram.publishGap
   // ~keep A dialog can stay open past the minimum, so the clock is re-read; a value that has
   // fallen below it shows as invalid instead of being moved.
   const [now, setNow] = useState(Date.now)
@@ -73,6 +82,11 @@ export function TimeField({ value, invalid, onBlur, onChange }: FieldProps) {
         invalid={showInvalid}
         aria-describedby={TIME_NOTE}
         minDate={soonest}
+        marks={marks}
+        markNote={t('post.spacing.legend', {
+          image: imageMs / 60_000,
+          video: videoMs / 60_000
+        })}
         onBlur={onBlur}
         onChange={onChange}
       />

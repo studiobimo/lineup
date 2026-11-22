@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { CellPost } from '@/features/planner/board-schema'
 import type { Board, ImageRecord } from '@/features/planner/board-store'
 
-import { publishGap, spacingFor } from './publish-timing'
+import { defaultTime, gapWindows, publishGap, spacingFor } from './publish-timing'
 
 const MINUTE = 60_000
 const MB = 1024 * 1024
@@ -116,5 +116,58 @@ describe('spacing from the neighbours', () => {
 
   it('ignores the post being changed', () => {
     expect(check({ a: post(0) }, 'a', 1)).toBeUndefined()
+  })
+})
+
+const defaultAt = (posts: Board['posts'], cell: string, from = 0) =>
+  (defaultTime({
+    board: board(posts),
+    images,
+    sizes: {},
+    cell,
+    from: at(from),
+    soonest: at(-100)
+  }).getTime() -
+    T0) /
+  MINUTE
+
+describe('the time a new post starts at', () => {
+  it('is where it was asked to start when nothing is near', () => {
+    expect(defaultAt({}, 'a', 60)).toBe(60)
+    expect(defaultAt({ c: post(0) }, 'a', 60)).toBe(60)
+  })
+
+  it('leaves the post older on the grid its gap, when that is later', () => {
+    expect(defaultAt({ c: post(58) }, 'a', 60)).toBe(63)
+    expect(defaultAt({ c: post(58), b: post(55) }, 'a', 60)).toBe(70)
+  })
+
+  it('goes before the newer post when there is room, so the order holds', () => {
+    expect(defaultAt({ a: post(30) }, 'c', 60)).toBe(25)
+  })
+
+  it('falls back to the older post when there is no room before the newer', () => {
+    expect(defaultAt({ a: post(30), d: post(28) }, 'c', 0)).toBe(33)
+  })
+})
+
+describe('the windows to mark in the picker', () => {
+  it('cover the gap before and the gap after each post', () => {
+    const windows = gapWindows({ board: board({ c: post(60) }), images, sizes: {}, cell: 'a' })
+    expect(windows).toEqual([
+      { start: at(56), end: at(60), side: 'after', position: 3, gap: 5 * MINUTE },
+      { start: at(60), end: at(65), side: 'before', position: 3, gap: 5 * MINUTE }
+    ])
+  })
+
+  it('use the gap of a video on either side', () => {
+    const [before, after] = gapWindows({
+      board: board({ b: post(60) }),
+      images,
+      sizes: {},
+      cell: 'a'
+    })
+    expect(before).toMatchObject({ start: at(56), end: at(60) })
+    expect(after).toMatchObject({ start: at(60), end: at(75), gap: 15 * MINUTE })
   })
 })
