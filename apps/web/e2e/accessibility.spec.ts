@@ -270,7 +270,18 @@ test('the schedule form says what is wrong, beside the field it is about', async
 
   const dialog = page.getByRole('dialog', { name: 'Schedule a post' })
   await dialog.getByLabel('Caption').fill('x'.repeat(2201))
-  await dialog.getByLabel('Date and time').fill('2020-01-01T10:00')
+  // ~keep Past days cannot be picked, so an empty time is how the form gets an invalid one.
+  // Axe also reads the picker while it is open.
+  await dialog.getByLabel('Date and time').click()
+  await expect(page.getByRole('listbox', { name: 'Hour' })).toBeVisible()
+  await page
+    .locator('[data-slot="popover-popup"]')
+    .evaluate((element) =>
+      Promise.all(element.getAnimations({ subtree: true }).map(({ finished }) => finished))
+    )
+  expect(await violations(page)).toEqual([])
+  await page.getByRole('button', { name: 'Clear' }).click()
+  await page.keyboard.press('Escape')
   await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
   await expect(dialog.getByLabel('Caption')).toHaveAccessibleDescription('1 over the limit of 2200')
   await expect(dialog.getByLabel('Date and time')).toHaveAccessibleDescription(

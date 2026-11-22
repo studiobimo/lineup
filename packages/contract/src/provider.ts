@@ -73,6 +73,14 @@ export const scheduledPostSchema = z.object({
 })
 export type ScheduledPost = z.infer<typeof scheduledPostSchema>
 
+// ~keep Both sides need it: the API refuses a post nearer than this, and the web app blocks the
+// same times before they are sent.
+export const SOONEST_MS = 60_000
+
+// ~keep The earliest time worth offering, on a whole minute so it matches a picker column.
+export const soonestSchedule = (now = Date.now()) =>
+  new Date(Math.ceil((now + SOONEST_MS) / 60_000) * 60_000)
+
 const when = { scheduledFor: z.iso.datetime(), timeZone: z.string().min(1) }
 
 // Instagram allows 20 people to be tagged on one post; Zernio documents no limit. ~keep

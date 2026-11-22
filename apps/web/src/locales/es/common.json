@@ -38,5 +38,17 @@
     "families": "Familias",
     "weights": "Grosores",
     "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 &!?"
+  },
+  "dateTime": {
+    "placeholder": "Elige fecha y hora",
+    "previousMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "clear": "Borrar",
+    "today": "Hoy",
+    "hour": "Hora",
+    "minute": "Minuto",
+    "period": "a. m. o p. m.",
+    "am": "a. m.",
+    "pm": "p. m."
   }
 }

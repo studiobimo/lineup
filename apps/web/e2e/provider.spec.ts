@@ -110,8 +110,28 @@ test('published posts carry on after the planned cells, and stay after a reload'
 })
 
 const IN_A_WEEK = new Date(Date.now() + 7 * 86_400_000)
-const fieldTime = (date: Date) =>
-  new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
+const pad = (n: number) => String(n).padStart(2, '0')
+
+// Drives the custom date and time picker: Playwright runs in en-US, so it has a 12-hour clock. ~keep
+async function pickTime(dialog: Locator, when: Date) {
+  const page = dialog.page()
+  await dialog.getByLabel('Date and time').click()
+  const day = page.locator(
+    `[data-day="${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}"] button`
+  )
+  while (!(await day.isVisible())) await page.getByRole('button', { name: 'Next month' }).click()
+  await day.click()
+  await page
+    .getByRole('option', { name: pad(when.getHours() % 12 || 12), exact: true })
+    .first()
+    .click()
+  await page
+    .getByRole('listbox', { name: 'Minute' })
+    .getByRole('option', { name: pad(when.getMinutes()), exact: true })
+    .click()
+  await page.getByRole('option', { name: when.getHours() < 12 ? 'AM' : 'PM', exact: true }).click()
+  await page.keyboard.press('Escape')
+}
 
 async function planOnGrid(page: Page, count = 1) {
   await page.goto('/')
@@ -133,7 +153,7 @@ async function openSchedule(page: Page, position = 0) {
 
 async function schedule(dialog: Locator, when = IN_A_WEEK, caption = 'Hello') {
   await dialog.getByLabel('Caption').fill(caption)
-  await dialog.getByLabel('Date and time').fill(fieldTime(when))
+  await pickTime(dialog, when)
   await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
 }
 
@@ -283,7 +303,7 @@ test('a post that failed gives the reason, and a new time tries again', async ({
   await postBadge(page, `Did not go out: ${failure}`).click()
   const dialog = page.getByRole('dialog', { name: 'Your post' })
   await expect(dialog.getByText(failure)).toBeVisible()
-  await dialog.getByLabel('Date and time').fill(fieldTime(IN_A_WEEK))
+  await pickTime(dialog, IN_A_WEEK)
   await dialog.getByRole('button', { name: 'Save changes' }).click()
   await expect(dialog).toBeHidden()
   await expect(postBadge(page, /^Scheduled for/)).toBeVisible()

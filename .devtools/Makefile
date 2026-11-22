@@ -9,8 +9,9 @@ APP_DIR := apps/web
 # follow it. Keep raising this rather than cut features: heavy trimming starts at half of
 # Cloudflare's bundle limit. Raising it still needs a reason. The city list and the metadata reader
 # are 82 KiB of this, and load only for someone who turns on capture dates or locations. M4's forms
-# and the provider's screens load with Settings or a schedule, never before.
-BUNDLE_TOTAL_KIB := 600
+# and the provider's screens load with Settings or a schedule, never before. The date and time
+# picker (react-day-picker, 26 KiB) rides with the schedule dialog's chunk and raised it to 650.
+BUNDLE_TOTAL_KIB := 650
 
 # The PRD's limit on what loads before any lazy route.
 FIRST_LOAD_KB := 200

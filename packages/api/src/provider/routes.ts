@@ -13,6 +13,7 @@ import {
   type Problem,
   publishedPostSchema,
   scheduledPostSchema,
+  SOONEST_MS,
   uploadRequestSchema,
   uploadSchema
 } from 'lineup-contract'
@@ -27,7 +28,6 @@ const COOKIE = 'provider-key'
 const KEY_DAYS = 30
 const DAY_SECONDS = 86_400
 const LIMIT_PERIOD_SECONDS = 60
-const SOONEST_MS = 60_000
 
 const cookieOptions = {
   prefix: 'host',
