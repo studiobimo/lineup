@@ -2,9 +2,9 @@ import { useStore } from '@tanstack/react-form'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 
+import { ErrorNotice } from './error-notice'
 import { MediaFields } from './media-fields'
 import { fieldProps, usePostForm } from './use-post-form'
 import { CaptionField, TimeField } from './post-fields'
@@ -104,11 +104,7 @@ export function PostScreens({
               onUse={(time) => form.setFieldValue('when', time)}
             />
             {children}
-            {problem && (
-              <Alert variant="error">
-                <AlertDescription>{problem}</AlertDescription>
-              </Alert>
-            )}
+            <ErrorNotice text={problem} />
           </MediaFields>
           <div className="flex flex-wrap justify-end gap-2">
             <Button ref={open} type="button" variant="secondary" onClick={() => setTagging(true)}>

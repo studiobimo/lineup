@@ -19,6 +19,19 @@ const replacePicker = (page: Page) =>
       (await navigator.storage.getDirectory()).getDirectoryHandle('photos', { create: true })
   })
 
+const askForFolderAgain = async (page: Page) => {
+  await replacePicker(page)
+  await page.addInitScript(() => {
+    const access = FileSystemHandle.prototype
+    access.queryPermission = async () =>
+      (localStorage.getItem('permission') ?? 'granted') as FolderAccess
+    access.requestPermission = async () => {
+      localStorage.setItem('permission', 'granted')
+      return 'granted'
+    }
+  })
+}
+
 const folderFiles = (page: Page) =>
   page.evaluate(async () => {
     const found: Record<string, number> = {}
@@ -144,16 +157,7 @@ test('leaving a folder keeps it, and choosing it again opens its board', async (
 })
 
 test('a folder the browser must ask for again waits for a click', async ({ page }) => {
-  await replacePicker(page)
-  await page.addInitScript(() => {
-    const permission = () => localStorage.getItem('permission') ?? 'granted'
-    const access = FileSystemHandle.prototype
-    access.queryPermission = async () => permission() as FolderAccess
-    access.requestPermission = async () => {
-      localStorage.setItem('permission', 'granted')
-      return 'granted'
-    }
-  })
+  await askForFolderAgain(page)
   await openWithPhoto(page)
   await expect.poll(() => folderFiles(page)).toHaveProperty(['01.jpg'])
 
@@ -260,7 +264,7 @@ test('a step whose write never finished comes back, and can be undone', async ({
   await page.reload()
   await expect(page.locator('section').getByRole('img')).toHaveCount(1)
   await expect.poll(async () => (await folderBoard(page))?.grid.length).toBe(1)
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect(page.locator('aside').getByRole('img')).toHaveCount(1)
 })
 
@@ -281,18 +285,13 @@ test('a folder that goes while it is open stops the board, and nothing is lost',
 })
 
 test('permission lost while a folder is open comes back with the change', async ({ page }) => {
-  await replacePicker(page)
+  await askForFolderAgain(page)
   await page.addInitScript(() => {
-    const permission = () => localStorage.getItem('permission') ?? 'granted'
-    const access = FileSystemHandle.prototype
     const write = FileSystemFileHandle.prototype.createWritable
-    access.queryPermission = async () => permission() as FolderAccess
-    access.requestPermission = async () => {
-      localStorage.setItem('permission', 'granted')
-      return 'granted'
-    }
     FileSystemFileHandle.prototype.createWritable = function (...options) {
-      if (permission() === 'granted') return write.apply(this, options)
+      if ((localStorage.getItem('permission') ?? 'granted') === 'granted') {
+        return write.apply(this, options)
+      }
       return Promise.reject(new DOMException('Revoked', 'NotAllowedError'))
     }
   })

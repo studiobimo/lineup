@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 
-import {
-  AlertDialog,
-  AlertDialogClose,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogPopup,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { toastManager } from '@/components/ui/toast'
 import {
@@ -56,24 +48,16 @@ function RemovedPhotos({ name, onOffered }: { name: string; onOffered: () => voi
           {t('deleteRemoved')}
         </Button>
       </div>
-      <AlertDialog open={confirming} onOpenChange={setConfirming}>
-        <AlertDialogPopup>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('deleteRemovedTitle', { count })}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('deleteRemovedNote', { name, count })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="ghost" />}>
-              {t('deleteRemovedKeep')}
-            </AlertDialogClose>
-            <Button variant="destructive" loading={busy} onClick={() => void run(remove)}>
-              {t('deleteRemovedConfirm', { count })}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogPopup>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={t('deleteRemovedTitle', { count })}
+        description={t('deleteRemovedNote', { name, count })}
+        cancelLabel={t('deleteRemovedKeep')}
+        confirmLabel={t('deleteRemovedConfirm', { count })}
+        pending={busy}
+        onConfirm={() => void run(remove)}
+      />
     </DialogSection>
   )
 }

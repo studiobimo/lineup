@@ -1,32 +1,27 @@
 import { useForm } from '@tanstack/react-form'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { keyInputSchema, type KeyInput, type Profile } from 'lineup-contract'
 import { useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 
 import { ExternalLink } from '@/components/external-link'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { provider } from '@/config/provider'
 
-import { answer, providerApi, ProviderRequestError } from './api'
+import { providerApi, ProviderRequestError } from './api'
 import { saveConnection } from './connection'
-import { PROVIDER_KEY } from './queries'
-import { useProblemText } from './use-problem-text'
+import { ErrorNotice } from './error-notice'
+import { useProviderAction } from './use-provider-action'
 
 const KEY_FIELD = 'provider-key'
 const KEY_ERROR = 'provider-key-error'
 
 function useSaveKey(setProfiles: (profiles: Profile[]) => void, onSaved?: () => void) {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (json: KeyInput) => answer(providerApi.key.$put({ json })),
-    onSuccess: async (status) => {
+  return useProviderAction((json: KeyInput) => providerApi.key.$put({ json }), {
+    onSuccess: (status) => {
       saveConnection(status)
-      await queryClient.invalidateQueries({ queryKey: [PROVIDER_KEY] })
       onSaved?.()
     },
     onError: (error) => {
@@ -110,7 +105,6 @@ function ProfileField({
 
 export function KeyForm({ onSaved, onCancel }: { onSaved?: () => void; onCancel?: () => void }) {
   const { t } = useTranslation('provider')
-  const problemText = useProblemText()
   const [profiles, setProfiles] = useState<Profile[]>()
 
   const save = useSaveKey(setProfiles, onSaved)
@@ -156,11 +150,7 @@ export function KeyForm({ onSaved, onCancel }: { onSaved?: () => void; onCancel?
           )}
         </form.Field>
       )}
-      {problem && !needsChoice && (
-        <Alert variant="error">
-          <AlertDescription>{problemText(problem)}</AlertDescription>
-        </Alert>
-      )}
+      {!needsChoice && <ErrorNotice error={problem} />}
       <form.Subscribe selector={({ values }) => choosing && !values.profileId}>
         {(unchosen) => (
           <div className="flex gap-2">
