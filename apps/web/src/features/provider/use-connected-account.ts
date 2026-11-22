@@ -5,6 +5,7 @@ import { usePlanner } from '@/features/planner/planner'
 
 import { liveAccount, useConnection } from './connection'
 import { accountsQuery, publishedQuery } from './queries'
+import { usePublishedFeed } from './use-published-feed'
 
 export function usePublishedPosts(accountId: string | undefined) {
   const query = useQuery({ ...publishedQuery(accountId ?? ''), enabled: accountId !== undefined })
@@ -21,6 +22,7 @@ export function usePublishedPosts(accountId: string | undefined) {
 export function useConnectedAccount() {
   const accountId = liveAccount(useConnection())
   const { data: accounts } = useQuery({ ...accountsQuery, enabled: accountId !== undefined })
-  const { posts: published = [] } = usePublishedPosts(accountId)
-  return { account: accounts?.find(({ id }) => id === accountId), published }
+  const { posts } = usePublishedPosts(accountId)
+  const feed = usePublishedFeed(posts)
+  return { account: accounts?.find(({ id }) => id === accountId), feed }
 }

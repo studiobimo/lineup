@@ -26,6 +26,20 @@ describe('the latest on a post', () => {
     })
   })
 
+  it('keeps when a published post went out, from the provider’s own list', () => {
+    const latest = [{ id: 'post', status: 'published' as const, url: 'https://example.com/p' }]
+    const published = [
+      { id: 'other', url: 'https://example.com/p', publishedAt: '2030-01-02T10:00:00Z' }
+    ]
+    expect(postChanges(board, latest, published).cell).toMatchObject({
+      publishedAt: '2030-01-02T10:00:00Z'
+    })
+    const known = { ...board, posts: { cell: { ...post, publishedAt: '2030-01-03T10:00:00Z' } } }
+    expect(postChanges(known, latest, []).cell).toMatchObject({
+      publishedAt: '2030-01-03T10:00:00Z'
+    })
+  })
+
   it('frees the cell of a post cancelled elsewhere', () => {
     const changes = postChanges(board, [{ id: 'post', status: 'cancelled' }])
     expect(changes).toHaveProperty('cell', undefined)

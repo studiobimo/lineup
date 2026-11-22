@@ -8,7 +8,7 @@ import type { Container } from './board'
 import { BoardCell } from './board-cell'
 import { cellShape, gridColumns } from './network-profile'
 import { usePlanner } from './planner'
-import { useTabStop } from './tab-stop'
+import { usePlannedCells, useTabStopCell } from './use-planned-cells'
 
 const SKELETON_CELLS = 6
 
@@ -20,9 +20,9 @@ interface CellsProps {
 
 export function Cells({ container, className, after }: CellsProps) {
   const { t } = useTranslation('planner')
-  const ids = usePlanner((state) => state.board[container])
+  const ids = usePlannedCells(container)
   const ready = usePlanner((state) => state.ready)
-  const focused = useTabStop(container)
+  const tabStop = useTabStopCell(container)
   if (!ready) {
     return (
       <div
@@ -37,7 +37,6 @@ export function Cells({ container, className, after }: CellsProps) {
       </div>
     )
   }
-  const tabStop = focused && ids.includes(focused) ? focused : ids[0]
   return (
     <>
       {ids.length === 0 && (

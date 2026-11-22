@@ -467,6 +467,19 @@ describe('the planner store, with a post on the board', () => {
     expect(state().board.posts).toEqual({ d: post })
   })
 
+  it('keeps a published cell where it was planned, through undo and redo', async () => {
+    const { state } = await loaded()
+    state().linkPost('c', post)
+    state().updatePosts({ c: { ...post, status: 'published', publishedAt: post.scheduledFor } })
+    state().swap('d', 'e')
+    expect(state().board.grid).toEqual(['c', 'e', 'd'])
+    state().undo()
+    expect(state().board.grid.indexOf('c')).toBe(0)
+    state().redo()
+    expect(state().board.grid.indexOf('c')).toBe(0)
+    expect(state().board.posts?.c.publishedAt).toBe(post.scheduledFor)
+  })
+
   it('holds a posted cell where it is when an undo would move it', async () => {
     const { state } = await loaded()
     state().swap('c', 'd')
