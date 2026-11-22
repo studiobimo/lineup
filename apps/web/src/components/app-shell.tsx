@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 
+import { HeaderSlot } from '@/components/header-slot'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { site } from '@/config/site'
 
@@ -17,6 +18,7 @@ export function AppShell({ actions, children }: AppShellProps) {
           {site.name}
         </Link>
         <div className="flex items-center gap-1">
+          <HeaderSlot />
           {actions}
           <ThemeToggle />
         </div>

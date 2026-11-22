@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
@@ -40,12 +41,7 @@ export function Cells({ container, className, after }: CellsProps) {
   const tabStop = focused && ids.includes(focused) ? focused : ids[0]
   return (
     <>
-      {ids.length === 0 && (
-        <p className="p-gutter text-sm text-muted-foreground">
-          {t(container === 'tray' ? 'trayEmpty' : 'gridEmpty')}
-        </p>
-      )}
-      <div className={cn('grid gap-0.5 empty:hidden', className)} style={gridColumns}>
+      <div className={cn('peer grid gap-0.5 empty:hidden', className)} style={gridColumns}>
         {ids.map((id, index) => (
           <BoardCell
             key={id}
@@ -57,6 +53,16 @@ export function Cells({ container, className, after }: CellsProps) {
         ))}
         {after}
       </div>
+      {ids.length === 0 && (
+        <Empty className="peer-not-empty:hidden">
+          <EmptyHeader>
+            <EmptyTitle>{t(container)}</EmptyTitle>
+            <EmptyDescription>
+              {t(container === 'tray' ? 'trayEmpty' : 'gridEmpty')}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      )}
     </>
   )
 }

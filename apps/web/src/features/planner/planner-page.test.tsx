@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { HeaderSlot } from '@/components/header-slot'
 import { boardStore, plannerStore } from './planner'
 import { PlannerPage } from './planner-page'
 import type { ProcessedImage } from './process-image'
@@ -43,15 +44,24 @@ async function boardOf(tray: number, grid: number) {
   return plannerStore.getState().board
 }
 
+function renderPlanner() {
+  return render(
+    <>
+      <HeaderSlot />
+      <PlannerPage />
+    </>
+  )
+}
+
 describe('PlannerPage', () => {
   it('says what to do with an empty grid', async () => {
-    render(<PlannerPage />)
+    renderPlanner()
     expect(await screen.findByText('Move images here to plan your feed.')).toBeInTheDocument()
   })
 
   it('moves a cell to the grid, and undoes it', async () => {
     const user = userEvent.setup()
-    render(<PlannerPage />)
+    renderPlanner()
     await screen.findByText('Move images here to plan your feed.')
 
     const id = await oneImageOnGrid()
@@ -66,7 +76,7 @@ describe('PlannerPage', () => {
   })
 
   it('leaves undo and redo disabled when there is nothing to do', () => {
-    render(<PlannerPage />)
+    renderPlanner()
     const history = screen.getByRole('button', { name: 'Undo' }).parentElement!
     for (const button of within(history).getAllByRole('button')) expect(button).toBeDisabled()
   })
@@ -75,6 +85,7 @@ describe('PlannerPage', () => {
     const user = userEvent.setup()
     render(
       <>
+        <HeaderSlot />
         <PlannerPage />
         <input aria-label="Caption" />
       </>
@@ -95,7 +106,7 @@ describe('PlannerPage', () => {
 
   it('moves everything across, and undoes it', async () => {
     const user = userEvent.setup()
-    render(<PlannerPage />)
+    renderPlanner()
     const before = await boardOf(2, 1)
 
     await user.click(screen.getByRole('button', { name: 'Move all to the grid' }))
@@ -110,7 +121,7 @@ describe('PlannerPage', () => {
   })
 
   it('needs two cells to shuffle', async () => {
-    render(<PlannerPage />)
+    renderPlanner()
     await boardOf(2, 1)
     expect(screen.getByRole('button', { name: 'Shuffle the tray' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Shuffle the grid' })).toBeDisabled()
@@ -120,7 +131,7 @@ describe('PlannerPage', () => {
 describe('PlannerPage, shuffling and clearing', () => {
   it('says how many images each choice clears, and undoes it', async () => {
     const user = userEvent.setup()
-    render(<PlannerPage />)
+    renderPlanner()
     const before = await boardOf(2, 1)
 
     await user.click(screen.getByRole('button', { name: 'Clear' }))
@@ -135,7 +146,7 @@ describe('PlannerPage, shuffling and clearing', () => {
 
   it('deletes the focused cell with the Delete key, and moves focus on', async () => {
     const user = userEvent.setup()
-    render(<PlannerPage />)
+    renderPlanner()
     const before = await boardOf(0, 2)
     const [first, second] = before.grid
 
@@ -149,7 +160,7 @@ describe('PlannerPage, shuffling and clearing', () => {
   })
 
   it('shows a skeleton until the board has loaded', async () => {
-    render(<PlannerPage />)
+    renderPlanner()
     expect(screen.getByRole('status', { name: 'Loading your board' })).toBeInTheDocument()
     await screen.findByText('Move images here to plan your feed.')
     expect(screen.queryByRole('status', { name: 'Loading your board' })).not.toBeInTheDocument()
@@ -158,7 +169,7 @@ describe('PlannerPage, shuffling and clearing', () => {
   it('offers to try again when the board cannot be read', async () => {
     const user = userEvent.setup()
     const read = vi.spyOn(boardStore, 'loadBoard').mockRejectedValueOnce(new Error('blocked'))
-    render(<PlannerPage />)
+    renderPlanner()
 
     await screen.findByRole('heading', { name: 'Your board could not be opened' })
     read.mockRestore()

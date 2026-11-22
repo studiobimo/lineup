@@ -75,7 +75,7 @@ test('Undo brings back the board a restore replaced', async ({ page }) => {
   const path = test.info().outputPath('board.lineup')
   await arrangedBoard(page)
   await backUp(page, path)
-  await page.getByRole('button', { name: 'Clear' }).click()
+  await page.getByRole('button', { name: 'Clear', exact: true }).click()
   await page.getByRole('button', { name: /^Tray/ }).waitFor()
   await page.keyboard.press('Escape')
 
@@ -86,7 +86,7 @@ test('Undo brings back the board a restore replaced', async ({ page }) => {
   await expect(page.getByText('Board restored')).toBeVisible()
   await expect.poll(async () => (await savedBoard(page)).tray.length).toBe(0)
 
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect.poll(() => savedBoard(page)).toEqual(replaced)
 })
 

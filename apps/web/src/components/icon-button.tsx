@@ -20,7 +20,7 @@ export function IconButton({
   label,
   tooltip,
   size = 'icon',
-  variant,
+  variant = 'outline',
   className,
   ...props
 }: IconButtonProps) {

@@ -59,9 +59,9 @@ test('a selection becomes one cell, marked as an album, and undo takes it back',
   await expect(page.getByText('Album of 3 images')).toBeAttached()
   await expect(bar(page)).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect(tray(page)).toHaveCount(4)
-  await page.getByRole('button', { name: 'Redo' }).click()
+  await page.getByRole('button', { name: 'Redo' }).first().click()
   await expect(tray(page)).toHaveCount(2)
   expect(errors).toEqual([])
 })
@@ -114,7 +114,7 @@ test('an album opens, reorders from the keyboard, and undo puts it back', async 
 
   await page.keyboard.press('Escape')
   await expect(dialog).toHaveCount(0)
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect.poll(() => albumOnBoard(page)).toEqual(before)
   expect(errors).toEqual([])
 })
@@ -134,7 +134,7 @@ test('ungrouping puts the images back where the album was', async ({ page }) => 
   await page.getByRole('dialog').getByRole('button', { name: 'Ungroup' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(tray(page)).toHaveCount(4)
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect(tray(page)).toHaveCount(3)
 })
 

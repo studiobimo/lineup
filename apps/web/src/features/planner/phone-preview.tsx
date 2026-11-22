@@ -77,12 +77,7 @@ export function PhonePreview({ onClose }: { onClose: () => void }) {
               </ProviderQueries>
             </div>
           </m.div>
-          <IconButton
-            variant="outline"
-            className="absolute top-4 right-4"
-            label={t('close')}
-            onClick={leave}
-          >
+          <IconButton className="absolute top-4 right-4" label={t('close')} onClick={leave}>
             <X />
           </IconButton>
         </DialogPrimitive.Popup>
