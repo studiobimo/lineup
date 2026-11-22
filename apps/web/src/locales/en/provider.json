@@ -133,5 +133,14 @@
     "provider_busy": "This is still being worked on. Try again in a moment.",
     "provider_failed": "The scheduling service did not answer. Try again in a moment."
   },
-  "disclaimer": "Lineup is an independent app. It is not affiliated with, endorsed by or sponsored by Instagram or Meta, and Instagram is a trademark of Meta Platforms, Inc."
+  "disclaimer": "Lineup is an independent app. It is not affiliated with, endorsed by or sponsored by Instagram or Meta, and Instagram is a trademark of Meta Platforms, Inc.",
+  "swapped": {
+    "title": "Some posts went live in a different order",
+    "description": "Instagram orders your posts by when they actually went live, not by the time you scheduled, so these two swapped places on your profile.",
+    "tip": "Leaving more time between posts, especially posts with a video, avoids this.",
+    "scheduled": "Scheduled for {{time}}",
+    "live": "Live at {{time}}",
+    "picture": "A post that went live out of order",
+    "dismiss": "Got it"
+  }
 }

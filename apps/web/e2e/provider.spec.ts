@@ -290,6 +290,14 @@ async function scheduleTwo(page: Page, minutes: number) {
   return { provider, second }
 }
 
+// Schedules the second post, then how far apart the two were sent. ~keep
+async function gapScheduled({ provider, second }: Awaited<ReturnType<typeof scheduleTwo>>) {
+  await second.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await expect(second).toBeHidden()
+  const [one, two] = provider.bodies.filter((body) => body.scheduledFor)
+  return Date.parse(String(one.scheduledFor)) - Date.parse(String(two.scheduledFor))
+}
+
 test('a post too close to the one before warns, suggests a time, and can still be scheduled', async ({
   page
 }) => {
@@ -301,23 +309,40 @@ test('a post too close to the one before warns, suggests a time, and can still b
 
   await second.getByRole('button', { name: /^Use / }).click()
   await expect(second.getByText(/about 5 minutes to go live/)).toHaveCount(0)
-  await second.getByRole('button', { name: 'Schedule', exact: true }).click()
-  await expect(second).toBeHidden()
-  const [one, two] = provider.bodies.filter((body) => body.scheduledFor)
-  expect(Date.parse(String(one.scheduledFor)) - Date.parse(String(two.scheduledFor))).toBe(
-    5 * MINUTES
-  )
+  expect(await gapScheduled({ provider, second })).toBe(5 * MINUTES)
 })
 
 test('a warning can be ignored, and the post is scheduled as chosen', async ({ page }) => {
   const { provider, second } = await scheduleTwo(page, 2)
   await expect(second.getByText(/about 5 minutes to go live/)).toBeVisible()
+  expect(await gapScheduled({ provider, second })).toBe(2 * MINUTES)
+})
+
+test('posts that went live in a different order are explained once', async ({ page }) => {
+  const { provider, second } = await scheduleTwo(page, 10)
+  await expect(second.getByText(/about \d+ minutes to go live/)).toHaveCount(0)
   await second.getByRole('button', { name: 'Schedule', exact: true }).click()
   await expect(second).toBeHidden()
-  const [one, two] = provider.bodies.filter((body) => body.scheduledFor)
-  expect(Date.parse(String(one.scheduledFor)) - Date.parse(String(two.scheduledFor))).toBe(
-    2 * MINUTES
+
+  const at = (minutes: number) => new Date(Date.now() - 3_600_000 + minutes * MINUTES).toISOString()
+  provider.scheduled = provider.scheduled.map((post) => ({ ...post, status: 'published' }))
+  provider.published.push(
+    { id: 'post-1', publishedAt: at(12) },
+    { id: 'post-2', publishedAt: at(20) }
   )
+  await page.reload()
+
+  const notice = page.getByRole('alertdialog', {
+    name: 'Some posts went live in a different order'
+  })
+  await expect(notice).toBeVisible()
+  await expect(notice.getByText(/orders your posts by when they actually went live/)).toBeVisible()
+  await notice.getByRole('button', { name: 'Got it' }).click()
+  await expect(notice).toBeHidden()
+
+  await page.reload()
+  await expect(publishedCells(page)).toHaveCount(2)
+  await expect(notice).toBeHidden()
 })
 
 test('a post that failed gives the reason, and a new time tries again', async ({ page }) => {

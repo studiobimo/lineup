@@ -133,5 +133,14 @@
     "provider_busy": "Todavía se está procesando. Inténtalo de nuevo en un momento.",
     "provider_failed": "El servicio de programación no respondió. Inténtalo de nuevo en un momento."
   },
-  "disclaimer": "Lineup es una aplicación independiente. No está afiliada a Instagram ni a Meta, ni cuenta con su respaldo o patrocinio, e Instagram es una marca de Meta Platforms, Inc."
+  "disclaimer": "Lineup es una aplicación independiente. No está afiliada a Instagram ni a Meta, ni cuenta con su respaldo o patrocinio, e Instagram es una marca de Meta Platforms, Inc.",
+  "swapped": {
+    "title": "Algunas publicaciones salieron en otro orden",
+    "description": "Instagram ordena tus publicaciones según cuándo salieron de verdad, no según la hora que programaste, así que estas dos cambiaron de lugar en tu perfil.",
+    "tip": "Dejar más tiempo entre publicaciones, sobre todo si llevan vídeo, lo evita.",
+    "scheduled": "Programada para {{time}}",
+    "live": "Salió a las {{time}}",
+    "picture": "Una publicación que salió en otro orden",
+    "dismiss": "Entendido"
+  }
 }
