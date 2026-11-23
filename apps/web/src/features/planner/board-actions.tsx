@@ -1,4 +1,4 @@
-import { ChevronsLeft, ChevronsRight, Eraser, Shuffle, Smartphone, Trash2 } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, Shuffle, Smartphone, Trash2 } from 'lucide-react'
 import { lazy, type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -91,7 +91,7 @@ export function ClearBoard() {
   return (
     <>
       <IconButton label={t('clear')} disabled={tray + grid === 0} onClick={() => setOpen(true)}>
-        <Eraser />
+        <Trash2 />
       </IconButton>
       <ConfirmDialog
         open={open}
