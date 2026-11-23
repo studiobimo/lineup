@@ -51,7 +51,7 @@ interface Option {
 }
 
 // ~keep From `start` up to but not including `end`, in epoch milliseconds.
-export interface TimeMark {
+interface TimeMark {
   start: number
   end: number
   label: string
