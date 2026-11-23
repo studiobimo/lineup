@@ -1,5 +1,5 @@
 import { useStore } from '@tanstack/react-form'
-import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -27,6 +27,66 @@ interface PostScreensProps {
   onSubmit: (values: PostFormValues) => Promise<unknown>
 }
 
+interface TaggingScreenProps {
+  slides: PostScreensProps['slides']
+  tags: TagDraft[]
+  heading: RefObject<HTMLHeadingElement | null>
+  onChange: (tags: TagDraft[]) => void
+  onDone: () => void
+}
+
+function TaggingScreen({ slides, tags, heading, onChange, onDone }: TaggingScreenProps) {
+  const { t } = useTranslation('provider')
+  return (
+    <>
+      <h3 ref={heading} tabIndex={-1} className="text-base font-medium outline-none">
+        {t('post.tags.title')}
+      </h3>
+      <TagPicker slides={slides} tags={tags} onChange={onChange} />
+      <div className="flex justify-end gap-2">
+        <Button type="button" onClick={onDone}>
+          {t('post.screens.done')}
+        </Button>
+      </div>
+    </>
+  )
+}
+
+interface MainActionsProps {
+  open: RefObject<HTMLButtonElement | null>
+  tagCount: number
+  submitLabel: string
+  pending: boolean
+  onTag: () => void
+}
+
+function MainActions({ open, tagCount, submitLabel, pending, onTag }: MainActionsProps) {
+  const { t } = useTranslation('provider')
+  return (
+    <div className="flex flex-wrap justify-end gap-2">
+      <Button ref={open} type="button" variant="secondary" onClick={onTag}>
+        {t(tagCount > 0 ? 'post.screens.tagCount' : 'post.screens.tag', { count: tagCount })}
+      </Button>
+      <Button type="submit" loading={pending}>
+        {submitLabel}
+      </Button>
+    </div>
+  )
+}
+
+function useScreenFocus(tagging: boolean) {
+  const heading = useRef<HTMLHeadingElement>(null)
+  const open = useRef<HTMLButtonElement>(null)
+  const moved = useRef(false)
+  // Not on first render: the dialog places focus itself then, and the button would take it. ~keep
+  useEffect(() => {
+    if (!moved.current) moved.current = true
+    else if (tagging) heading.current?.focus()
+    else open.current?.focus()
+  }, [tagging])
+  return { heading, open }
+}
+
 export function PostScreens({
   cell,
   initial,
@@ -41,9 +101,7 @@ export function PostScreens({
 }: PostScreensProps) {
   const { t } = useTranslation('provider')
   const [tagging, setTagging] = useState(false)
-  const heading = useRef<HTMLHeadingElement>(null)
-  const open = useRef<HTMLButtonElement>(null)
-  const moved = useRef(false)
+  const { heading, open } = useScreenFocus(tagging)
   const form = usePostForm(initial, onSubmit)
   const when = useStore(form.store, ({ values }) => values.when)
 
@@ -53,13 +111,6 @@ export function PostScreens({
     setSeen(problem)
     if (problem) setTagging(false)
   }
-
-  // Not on first render: the dialog places focus itself then, and the button would take it. ~keep
-  useEffect(() => {
-    if (!moved.current) moved.current = true
-    else if (tagging) heading.current?.focus()
-    else open.current?.focus()
-  }, [tagging])
 
   const usernames = tags.map(({ username }) => `@${username}`).join(', ')
 
@@ -73,17 +124,13 @@ export function PostScreens({
       }}
     >
       {tagging ? (
-        <>
-          <h3 ref={heading} tabIndex={-1} className="text-base font-medium outline-none">
-            {t('post.tags.title')}
-          </h3>
-          <TagPicker slides={slides} tags={tags} onChange={onTagsChange} />
-          <div className="flex justify-end gap-2">
-            <Button type="button" onClick={() => setTagging(false)}>
-              {t('post.screens.done')}
-            </Button>
-          </div>
-        </>
+        <TaggingScreen
+          slides={slides}
+          tags={tags}
+          heading={heading}
+          onChange={onTagsChange}
+          onDone={() => setTagging(false)}
+        />
       ) : (
         <>
           <MediaFields media={<PostThumbnail cell={cell} className="w-full" />}>
@@ -106,16 +153,13 @@ export function PostScreens({
             {children}
             <ErrorNotice text={problem} />
           </MediaFields>
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button ref={open} type="button" variant="secondary" onClick={() => setTagging(true)}>
-              {t(tags.length > 0 ? 'post.screens.tagCount' : 'post.screens.tag', {
-                count: tags.length
-              })}
-            </Button>
-            <Button type="submit" loading={pending}>
-              {submitLabel}
-            </Button>
-          </div>
+          <MainActions
+            open={open}
+            tagCount={tags.length}
+            submitLabel={submitLabel}
+            pending={pending}
+            onTag={() => setTagging(true)}
+          />
         </>
       )}
     </form>

@@ -557,9 +557,9 @@ describe('the planner store, with a post on the board, after a reload', () => {
   })
 })
 
-describe('the planner store, when a post goes out', () => {
-  const published: CellPost = { ...post, status: 'published' }
+const published: CellPost = { ...post, status: 'published' }
 
+describe('the planner store, when a post goes out', () => {
   it('drops the cell, its post and its images, which are purged', async () => {
     const { boardStore, state } = await loaded()
     state().linkPost('d', post)
@@ -596,7 +596,9 @@ describe('the planner store, when a post goes out', () => {
     expect(state().board.grid).toEqual(['c', 'd', 'e'])
     expect(Object.keys(state().board.posts ?? {})).toEqual(['c', 'd', 'e'])
   })
+})
 
+describe('the planner store, when a post that went out is undone or reloaded', () => {
   it('is not a step of its own, and undo and redo cannot bring the cell back', async () => {
     const { state } = await loaded()
     state().move('a', 'grid')

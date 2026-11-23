@@ -121,72 +121,74 @@ describe('DateTimePicker', () => {
     await user.click(await screen.findByRole('button', { name: /Monday, May 20/ }))
     expect(current()).toHaveTextContent(/T09:00$/)
   })
+})
 
-  describe('minimum time', () => {
-    const min = new Date(2030, 4, 10, 14, 31)
-    const disabled = (list: string, name: string) => expect(option(list, name)).toBeDisabled()
-    const enabled = (list: string, name: string) => expect(option(list, name)).toBeEnabled()
+describe('DateTimePicker, minimum time', () => {
+  const min = new Date(2030, 4, 10, 14, 31)
+  const disabled = (list: string, name: string) => expect(option(list, name)).toBeDisabled()
+  const enabled = (list: string, name: string) => expect(option(list, name)).toBeEnabled()
 
-    it('disables earlier days, hours and minutes on the minimum day', async () => {
-      const user = userEvent.setup()
-      render(<Harness minDate={min} initial="2030-05-10T14:45" />)
-      await open(user)
-      expect(screen.getByRole('button', { name: /May 9, 2030/ })).toBeDisabled()
-      expect(screen.getByRole('button', { name: /Friday, May 10/ })).toBeEnabled()
-      disabled('Hour', '01')
-      enabled('Hour', '02')
-      enabled('Hour', '03')
-      enabled('Minute', '45')
-    })
-
-    it('disables earlier minutes in the minimum hour and AM once the morning is past', async () => {
-      const user = userEvent.setup()
-      render(<Harness minDate={min} initial="2030-05-10T14:45" />)
-      await open(user)
-      disabled('AM or PM', 'AM')
-      enabled('AM or PM', 'PM')
-      await user.click(option('Hour', '02'))
-      disabled('Minute', '30')
-      enabled('Minute', '31')
-      await user.click(option('Hour', '03'))
-      enabled('Minute', '00')
-    })
-
-    it('frees every time on a later day', async () => {
-      const user = userEvent.setup()
-      render(<Harness minDate={min} initial="2030-05-11T09:00" />)
-      await open(user)
-      enabled('Hour', '01')
-      enabled('AM or PM', 'AM')
-    })
-
-    it('moves the minute up when the minimum hour is chosen', async () => {
-      const user = userEvent.setup()
-      render(<Harness minDate={min} initial="2030-05-10T15:00" />)
-      await open(user)
-      await user.click(option('Hour', '02'))
-      expect(current()).toHaveTextContent('2030-05-10T14:31')
-    })
-
-    it('moves the time to the minimum when the day becomes the minimum day', async () => {
-      const user = userEvent.setup()
-      render(<Harness minDate={min} initial="2030-05-11T09:15" />)
-      await open(user)
-      await user.click(screen.getByRole('button', { name: /Friday, May 10/ }))
-      expect(current()).toHaveTextContent('2030-05-10T14:31')
-      await user.click(option('AM or PM', 'PM'))
-      expect(current()).toHaveTextContent('2030-05-10T14:31')
-    })
-
-    it('moves an unchosen default time to the next valid minute', async () => {
-      const user = userEvent.setup()
-      render(<Harness initial="" minDate={new Date(2030, 4, 10, 15, 7)} />)
-      await user.click(screen.getByRole('button', { name: 'Pick a date and time' }))
-      await user.click(screen.getByRole('button', { name: /Friday, May 10/ }))
-      expect(current()).toHaveTextContent('2030-05-10T15:07')
-    })
+  it('disables earlier days, hours and minutes on the minimum day', async () => {
+    const user = userEvent.setup()
+    render(<Harness minDate={min} initial="2030-05-10T14:45" />)
+    await open(user)
+    expect(screen.getByRole('button', { name: /May 9, 2030/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Friday, May 10/ })).toBeEnabled()
+    disabled('Hour', '01')
+    enabled('Hour', '02')
+    enabled('Hour', '03')
+    enabled('Minute', '45')
   })
 
+  it('disables earlier minutes in the minimum hour and AM once the morning is past', async () => {
+    const user = userEvent.setup()
+    render(<Harness minDate={min} initial="2030-05-10T14:45" />)
+    await open(user)
+    disabled('AM or PM', 'AM')
+    enabled('AM or PM', 'PM')
+    await user.click(option('Hour', '02'))
+    disabled('Minute', '30')
+    enabled('Minute', '31')
+    await user.click(option('Hour', '03'))
+    enabled('Minute', '00')
+  })
+
+  it('frees every time on a later day', async () => {
+    const user = userEvent.setup()
+    render(<Harness minDate={min} initial="2030-05-11T09:00" />)
+    await open(user)
+    enabled('Hour', '01')
+    enabled('AM or PM', 'AM')
+  })
+
+  it('moves the minute up when the minimum hour is chosen', async () => {
+    const user = userEvent.setup()
+    render(<Harness minDate={min} initial="2030-05-10T15:00" />)
+    await open(user)
+    await user.click(option('Hour', '02'))
+    expect(current()).toHaveTextContent('2030-05-10T14:31')
+  })
+
+  it('moves the time to the minimum when the day becomes the minimum day', async () => {
+    const user = userEvent.setup()
+    render(<Harness minDate={min} initial="2030-05-11T09:15" />)
+    await open(user)
+    await user.click(screen.getByRole('button', { name: /Friday, May 10/ }))
+    expect(current()).toHaveTextContent('2030-05-10T14:31')
+    await user.click(option('AM or PM', 'PM'))
+    expect(current()).toHaveTextContent('2030-05-10T14:31')
+  })
+
+  it('moves an unchosen default time to the next valid minute', async () => {
+    const user = userEvent.setup()
+    render(<Harness initial="" minDate={new Date(2030, 4, 10, 15, 7)} />)
+    await user.click(screen.getByRole('button', { name: 'Pick a date and time' }))
+    await user.click(screen.getByRole('button', { name: /Friday, May 10/ }))
+    expect(current()).toHaveTextContent('2030-05-10T15:07')
+  })
+})
+
+describe('DateTimePicker, language, scrolling and flagged times', () => {
   it('names weekdays and months in the active language', async () => {
     const user = userEvent.setup()
     await i18n.changeLanguage('es')

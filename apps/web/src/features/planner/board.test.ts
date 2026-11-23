@@ -288,7 +288,9 @@ describe('board operations', () => {
     ])
     expect(moveToStart({ tray: ['a'], grid: [] }, ['a'], 'grid').grid).toEqual(['a'])
   })
+})
 
+describe('board operations, swapping, shuffling and clearing', () => {
   it('swaps within a container and between them', () => {
     expect(swap(board, 'c', 'e').grid).toEqual(['e', 'd', 'c'])
     expect(swap(board, 'a', 'd')).toEqual({ tray: ['d', 'b'], grid: ['c', 'a', 'e'] })
