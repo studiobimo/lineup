@@ -15,6 +15,7 @@ import { OrderNoticeDialog } from './order-notice-dialog'
 import { ProviderQueries } from './provider-queries'
 import { PublishedPicture } from './published-picture'
 import { usePublishedPosts } from './use-connected-account'
+import { useNeighbourColours } from './use-neighbour-colours'
 import { usePostSync } from './use-post-sync'
 import { useProblemText } from './use-problem-text'
 
@@ -61,6 +62,7 @@ function Cells({ accountId }: { accountId: string }) {
   const planned = usePlanner(({ board }) => board.grid.length)
   const { posts, error, refetch } = usePublishedPosts(accountId)
   usePostSync(accountId)
+  useNeighbourColours(posts)
   return (
     <>
       {posts ? (

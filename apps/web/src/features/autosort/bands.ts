@@ -11,6 +11,7 @@ export interface BandsRequest {
   cells: BandCell[]
   rowsPerBand: number
   columns: number
+  neighbours?: BandCell[]
 }
 
 const ACCENT = 0.15
@@ -69,17 +70,41 @@ function layOut(band: BandCell[], columns: number) {
   })
 }
 
-export function bands({ cells, rowsPerBand, columns }: BandsRequest) {
-  const size = rowsPerBand * columns
-  const dark = Math.ceil(Math.ceil(cells.length / size) / 2) * size
-  const byTone = sortedBy(cells, ({ tone }) => tone)
-  const [night, day] = [byTone.slice(0, dark), byTone.slice(dark)].map((pool) =>
+const meanTone = (cells: BandCell[]) =>
+  cells.reduce((sum, { tone }) => sum + tone, 0) / cells.length
+
+function arrange(cells: BandCell[], size: number, columns: number, darkFirst: boolean) {
+  const bandCount = Math.ceil(cells.length / size)
+  const lead = Math.ceil(bandCount / 2) * size
+  const byTone = sortedBy(cells, ({ tone }) => (darkFirst ? tone : -tone))
+  const [first, second] = [byTone.slice(0, lead), byTone.slice(lead)].map((pool) =>
     chunks(inBandOrder(pool), size)
   )
-  return night
-    .flatMap((band, index) => [
-      ...layOut(band, columns),
-      ...(day[index] ? layOut(day[index], columns) : [])
-    ])
-    .map(({ id }) => id)
+  return first.flatMap((band, index) => [
+    ...layOut(band, columns),
+    ...(second[index] ? layOut(second[index], columns) : [])
+  ])
+}
+
+const rowsReversed = (order: BandCell[], columns: number) => chunks(order, columns).reverse().flat()
+
+function closestToNeighbours(
+  options: BandCell[][],
+  { columns, size, neighbours }: { columns: number; size: number; neighbours: BandCell[] }
+) {
+  const nearestRow = meanTone(neighbours.slice(0, columns))
+  const nearestBand = meanTone(neighbours.slice(0, size))
+  const gap = (order: BandCell[]) =>
+    Math.abs(meanTone(order.slice(-columns)) - nearestRow) +
+    Math.abs(meanTone(order.slice(-size)) - nearestBand)
+  return options.reduce((best, option) => (gap(option) < gap(best) ? option : best))
+}
+
+export function bands({ cells, rowsPerBand, columns, neighbours = [] }: BandsRequest) {
+  const size = rowsPerBand * columns
+  const dark = arrange(cells, size, columns, true)
+  if (neighbours.length === 0 || cells.length === 0) return dark.map(({ id }) => id)
+  const light = arrange(cells, size, columns, false)
+  const options = [dark, light].flatMap((order) => [order, rowsReversed(order, columns)])
+  return closestToNeighbours(options, { columns, size, neighbours }).map(({ id }) => id)
 }
