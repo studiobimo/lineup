@@ -29,6 +29,27 @@ const sortedBy = (cells: BandCell[], key: (cell: BandCell) => number) =>
 const inShootOrder = (cells: BandCell[]) =>
   sortedBy(cells, (cell) => (cell.takenAt === undefined ? colourKey(cell) : -cell.takenAt))
 
+function spread(cells: BandCell[]) {
+  const colours = sortedBy(
+    cells.filter(({ hue }) => hue !== null),
+    colourKey
+  )
+  const neutrals = sortedBy(
+    cells.filter(({ hue }) => hue === null),
+    ({ tone }) => tone
+  )
+  const share = (taken: number, total: number) => (taken + 0.5) / total
+  const merged: BandCell[] = []
+  let [colour, neutral] = [0, 0]
+  while (merged.length < cells.length) {
+    const takeColour =
+      neutral >= neutrals.length ||
+      (colour < colours.length && share(colour, colours.length) <= share(neutral, neutrals.length))
+    merged.push(takeColour ? colours[colour++] : neutrals[neutral++])
+  }
+  return merged
+}
+
 function inBandOrder(pool: BandCell[]) {
   const shoots = new Map<string, BandCell[]>()
   const unknown: BandCell[] = []
@@ -41,7 +62,7 @@ function inBandOrder(pool: BandCell[]) {
   const ordered = [...shoots.values()]
     .map(inShootOrder)
     .sort((one, other) => newest(other) - newest(one) || (one[0].id < other[0].id ? -1 : 1))
-  return [...ordered.flat(), ...sortedBy(unknown, colourKey)]
+  return [...ordered.flat(), ...spread(unknown)]
 }
 
 function chunks(cells: BandCell[], size: number) {

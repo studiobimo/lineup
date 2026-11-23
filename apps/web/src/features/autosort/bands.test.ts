@@ -51,15 +51,23 @@ describe('bands', () => {
     expect(arrange([...cells].reverse(), 4)).toEqual(arrange(cells, 4))
   })
 
-  it('puts neutrals after the colours in a band', () => {
-    const cells = [
-      { id: 'grey', tone: 0.3, vivid: 0, hue: null },
-      { id: 'red', tone: 0.3, vivid: 0.1, hue: 5 },
-      { id: 'blue', tone: 0.3, vivid: 0.1, hue: 240 },
-      { id: 'green', tone: 0.8, vivid: 0.1, hue: 120 }
-    ]
-    expect(arrange(cells, 2).at(-1)).toBe('green')
-    expect(arrange(cells, 1).slice(0, 3)).toContain('grey')
+  it('spreads neutrals through the colours rather than gathering them', () => {
+    const cells = Array.from({ length: 12 }, (_, index) => ({
+      id: String(index).padStart(2, '0'),
+      tone: 0.2 + (index % 6) / 10,
+      vivid: 0.1,
+      hue: index % 2 === 0 ? null : index * 30
+    }))
+    const rows = arrange(cells, 1).reduce<string[][]>(
+      (all, id, index) =>
+        index % 3 === 0 ? [...all, [id]] : [...all.slice(0, -1), [...all.at(-1)!, id]],
+      []
+    )
+    const isNeutral = (id: string) => cells.find((cell) => cell.id === id)!.hue === null
+    for (const row of rows) {
+      expect(row.some(isNeutral)).toBe(true)
+      expect(row.every(isNeutral)).toBe(false)
+    }
   })
 
   it('keeps a dated shoot in one band, and puts undated photos after it', () => {
