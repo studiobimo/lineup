@@ -117,6 +117,14 @@ describe('bands, places and the limits', () => {
     expect(performance.now() - start).toBeLessThan(100)
   })
 
+  it('sorts 300 images against nine neighbours well under the limit', () => {
+    const cells = feed(300)
+    const neighbours = feed(9).map((cell) => ({ ...cell, id: `live-${cell.id}` }))
+    const start = performance.now()
+    bands({ cells, rowsPerBand: 4, columns: 3, neighbours })
+    expect(performance.now() - start).toBeLessThan(100)
+  })
+
   it('ends on the tone of the posts that follow it', () => {
     const cells = feed(24)
     const meeting = (tone: number) => {
@@ -132,5 +140,35 @@ describe('bands, places and the limits', () => {
     const neighbours = [{ id: 'live', tone: 0.9, vivid: 0.1, hue: null }]
     const order = bands({ cells, rowsPerBand: 2, columns: 3, neighbours })
     expect([...order].sort()).toEqual(cells.map(({ id }) => id))
+  })
+})
+
+describe('bands, colour at the seam', () => {
+  const plain = (id: string, hue: number | null, vivid = 0.1): BandCell => ({
+    id,
+    tone: 0.3,
+    vivid,
+    hue
+  })
+  const seam = (cells: BandCell[], neighbours: BandCell[]) =>
+    bands({ cells, rowsPerBand: 1, columns: 3, neighbours })
+
+  it('puts each hue over the same hue below it, the short way round the circle', () => {
+    const cells = [plain('x', 245), plain('y', 125), plain('z', 5)]
+    const neighbours = [plain('n1', 355), plain('n2', 115), plain('n3', 235)]
+    expect(seam(cells, neighbours)).toEqual(['z', 'y', 'x'])
+  })
+
+  it('carries the vividness of the row below down the column', () => {
+    const cells = [plain('calm', 100, 0.02), plain('mid', 100, 0.1), plain('rich', 100, 0.14)]
+    const row = (vivids: number[]) => vivids.map((vivid, index) => plain(`n${index}`, 100, vivid))
+    expect(seam(cells, row([0.02, 0.1, 0.14]))).toEqual(['calm', 'mid', 'rich'])
+    expect(seam(cells, row([0.14, 0.1, 0.02]))).toEqual(['rich', 'mid', 'calm'])
+  })
+
+  it('puts a neutral over a neutral, and a colour over its own colour', () => {
+    const cells = [plain('grey', null), plain('green', 120), plain('red', 0)]
+    const neighbours = [plain('n1', 0), plain('n2', 120), plain('n3', null)]
+    expect(seam(cells, neighbours)).toEqual(['red', 'green', 'grey'])
   })
 })

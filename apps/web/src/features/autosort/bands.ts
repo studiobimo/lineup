@@ -1,3 +1,5 @@
+import { harmonise, seamGap } from './harmony'
+
 export interface BandCell {
   id: string
   tone: number
@@ -96,15 +98,20 @@ function closestToNeighbours(
   const nearestBand = meanTone(neighbours.slice(0, size))
   const gap = (order: BandCell[]) =>
     Math.abs(meanTone(order.slice(-columns)) - nearestRow) +
-    Math.abs(meanTone(order.slice(-size)) - nearestBand)
+    Math.abs(meanTone(order.slice(-size)) - nearestBand) +
+    seamGap(order, neighbours, columns)
   return options.reduce((best, option) => (gap(option) < gap(best) ? option : best))
 }
 
 export function bands({ cells, rowsPerBand, columns, neighbours = [] }: BandsRequest) {
   const size = rowsPerBand * columns
+  const settled = (order: BandCell[]) =>
+    harmonise(order, { columns, neighbours, isFixed: isAccent })
   const dark = arrange(cells, size, columns, true)
-  if (neighbours.length === 0 || cells.length === 0) return dark.map(({ id }) => id)
+  if (neighbours.length === 0 || cells.length === 0) return settled(dark).map(({ id }) => id)
   const light = arrange(cells, size, columns, false)
   const options = [dark, light].flatMap((order) => [order, rowsReversed(order, columns)])
-  return closestToNeighbours(options, { columns, size, neighbours }).map(({ id }) => id)
+  return closestToNeighbours(options.map(settled), { columns, size, neighbours }).map(
+    ({ id }) => id
+  )
 }

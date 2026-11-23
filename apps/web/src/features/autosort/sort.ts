@@ -36,16 +36,18 @@ const keys: Record<(typeof keyedStrategies)[number], (colour: Oklch) => SortKey>
   }
 }
 
-export function toBandCell(
-  { id, takenAt, place }: Cell,
-  { dominant, tone, vivid }: ImageColour
-): BandCell {
-  const neutral = dominant.chroma < NEUTRAL_CHROMA || vivid < MUTED
+const salientHue = ({ palette, vivid }: ImageColour) => {
+  const salient = palette.find(({ chroma }) => chroma >= NEUTRAL_CHROMA)
+  return salient && vivid >= MUTED ? fromRed(salient.hue) : null
+}
+
+export function toBandCell({ id, takenAt, place }: Cell, colour: ImageColour): BandCell {
+  const { tone, vivid } = colour
   return {
     id,
     tone,
     vivid,
-    hue: neutral ? null : fromRed(dominant.hue),
+    hue: salientHue(colour),
     takenAt: takenAt === undefined ? undefined : Date.parse(takenAt),
     place
   }

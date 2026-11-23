@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { extractColour } from './colour'
-import { sortByColour, sortStrategies, type SortStrategy } from './sort'
+import { sortByColour, sortStrategies, type SortStrategy, toBandCell } from './sort'
 
 const swatches: Record<string, [number, number, number]> = {
   red: [220, 30, 30],
@@ -126,5 +126,32 @@ describe('sortByColour, images with no colour and the limits', () => {
     const start = performance.now()
     await sortByColour(many, 'grouped')
     expect(performance.now() - start).toBeLessThan(100)
+  })
+})
+
+describe('toBandCell', () => {
+  const darkNeutral = { lightness: 0.2, chroma: 0.01, hue: 30 }
+  const withPalette = (vivid: number) => ({
+    dominant: darkNeutral,
+    palette: [
+      darkNeutral,
+      { lightness: 0.6, chroma: 0.15, hue: 250 },
+      { lightness: 0.7, chroma: 0.2, hue: 100 }
+    ],
+    tone: 0.3,
+    vivid
+  })
+
+  it('takes the hue of the first chromatic palette entry when the dominant colour is a dark neutral', () => {
+    expect(toBandCell({ id: 'night' }, withPalette(0.2)).hue).toBe(240)
+  })
+
+  it('has no hue when the colour is below the muted floor', () => {
+    expect(toBandCell({ id: 'dull' }, withPalette(0.04)).hue).toBeNull()
+  })
+
+  it('has no hue when no palette entry is chromatic', () => {
+    const colour = { ...withPalette(0.2), palette: [darkNeutral] }
+    expect(toBandCell({ id: 'ash' }, colour).hue).toBeNull()
   })
 })
