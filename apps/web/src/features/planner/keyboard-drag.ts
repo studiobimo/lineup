@@ -16,7 +16,6 @@ function cellBoxes(containers: DroppableContainer[]) {
   })
 }
 
-/** An arrow key moves a cell to the next one along, not by a number of pixels. */
 export const stepBetweenCells: KeyboardCoordinateGetter = ({ code }, { context }) => {
   const direction = directions[code]
   const { collisionRect, droppableContainers } = context

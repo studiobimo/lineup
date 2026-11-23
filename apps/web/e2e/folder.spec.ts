@@ -13,15 +13,25 @@ const photo = (name: string) => ({
   buffer: readFileSync(join(import.meta.dirname, '../../../test-images', name))
 })
 
-// The origin's private file system is a real folder with real handles, which survive a reload in
-// IndexedDB as a chosen one does. Only the picker, which a test cannot click, is replaced.
 const replacePicker = (page: Page) =>
   page.addInitScript(() => {
     window.showDirectoryPicker = async () =>
       (await navigator.storage.getDirectory()).getDirectoryHandle('photos', { create: true })
   })
 
-/** Every file in the folder, with its size. */
+const askForFolderAgain = async (page: Page) => {
+  await replacePicker(page)
+  await page.addInitScript(() => {
+    const access = FileSystemHandle.prototype
+    access.queryPermission = async () =>
+      (localStorage.getItem('permission') ?? 'granted') as FolderAccess
+    access.requestPermission = async () => {
+      localStorage.setItem('permission', 'granted')
+      return 'granted'
+    }
+  })
+}
+
 const folderFiles = (page: Page) =>
   page.evaluate(async () => {
     const found: Record<string, number> = {}
@@ -42,7 +52,6 @@ const folderFiles = (page: Page) =>
     return found
   })
 
-/** The board as the folder has it, or null as a write swaps the file in, which outlives a click. */
 const folderBoard = (page: Page) =>
   page.evaluate(async () => {
     const root = await navigator.storage.getDirectory()
@@ -56,7 +65,6 @@ const folderBoard = (page: Page) =>
     }
   })
 
-/** What a person's file manager would do, with folders on the way made as it goes. */
 const addToFolder = (page: Page, path: string, bytes: Buffer) =>
   page.evaluate(
     async ({ path, bytes }) => {
@@ -79,21 +87,36 @@ async function openSettings(page: Page) {
   await page.getByRole('tab', { name: 'Storage' }).click()
 }
 
-async function useFolder(page: Page) {
+async function keepInFolder(page: Page) {
   await openSettings(page)
   await page.getByRole('button', { name: 'Keep in a folder' }).click()
   await expect(page.getByText('Your board is in photos.')).toBeVisible()
   await page.keyboard.press('Escape')
 }
 
-test('a folder keeps the original at full size, and the board comes back', async ({ page }) => {
-  const errors = watchErrors(page)
+async function startFolder(page: Page) {
   await replacePicker(page)
   await page.goto('/')
-  await useFolder(page)
+  await keepInFolder(page)
+}
+
+async function openWithPhoto(page: Page) {
+  await page.goto('/')
+  await keepInFolder(page)
   const original = photo('01.jpg')
   await addImages(page, [original])
   await expect(page.getByRole('img')).toHaveCount(1)
+  return original
+}
+
+async function startWithPhoto(page: Page) {
+  await replacePicker(page)
+  return openWithPhoto(page)
+}
+
+test('a folder keeps the original at full size, and the board comes back', async ({ page }) => {
+  const errors = watchErrors(page)
+  const original = await startWithPhoto(page)
 
   await expect.poll(() => folderFiles(page)).toHaveProperty(['01.jpg'], original.buffer.length)
   await expect
@@ -109,7 +132,6 @@ test('a folder keeps the original at full size, and the board comes back', async
 
   await page.reload()
   await expect(page.getByRole('img')).toHaveCount(1)
-  // The browser's own board was never touched.
   expect(await savedBoard(page)).toBeUndefined()
 
   const later = await page.context().newPage()
@@ -120,11 +142,7 @@ test('a folder keeps the original at full size, and the board comes back', async
 })
 
 test('leaving a folder keeps it, and choosing it again opens its board', async ({ page }) => {
-  await replacePicker(page)
-  await page.goto('/')
-  await useFolder(page)
-  await addImages(page, [photo('01.jpg')])
-  await expect(page.getByRole('img')).toHaveCount(1)
+  await startWithPhoto(page)
   await expect.poll(() => folderFiles(page)).toHaveProperty(['01.jpg'])
 
   await openSettings(page)
@@ -134,25 +152,13 @@ test('leaving a folder keeps it, and choosing it again opens its board', async (
   await expect(page.getByRole('img')).toHaveCount(0)
   expect(await folderFiles(page)).toHaveProperty(['01.jpg'])
 
-  await useFolder(page)
+  await keepInFolder(page)
   await expect(page.getByRole('img')).toHaveCount(1)
 })
 
 test('a folder the browser must ask for again waits for a click', async ({ page }) => {
-  await replacePicker(page)
-  await page.addInitScript(() => {
-    const permission = () => localStorage.getItem('permission') ?? 'granted'
-    const access = FileSystemHandle.prototype
-    access.queryPermission = async () => permission() as FolderAccess
-    access.requestPermission = async () => {
-      localStorage.setItem('permission', 'granted')
-      return 'granted'
-    }
-  })
-  await page.goto('/')
-  await useFolder(page)
-  await addImages(page, [photo('01.jpg')])
-  await expect(page.getByRole('img')).toHaveCount(1)
+  await askForFolderAgain(page)
+  await openWithPhoto(page)
   await expect.poll(() => folderFiles(page)).toHaveProperty(['01.jpg'])
 
   await page.evaluate(() => localStorage.setItem('permission', 'prompt'))
@@ -165,9 +171,7 @@ test('a folder the browser must ask for again waits for a click', async ({ page 
 test('what appears in the folder is offered, and goes in without a second copy', async ({
   page
 }) => {
-  await replacePicker(page)
-  await page.goto('/')
-  await useFolder(page)
+  await startFolder(page)
   const dropped = photo('01.jpg')
   await addToFolder(page, 'trip/dropped.jpg', dropped.buffer)
   await page.reload()
@@ -184,11 +188,7 @@ test('what appears in the folder is offered, and goes in without a second copy',
 })
 
 test('a removed image stays in the folder and is not offered again', async ({ page }) => {
-  await replacePicker(page)
-  await page.goto('/')
-  await useFolder(page)
-  await addImages(page, [photo('01.jpg')])
-  await expect(page.getByRole('img')).toHaveCount(1)
+  await startWithPhoto(page)
   const cell = page.locator('aside').getByRole('group', { name: 'Image 1', exact: true })
   await cell.hover()
   await cell.getByRole('button', { name: 'Delete' }).click()
@@ -204,9 +204,7 @@ test('a photo removed long ago can be deleted from the folder, once confirmed', 
   page
 }) => {
   const errors = watchErrors(page)
-  await replacePicker(page)
-  await page.goto('/')
-  await useFolder(page)
+  await startFolder(page)
   await addToFolder(page, '01.jpg', photo('01.jpg').buffer)
   await addToFolder(page, '.lineup/forgotten.json', Buffer.from('["01.jpg"]'))
   await page.reload()
@@ -227,12 +225,7 @@ test('a photo removed long ago can be deleted from the folder, once confirmed', 
 
 test('a file deleted outside the app is a missing cell, and comes back', async ({ page }) => {
   const errors = watchErrors(page)
-  await replacePicker(page)
-  await page.goto('/')
-  await useFolder(page)
-  const original = photo('01.jpg')
-  await addImages(page, [original])
-  await expect(page.getByRole('img')).toHaveCount(1)
+  const original = await startWithPhoto(page)
   await expect.poll(() => folderFiles(page)).toHaveProperty(['01.jpg'])
   await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
 
@@ -256,14 +249,11 @@ test('a file deleted outside the app is a missing cell, and comes back', async (
 })
 
 test('a step whose write never finished comes back, and can be undone', async ({ page }) => {
-  await replacePicker(page)
-  await page.goto('/')
-  await useFolder(page)
+  await startFolder(page)
   await addImages(page, [photo('01.jpg')])
   await expect(page.locator('aside').getByRole('img')).toHaveCount(1)
   await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
 
-  // As a tab that closes mid-write leaves things: the change made, and the file never swapped in.
   await page.evaluate(() => {
     FileSystemFileHandle.prototype.createWritable = () => new Promise(() => {})
   })
@@ -274,18 +264,14 @@ test('a step whose write never finished comes back, and can be undone', async ({
   await page.reload()
   await expect(page.locator('section').getByRole('img')).toHaveCount(1)
   await expect.poll(async () => (await folderBoard(page))?.grid.length).toBe(1)
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect(page.locator('aside').getByRole('img')).toHaveCount(1)
 })
 
 test('a folder that goes while it is open stops the board, and nothing is lost', async ({
   page
 }) => {
-  await replacePicker(page)
-  await page.goto('/')
-  await useFolder(page)
-  await addImages(page, [photo('01.jpg')])
-  await expect(page.getByRole('img')).toHaveCount(1)
+  await startWithPhoto(page)
   await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
 
   await page.evaluate(async () => {
@@ -299,25 +285,17 @@ test('a folder that goes while it is open stops the board, and nothing is lost',
 })
 
 test('permission lost while a folder is open comes back with the change', async ({ page }) => {
-  await replacePicker(page)
+  await askForFolderAgain(page)
   await page.addInitScript(() => {
-    const permission = () => localStorage.getItem('permission') ?? 'granted'
-    const access = FileSystemHandle.prototype
     const write = FileSystemFileHandle.prototype.createWritable
-    access.queryPermission = async () => permission() as FolderAccess
-    access.requestPermission = async () => {
-      localStorage.setItem('permission', 'granted')
-      return 'granted'
-    }
     FileSystemFileHandle.prototype.createWritable = function (...options) {
-      if (permission() === 'granted') return write.apply(this, options)
+      if ((localStorage.getItem('permission') ?? 'granted') === 'granted') {
+        return write.apply(this, options)
+      }
       return Promise.reject(new DOMException('Revoked', 'NotAllowedError'))
     }
   })
-  await page.goto('/')
-  await useFolder(page)
-  await addImages(page, [photo('01.jpg')])
-  await expect(page.getByRole('img')).toHaveCount(1)
+  await openWithPhoto(page)
   await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
 
   await page.evaluate(() => localStorage.setItem('permission', 'prompt'))
@@ -328,11 +306,7 @@ test('permission lost while a folder is open comes back with the change', async 
 })
 
 test('a damaged folder says so, and the way out leaves it alone', async ({ page }) => {
-  await replacePicker(page)
-  await page.goto('/')
-  await useFolder(page)
-  await addImages(page, [photo('01.jpg')])
-  await expect(page.getByRole('img')).toHaveCount(1)
+  await startWithPhoto(page)
   await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
 
   await addToFolder(page, '.lineup/images.json', Buffer.from('not what it wrote'))
@@ -349,11 +323,7 @@ test('a folder board survives a browser restart', async ({ baseURL }) => {
 
   const first = await launch()
   const page = first.pages()[0] ?? (await first.newPage())
-  await replacePicker(page)
-  await page.goto('/')
-  await useFolder(page)
-  await addImages(page, [photo('01.jpg')])
-  await expect(page.getByRole('img')).toHaveCount(1)
+  await startWithPhoto(page)
   await expect.poll(async () => (await folderBoard(page))?.tray.length).toBe(1)
   await first.close()
 
@@ -365,9 +335,7 @@ test('a folder board survives a browser restart', async ({ baseURL }) => {
 })
 
 test('a folder board keeps an album, and its files stay where they are', async ({ page }) => {
-  await replacePicker(page)
-  await page.goto('/')
-  await useFolder(page)
+  await startFolder(page)
   await addImages(page, [photo('01.jpg'), photo('02.jpg')])
   const cells = page.locator('aside').getByRole('group', { name: /^Image \d+$/ })
   await expect(cells).toHaveCount(2)

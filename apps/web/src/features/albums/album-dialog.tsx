@@ -19,7 +19,7 @@ import {
 import { useDialogPresence } from '@/hooks/use-dialog-presence'
 import { cn } from '@/lib/utils'
 
-import { isLocked } from '@/features/planner/board'
+import { adjacent, isLocked } from '@/features/planner/board'
 import { dragAnnouncements } from '@/features/planner/drag-announcements'
 import { cellShape } from '@/features/planner/network-profile'
 import { plannerStore, usePlanner } from '@/features/planner/planner'
@@ -32,14 +32,14 @@ interface AlbumTileProps {
   album: string
   image: string
   position: number
-  count: number
+  images: string[]
   locked: boolean
 }
 
 const tileButton =
   'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100'
 
-function AlbumTile({ album, image, position, count, locked }: AlbumTileProps) {
+function AlbumTile({ album, image, position, images, locked }: AlbumTileProps) {
   const { t } = useTranslation(['albums', 'planner'])
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: image,
@@ -74,11 +74,9 @@ function AlbumTile({ album, image, position, count, locked }: AlbumTileProps) {
       )}
       {!locked && (
         <>
-          {/* For a pointer that cannot drag (WCAG 2.5.7). The keyboard has Space on the tile. */}
           <div className="absolute top-1 left-1 flex gap-1">
-            {position > 1 && (
+            {adjacent(images, image, -1) !== undefined && (
               <IconButton
-                variant="outline"
                 size="icon-xs"
                 tabIndex={-1}
                 className={tileButton}
@@ -88,9 +86,8 @@ function AlbumTile({ album, image, position, count, locked }: AlbumTileProps) {
                 <ArrowLeft />
               </IconButton>
             )}
-            {position < count && (
+            {adjacent(images, image, 1) !== undefined && (
               <IconButton
-                variant="outline"
                 size="icon-xs"
                 tabIndex={-1}
                 className={tileButton}
@@ -102,7 +99,6 @@ function AlbumTile({ album, image, position, count, locked }: AlbumTileProps) {
             )}
           </div>
           <IconButton
-            variant="outline"
             size="icon-xs"
             className={cn('absolute top-1 right-1', tileButton)}
             label={t('takeOut')}
@@ -121,7 +117,6 @@ export function AlbumDialog({ id }: { id: string }) {
   const { t: planner } = useTranslation('planner')
   const { dialog, close } = useDialogPresence(closeAlbum)
   const album = usePlanner(({ board }) => board.albums?.[id])
-  // What goes on showing while it closes, because closing finishes only once its exit has played.
   const [images, setImages] = useState(album)
   if (album && album !== images) setImages(album)
   const locked = usePlanner(({ board }) => isLocked(board, id))
@@ -137,7 +132,6 @@ export function AlbumDialog({ id }: { id: string }) {
     }
   }, [id, t, planner])
 
-  // Taking out the last image but one leaves no album to edit.
   useEffect(() => {
     if (!album) close()
   }, [album, close])
@@ -152,7 +146,6 @@ export function AlbumDialog({ id }: { id: string }) {
 
   return (
     <Dialog {...dialog}>
-      {/* It keeps arrow keys inside, and a keyboard drag listens for them on the document. */}
       <DialogPopup onKeyDown={(event) => event.preventBaseUIHandler()}>
         <DialogHeader>
           <DialogTitle>{t('planner:albumOf', { count: images.length })}</DialogTitle>
@@ -173,7 +166,7 @@ export function AlbumDialog({ id }: { id: string }) {
                     album={id}
                     image={image}
                     position={index + 1}
-                    count={images.length}
+                    images={images}
                     locked={locked}
                   />
                 ))}

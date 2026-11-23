@@ -17,7 +17,6 @@ const icons: Record<CellPost['status'], LucideIcon> = {
   cancelled: X
 }
 
-/** What is happening to a cell's post, which is the reason it cannot be moved. Opens the post. */
 export const PostBadge = memo(function PostBadge({ id, post }: { id: string; post: CellPost }) {
   const { t } = useTranslation('planner')
   const { status, failure } = post

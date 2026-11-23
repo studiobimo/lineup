@@ -10,7 +10,6 @@ import {
   EmptyTitle
 } from '@/components/ui/empty'
 
-/** The shell stays up around this, so the header and its buttons still work. */
 export function RouteError() {
   const { t } = useTranslation()
   const router = useRouter()

@@ -2,8 +2,7 @@ import { Palette } from 'lucide-react'
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@/components/icon-button'
-import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
+import { IconMenu } from '@/components/icon-menu'
 import { anchoredToastManager } from '@/components/ui/toast'
 import type { Container } from '@/features/planner/board'
 import { plannerStore } from '@/features/planner/planner'
@@ -34,7 +33,6 @@ export function SortMenu({ container, disabled }: SortMenuProps) {
       },
       onClose: () => stopWatching()
     })
-    // Undo takes back the latest change, so after any other change this offer would be a lie.
     const stopWatching = plannerStore.subscribe(({ board }, { board: previous }) => {
       if (board !== previous) anchoredToastManager.close(id)
     })
@@ -47,22 +45,15 @@ export function SortMenu({ container, disabled }: SortMenuProps) {
   }
 
   return (
-    <Menu>
-      <MenuTrigger
-        disabled={disabled}
-        render={
-          <IconButton ref={trigger} variant="outline" label={t(labels[container])}>
-            <Palette />
-          </IconButton>
-        }
-      />
-      <MenuPopup>
-        {sortStrategies.map((strategy) => (
-          <MenuItem key={strategy} onClick={() => void sort(strategy)}>
-            {t(`sort.${strategy}`)}
-          </MenuItem>
-        ))}
-      </MenuPopup>
-    </Menu>
+    <IconMenu
+      label={t(labels[container])}
+      icon={<Palette />}
+      disabled={disabled}
+      triggerRef={trigger}
+      items={sortStrategies.map((strategy) => ({
+        label: t(`sort.${strategy}`),
+        onClick: () => void sort(strategy)
+      }))}
+    />
   )
 }

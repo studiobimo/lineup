@@ -14,13 +14,11 @@ function hasFiles(event: DragEvent) {
   return event.dataTransfer?.types.includes('Files') ?? false
 }
 
-/** The whole window takes a drop or a paste, wherever the pointer is. */
 export function ImportTargets() {
   const { t } = useTranslation('planner')
   const [dragging, setDragging] = useState(false)
 
   useEffect(() => {
-    // Enter and leave fire for every child crossed, so only the count says when it has left.
     let depth = 0
     const enter = (event: DragEvent) => {
       if (!hasFiles(event)) return
@@ -93,13 +91,11 @@ export function ImportButtons() {
   const folder = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    // React has no prop for it, and a folder picker is what makes this a different input.
     if (folder.current) folder.current.webkitdirectory = true
   }, [])
 
   const choose = ({ target }: ChangeEvent<HTMLInputElement>) => {
     void runImport(fromFiles([...(target.files ?? [])]))
-    // Choosing the same file again has to count as a change.
     target.value = ''
   }
 
@@ -115,20 +111,10 @@ export function ImportButtons() {
       />
       <input ref={folder} type="file" multiple hidden onChange={choose} />
       <Group aria-label={t('addToTray')}>
-        <IconButton
-          label={t('addImages')}
-          variant="outline"
-          disabled={busy}
-          onClick={() => files.current?.click()}
-        >
+        <IconButton label={t('addImages')} disabled={busy} onClick={() => files.current?.click()}>
           <ImagePlus />
         </IconButton>
-        <IconButton
-          label={t('addFolder')}
-          variant="outline"
-          disabled={busy}
-          onClick={() => folder.current?.click()}
-        >
+        <IconButton label={t('addFolder')} disabled={busy} onClick={() => folder.current?.click()}>
           <FolderPlus />
         </IconButton>
       </Group>

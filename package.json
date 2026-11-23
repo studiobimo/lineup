@@ -9,6 +9,7 @@
     "cf:bundle": "make -C .devtools build && pnpm --dir apps/web exec wrangler deploy --dry-run",
     "cf:deploy:development": "make -C .devtools deploy ENV=development",
     "cf:deploy:production": "make -C .devtools deploy ENV=production",
+    "telemetry:tag": "node .devtools/scripts/telemetry-tag.mjs",
     "cf:rotate-secret:development": ".devtools/scripts/rotate-provider-secret.sh development",
     "cf:rotate-secret:production": ".devtools/scripts/rotate-provider-secret.sh production"
   },

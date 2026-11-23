@@ -1,2 +1,10 @@
+# >>> template:base
 model_context_window = 500000
 model_auto_compact_token_limit = 500000
+# <<< template:base
+
+# >>> template:shadcn
+[mcp_servers.shadcn]
+command = "node"
+args = [".devtools/scripts/shadcn-mcp.mjs"]
+# <<< template:shadcn

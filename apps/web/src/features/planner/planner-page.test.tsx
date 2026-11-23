@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { HeaderSlot } from '@/components/header-slot'
 import { boardStore, plannerStore } from './planner'
 import { PlannerPage } from './planner-page'
 import type { ProcessedImage } from './process-image'
@@ -14,34 +15,56 @@ const processed = {
   publish: new Uint8Array([2])
 } as unknown as ProcessedImage
 
-// The route loads these before it renders the page.
 beforeAll(() => loadStrings('planner'))
 
-describe('PlannerPage', () => {
-  beforeEach(async () => {
-    // The page does the loading, so a test cannot seed a board that a late load then overwrites.
-    await boardStore.deleteImages((await boardStore.listImages()).map(({ id }) => id))
-    await boardStore.saveBoard({ tray: [], grid: [] })
-    await boardStore.saveHistory({ past: [], future: [] })
-    plannerStore.setState({ images: {}, past: [], future: [], ready: false, session: 'starting' })
+async function oneImageOnGrid() {
+  await act(async () => {
+    plannerStore.getState().clear(['tray', 'grid'])
+    await plannerStore.getState().addImages([processed])
+    plannerStore.getState().moveAll('tray')
   })
+  return plannerStore.getState().board.grid[0]
+}
 
+beforeEach(async () => {
+  await boardStore.deleteImages((await boardStore.listImages()).map(({ id }) => id))
+  await boardStore.saveBoard({ tray: [], grid: [] })
+  await boardStore.saveHistory({ past: [], future: [] })
+  plannerStore.setState({ images: {}, past: [], future: [], ready: false, session: 'starting' })
+})
+
+async function boardOf(tray: number, grid: number) {
+  await waitFor(() => expect(plannerStore.getState().session).toBe('active'))
+  await act(async () => {
+    plannerStore.getState().clear(['tray', 'grid'])
+    await plannerStore.getState().addImages(Array.from({ length: grid }, () => processed))
+    plannerStore.getState().moveAll('tray')
+    await plannerStore.getState().addImages(Array.from({ length: tray }, () => processed))
+  })
+  return plannerStore.getState().board
+}
+
+function renderPlanner() {
+  return render(
+    <>
+      <HeaderSlot />
+      <PlannerPage />
+    </>
+  )
+}
+
+describe('PlannerPage', () => {
   it('says what to do with an empty grid', async () => {
-    render(<PlannerPage />)
+    renderPlanner()
     expect(await screen.findByText('Move images here to plan your feed.')).toBeInTheDocument()
   })
 
   it('moves a cell to the grid, and undoes it', async () => {
     const user = userEvent.setup()
-    render(<PlannerPage />)
+    renderPlanner()
     await screen.findByText('Move images here to plan your feed.')
 
-    await act(async () => {
-      plannerStore.getState().clear(['tray', 'grid'])
-      await plannerStore.getState().addImages([processed])
-      plannerStore.getState().moveAll('tray')
-    })
-    const [id] = plannerStore.getState().board.grid
+    const id = await oneImageOnGrid()
 
     await screen.findByRole('img', { name: 'Image 1' })
 
@@ -53,7 +76,7 @@ describe('PlannerPage', () => {
   })
 
   it('leaves undo and redo disabled when there is nothing to do', () => {
-    render(<PlannerPage />)
+    renderPlanner()
     const history = screen.getByRole('button', { name: 'Undo' }).parentElement!
     for (const button of within(history).getAllByRole('button')) expect(button).toBeDisabled()
   })
@@ -62,17 +85,13 @@ describe('PlannerPage', () => {
     const user = userEvent.setup()
     render(
       <>
+        <HeaderSlot />
         <PlannerPage />
         <input aria-label="Caption" />
       </>
     )
     await waitFor(() => expect(plannerStore.getState().session).toBe('active'))
-    await act(async () => {
-      plannerStore.getState().clear(['tray', 'grid'])
-      await plannerStore.getState().addImages([processed])
-      plannerStore.getState().moveAll('tray')
-    })
-    const [id] = plannerStore.getState().board.grid
+    const id = await oneImageOnGrid()
 
     await user.click(screen.getByLabelText('Caption'))
     await user.keyboard('{Control>}z{/Control}')
@@ -85,26 +104,15 @@ describe('PlannerPage', () => {
     expect(plannerStore.getState().board.grid).toEqual([id])
   })
 
-  const boardOf = async (tray: number, grid: number) => {
-    await waitFor(() => expect(plannerStore.getState().session).toBe('active'))
-    await act(async () => {
-      plannerStore.getState().clear(['tray', 'grid'])
-      await plannerStore.getState().addImages(Array.from({ length: grid }, () => processed))
-      plannerStore.getState().moveAll('tray')
-      await plannerStore.getState().addImages(Array.from({ length: tray }, () => processed))
-    })
-    return plannerStore.getState().board
-  }
-
   it('moves everything across, and undoes it', async () => {
     const user = userEvent.setup()
-    render(<PlannerPage />)
+    renderPlanner()
     const before = await boardOf(2, 1)
 
     await user.click(screen.getByRole('button', { name: 'Move all to the grid' }))
     expect(plannerStore.getState().board).toEqual({
       tray: [],
-      grid: [...before.grid, ...before.tray]
+      grid: [...before.tray, ...before.grid]
     })
     await user.click(screen.getByRole('button', { name: 'Undo' }))
     expect(plannerStore.getState().board).toEqual(before)
@@ -113,15 +121,17 @@ describe('PlannerPage', () => {
   })
 
   it('needs two cells to shuffle', async () => {
-    render(<PlannerPage />)
+    renderPlanner()
     await boardOf(2, 1)
     expect(screen.getByRole('button', { name: 'Shuffle the tray' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Shuffle the grid' })).toBeDisabled()
   })
+})
 
+describe('PlannerPage, shuffling and clearing', () => {
   it('says how many images each choice clears, and undoes it', async () => {
     const user = userEvent.setup()
-    render(<PlannerPage />)
+    renderPlanner()
     const before = await boardOf(2, 1)
 
     await user.click(screen.getByRole('button', { name: 'Clear' }))
@@ -136,7 +146,7 @@ describe('PlannerPage', () => {
 
   it('deletes the focused cell with the Delete key, and moves focus on', async () => {
     const user = userEvent.setup()
-    render(<PlannerPage />)
+    renderPlanner()
     const before = await boardOf(0, 2)
     const [first, second] = before.grid
 
@@ -150,7 +160,7 @@ describe('PlannerPage', () => {
   })
 
   it('shows a skeleton until the board has loaded', async () => {
-    render(<PlannerPage />)
+    renderPlanner()
     expect(screen.getByRole('status', { name: 'Loading your board' })).toBeInTheDocument()
     await screen.findByText('Move images here to plan your feed.')
     expect(screen.queryByRole('status', { name: 'Loading your board' })).not.toBeInTheDocument()
@@ -159,7 +169,7 @@ describe('PlannerPage', () => {
   it('offers to try again when the board cannot be read', async () => {
     const user = userEvent.setup()
     const read = vi.spyOn(boardStore, 'loadBoard').mockRejectedValueOnce(new Error('blocked'))
-    render(<PlannerPage />)
+    renderPlanner()
 
     await screen.findByRole('heading', { name: 'Your board could not be opened' })
     read.mockRestore()

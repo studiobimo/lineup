@@ -4,7 +4,6 @@ import { type Box, dropTarget, nearestInDirection } from './drag-target'
 
 const board = { tray: ['t1'], grid: ['a', 'b', 'c', 'd'] }
 
-// Two columns of 100 x 100 cells: a b, then c d.
 const boxes: Record<string, Box> = {
   a: { left: 0, right: 100, top: 0, bottom: 100 },
   b: { left: 100, right: 200, top: 0, bottom: 100 },

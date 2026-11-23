@@ -27,6 +27,8 @@ This folder is the source of truth for what Lineup is and why it is built the wa
   - [ADR-0012: Animate arranging with Motion](adr/0012-animation-with-motion.md)
   - [ADR-0021: Decode HEIC in the import worker with libheif](adr/0021-heic-decoding.md)
   - [ADR-0020: Release with semantic-release](adr/0020-semantic-release.md)
+  - [ADR-0023: A published cell leaves the plan and joins the published posts](adr/0023-published-cells-leave-the-plan.md) (superseded)
+  - [ADR-0024: A published cell leaves the board](adr/0024-published-cells-leave-the-board.md)
 
 A record is for a decision that is specific to this product, costly to reverse, and had real
 alternatives. A stack choice the org's template profiles already make does not need one.

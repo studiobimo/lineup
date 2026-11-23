@@ -31,13 +31,11 @@ import { useDragGhost } from './use-drag-ghost'
 
 const pointOf = ({ clientX, clientY }: MouseEvent | Touch): Point => ({ x: clientX, y: clientY })
 
-/** Where a drag starts. Keys have no position, so it starts from the cell. */
 function startOf(event: MouseEvent | TouchEvent | KeyboardEvent, cell: Box) {
   if ('touches' in event) return pointOf(event.touches[0])
   return 'clientX' in event ? pointOf(event) : centreOf(cell)
 }
 
-/** Where the cell ended up, which after grouping is a cell that did not exist before. */
 function place(id: string, target: DropTarget) {
   const { swap, move, group } = plannerStore.getState()
   if (target.kind === 'group') return group([target.id, id]) ?? id
@@ -54,10 +52,8 @@ interface Latest {
   dwelling: string | null
 }
 
-// Long enough that dragging across a cell does not offer to group with it.
 const GROUP_DWELL_MS = 600
 
-/** A status, so that what holding a cell still will do is said as well as shown. */
 function DragHint() {
   const { t } = useTranslation('planner')
   const grouping = useStore(dragStore, ({ target }) => target?.kind === 'group')
@@ -75,19 +71,53 @@ function DragHint() {
   )
 }
 
-export function BoardDrag({ children }: { children: ReactNode }) {
-  const { t } = useTranslation('planner')
-  const accessibility = useMemo(
-    () => ({
-      announcements: dragAnnouncements(t, placeOnBoard(t)),
-      screenReaderInstructions: { draggable: t('dragInstructions') }
-    }),
-    [t]
-  )
-  const sensors = useCellSensors()
-  const ghost = useDragGhost()
-  const { lift, follow, glide, land } = ghost
-  const [active, setActive] = useState<string | null>(null)
+type Boxes = { current: (id: string) => DOMRect | undefined }
+
+const detectCollision: (
+  args: Parameters<CollisionDetection>[0],
+  latest: Latest,
+  boxes: Boxes
+) => ReturnType<CollisionDetection> = (args, latest, boxes) => {
+  const { collisionRect, droppableContainers, pointerCoordinates } = args
+  const find = (id: unknown) => droppableContainers.find((droppable) => droppable.id === id)
+  boxes.current = (id) => find(id)?.node.current?.getBoundingClientRect()
+  const point = pointerCoordinates ?? centreOf(collisionRect)
+  latest.point = point
+
+  const { x, y } = point
+  const under = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-drop-id]')
+  const droppable = find(under?.dataset.dropId)
+  const data = droppable?.data.current as Omit<Hover, 'id'> | undefined
+  if (!droppable || !data) {
+    latest.hover = null
+    return []
+  }
+  latest.hover = { id: String(droppable.id), ...data }
+  return [{ id: droppable.id, data: { droppableContainer: droppable, value: 0 } }]
+}
+
+function watchDrag(latest: Latest, aim: () => void, follow: (point: Point) => void) {
+  const shift = ({ shiftKey }: KeyboardEvent) => {
+    latest.inserting = shiftKey
+    aim()
+  }
+  const mouse = (event: MouseEvent) => follow(pointOf(event))
+  const touch = ({ touches: [finger] }: TouchEvent) => follow(pointOf(finger))
+  document.documentElement.toggleAttribute('data-dragging', true)
+  window.addEventListener('keydown', shift)
+  window.addEventListener('keyup', shift)
+  window.addEventListener('mousemove', mouse)
+  window.addEventListener('touchmove', touch)
+  return () => {
+    document.documentElement.toggleAttribute('data-dragging', false)
+    window.removeEventListener('keydown', shift)
+    window.removeEventListener('keyup', shift)
+    window.removeEventListener('mousemove', mouse)
+    window.removeEventListener('touchmove', touch)
+  }
+}
+
+function useDragAim(active: string | null, follow: (point: Point) => void) {
   const latest = useRef<Latest>({
     active: null,
     hover: null,
@@ -125,65 +155,57 @@ export function BoardDrag({ children }: { children: ReactNode }) {
     }, GROUP_DWELL_MS)
   }, [])
 
-  // Asks the page what is under the pointer. Rectangles measured beforehand would go stale beside
-  // a sticky tray as the page scrolls, and would count cells that the tray has clipped.
-  const collide = useCallback<CollisionDetection>((args) => {
-    const { collisionRect, droppableContainers, pointerCoordinates } = args
-    const find = (id: unknown) => droppableContainers.find((droppable) => droppable.id === id)
-    boxes.current = (id) => find(id)?.node.current?.getBoundingClientRect()
-    // A keyboard drag has no pointer, so it aims from the middle of the cell it is carrying.
-    const point = pointerCoordinates ?? centreOf(collisionRect)
-    latest.current.point = point
+  const collide = useCallback<CollisionDetection>(
+    (args) => detectCollision(args, latest.current, boxes),
+    []
+  )
 
-    const { x, y } = point
-    const under = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-drop-id]')
-    const droppable = find(under?.dataset.dropId)
-    const data = droppable?.data.current as Omit<Hover, 'id'> | undefined
-    if (!droppable || !data) {
-      latest.current.hover = null
-      return []
-    }
-    latest.current.hover = { id: String(droppable.id), ...data }
-    return [{ id: droppable.id, data: { droppableContainer: droppable, value: 0 } }]
-  }, [])
+  useEffect(
+    () => (active ? watchDrag(latest.current, aim, follow) : undefined),
+    [active, aim, follow]
+  )
 
-  useEffect(() => {
-    if (!active) return
-    const shift = ({ shiftKey }: KeyboardEvent) => {
-      latest.current.inserting = shiftKey
-      aim()
-    }
-    // Straight from the event rather than through React, so the ghost keeps up with the pointer.
-    const mouse = (event: MouseEvent) => follow(pointOf(event))
-    const touch = ({ touches: [finger] }: TouchEvent) => follow(pointOf(finger))
-    document.documentElement.toggleAttribute('data-dragging', true)
-    window.addEventListener('keydown', shift)
-    window.addEventListener('keyup', shift)
-    window.addEventListener('mousemove', mouse)
-    window.addEventListener('touchmove', touch)
-    return () => {
-      document.documentElement.toggleAttribute('data-dragging', false)
-      window.removeEventListener('keydown', shift)
-      window.removeEventListener('keyup', shift)
-      window.removeEventListener('mousemove', mouse)
-      window.removeEventListener('touchmove', touch)
-    }
-  }, [active, aim, follow])
+  const begin = (cell: string, inserting: boolean) => {
+    latest.current.active = cell
+    latest.current.inserting = inserting
+  }
 
-  const release = (apply: boolean) => {
-    const { target } = dragStore.getState()
+  const end = () => {
     const { active: id } = latest.current
     latest.current.active = null
     latest.current.dwelling = null
     clearTimeout(dwell.current.timer)
     dwell.current = { cell: null }
+    return id
+  }
+
+  return { aim, collide, begin, end }
+}
+
+export function BoardDrag({ children }: { children: ReactNode }) {
+  const { t } = useTranslation('planner')
+  const accessibility = useMemo(
+    () => ({
+      announcements: dragAnnouncements(t, placeOnBoard(t)),
+      screenReaderInstructions: { draggable: t('dragInstructions') }
+    }),
+    [t]
+  )
+  const sensors = useCellSensors()
+  const ghost = useDragGhost()
+  const { lift, follow, glide, land } = ghost
+  const [active, setActive] = useState<string | null>(null)
+  const { aim, collide, begin, end } = useDragAim(active, follow)
+
+  const release = (apply: boolean) => {
+    const { target } = dragStore.getState()
+    const id = end()
     dragStore.setState({ dragging: false, target: null, albumFull: false })
     setActive(null)
     if (!id) return
     launch([id])
     const landing = apply && target ? place(id, target) : id
     const merging = apply && target?.kind === 'group'
-    // The board has changed but the page has not, until React has committed it.
     requestAnimationFrame(() => land(cellBox(landing), () => ground([id]), { merging }))
   }
 
@@ -196,8 +218,7 @@ export function BoardDrag({ children }: { children: ReactNode }) {
         const cell = String(id)
         const event = activatorEvent as MouseEvent | TouchEvent | KeyboardEvent
         const from = cellBox(cell)
-        latest.current.active = cell
-        latest.current.inserting = event.shiftKey
+        begin(cell, event.shiftKey)
         dragStore.setState({ dragging: true })
         setActive(cell)
         if (from) lift(cell, startOf(event, from), from)

@@ -8,8 +8,8 @@ import { ProviderError, type ProviderFailure, type ProviderFor } from './provide
 import { providerRoutes } from './provider/routes'
 import { zernio } from './provider/zernio'
 import { documented } from './route-docs'
+import { telemetryRoutes } from './telemetry/routes'
 
-// JSON loads nothing, so this asks for less than the app's own policy in public/_headers.
 const contentSecurityPolicy = { defaultSrc: ["'none'"], frameAncestors: ["'none'"] }
 
 const providerProblems = {
@@ -25,7 +25,6 @@ const providerProblems = {
 export function createApi(providerFor: ProviderFor = zernio) {
   const api = new Hono<ApiEnv>().basePath('/api')
 
-  // Generated here and never read from the request, so a log line cannot be forged.
   api.use(async (c, next) => {
     const requestId = crypto.randomUUID()
     const started = Date.now()
@@ -33,7 +32,6 @@ export function createApi(providerFor: ProviderFor = zernio) {
     await next()
     c.header('X-Request-Id', requestId)
     c.header('Cache-Control', 'no-store')
-    // The path template and nothing from the request: docs/API.md lists what a log may hold.
     console.log(
       JSON.stringify({
         method: c.req.method,
@@ -64,12 +62,13 @@ export function createApi(providerFor: ProviderFor = zernio) {
     if (error instanceof HTTPException && error.status === 400) {
       return problem(c, { status: 400, code: 'validation', title: 'The request is not valid' })
     }
-    // The name alone: a message can quote what it failed on, and that can be a key.
     console.error(JSON.stringify({ requestId: c.get('requestId'), error: error.name }))
     return problem(c, { status: 500, code: 'internal', title: 'Something went wrong' })
   })
 
-  return api.route('/v1/provider', providerRoutes(providerFor))
+  return api
+    .route('/v1/provider', providerRoutes(providerFor))
+    .route('/v1/telemetry', telemetryRoutes())
 }
 
 export type ApiRoutes = ReturnType<typeof createApi>

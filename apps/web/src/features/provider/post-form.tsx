@@ -1,22 +1,18 @@
-import { useForm, useStore } from '@tanstack/react-form'
+import { useStore } from '@tanstack/react-form'
 import type { ReactNode } from 'react'
-import { useTranslation } from 'react-i18next'
-import { z } from 'zod'
 
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { outOfOrder } from '@/features/planner/board'
-import { instagram } from '@/features/planner/network-profile'
-import { plannerStore } from '@/features/planner/planner'
 
+import { ErrorNotice } from './error-notice'
+import { fieldProps, usePostForm } from './use-post-form'
 import { CaptionField, TimeField } from './post-fields'
-import { fromFieldTime } from './post-time'
+import { type PostFormValues } from './post-schema'
+import { ScheduleWarning } from './schedule-warning'
 
-const postFormSchema = z.object({
-  caption: z.string().max(instagram.captionLimit),
-  when: z.string().refine((time) => Date.parse(time) > Date.now())
-})
-export type PostFormValues = z.infer<typeof postFormSchema>
+const fields = [
+  ['caption', CaptionField],
+  ['when', TimeField]
+] as const
 
 interface PostFormProps {
   cell: string
@@ -24,14 +20,11 @@ interface PostFormProps {
   submitLabel: string
   pending: boolean
   problem?: string
-  /** Between the fields and the buttons. */
   children?: ReactNode
-  /** Beside the submit button. */
   actions?: ReactNode
   onSubmit: (values: PostFormValues) => Promise<unknown>
 }
 
-/** The caption and the time, for a new post and for one being changed. */
 export function PostForm({
   cell,
   initial,
@@ -42,15 +35,8 @@ export function PostForm({
   actions,
   onSubmit
 }: PostFormProps) {
-  const { t } = useTranslation('provider')
-  const form = useForm({
-    defaultValues: initial,
-    validators: { onSubmit: postFormSchema },
-    onSubmit: ({ value }) => onSubmit(value).catch(() => undefined)
-  })
+  const form = usePostForm(initial, onSubmit)
   const when = useStore(form.store, ({ values }) => values.when)
-  const valid = !Number.isNaN(Date.parse(when))
-  const misordered = valid && outOfOrder(plannerStore.getState().board, cell, fromFieldTime(when))
 
   return (
     <form
@@ -60,37 +46,14 @@ export function PostForm({
         void form.handleSubmit()
       }}
     >
-      <form.Field name="caption">
-        {(field) => (
-          <CaptionField
-            value={field.state.value}
-            invalid={field.state.meta.errors.length > 0}
-            onBlur={field.handleBlur}
-            onChange={field.handleChange}
-          />
-        )}
-      </form.Field>
-      <form.Field name="when">
-        {(field) => (
-          <TimeField
-            value={field.state.value}
-            invalid={field.state.meta.errors.length > 0}
-            onBlur={field.handleBlur}
-            onChange={field.handleChange}
-          />
-        )}
-      </form.Field>
-      {misordered && (
-        <Alert variant="warning">
-          <AlertDescription>{t('post.outOfOrder')}</AlertDescription>
-        </Alert>
-      )}
+      {fields.map(([name, Input]) => (
+        <form.Field key={name} name={name}>
+          {(field) => <Input cell={cell} {...fieldProps(field)} />}
+        </form.Field>
+      ))}
+      <ScheduleWarning cell={cell} when={when} onUse={(time) => form.setFieldValue('when', time)} />
       {children}
-      {problem && (
-        <Alert variant="error">
-          <AlertDescription>{problem}</AlertDescription>
-        </Alert>
-      )}
+      <ErrorNotice text={problem} />
       <div className="flex flex-wrap justify-end gap-2">
         {actions}
         <Button type="submit" loading={pending}>

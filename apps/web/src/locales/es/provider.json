@@ -47,7 +47,7 @@
     "timeZone": "En tu zona horaria, {{zone}}.",
     "timeInvalid": "Elige una hora que aún no haya pasado.",
     "outOfOrder": "Con esta hora, las publicaciones no saldrán en el orden de tu cuadrícula.",
-    "notice": "Al programar, las imágenes y el pie de foto se envían a {{provider}} y a Instagram. Nada más sale de este dispositivo.",
+    "notice": "Al programar, las imágenes y el pie de foto se envían a {{provider}} y a Instagram. Cuando se publica, se envía a Lineup una nota anónima con su tipo, tamaño y retraso. Nada más sale de este dispositivo.",
     "noKey": "Añade tu clave en Ajustes para programar esto.",
     "readOnly": "Esta clave es de solo lectura. Sustitúyela en Ajustes por una clave de lectura y escritura para programar esto.",
     "noAccount": "Conecta una cuenta de Instagram en Ajustes para programar esto. Instagram solo lo permite con una cuenta profesional.",
@@ -57,6 +57,11 @@
     "cancelDescription": "No se publicará y se eliminará de {{provider}}. La imagen vuelve a ser una celda planificada.",
     "cancelConfirm": "Cancelar publicación",
     "keep": "Mantenerla",
+    "live": {
+      "published": "Tu publicación ya salió.",
+      "view": "Ver publicación",
+      "failed": "Una publicación no se publicó."
+    },
     "view": "Ver en Instagram",
     "free": "Liberar esta celda",
     "freePublished": "Liberar esta celda deja la publicación en Instagram, y se muestra después de las celdas planificadas.",
@@ -70,6 +75,41 @@
       "length": "Instagram acepta reels de hasta {{minutes}} minutos.",
       "count_one": "Un carrusel puede tener un video.",
       "count_other": "Un carrusel puede tener {{count}} videos."
+    },
+    "tags": {
+      "title": "Etiquetar cuentas",
+      "hint": "Toca la imagen donde quieras una etiqueta, escribe el usuario y pulsa Intro. Arrastra una etiqueta para moverla o usa las flechas (con Mayús, pasos mayores). Hasta {{limit}} por publicación.",
+      "videoHint": "Añade las cuentas que quieras etiquetar en este vídeo. Hasta {{limit}} por publicación.",
+      "slide": "Diapositiva {{position}} ({{count}})",
+      "picture": "La imagen que etiquetar",
+      "unnamed": "Etiqueta {{position}}",
+      "marker": "{{name}}, {{x}} desde la izquierda, {{y}} desde arriba. Muévela con las flechas y bórrala con Supr.",
+      "username": "Usuario de la etiqueta {{position}}",
+      "placeholder": "usuario",
+      "remove": "Quitar la etiqueta {{position}}",
+      "add": "Añadir una cuenta",
+      "full": "Es el máximo que permite Instagram en una publicación, {{limit}} etiquetas.",
+      "place": "Colocar una etiqueta en la imagen. Luego escribe el usuario.",
+      "pending": "Usuario de la nueva etiqueta",
+      "confirm": "Añadir la etiqueta",
+      "none": "Aún no hay etiquetas.",
+      "tapPicture": "Toca la foto para añadir una etiqueta."
+    },
+    "screens": {
+      "done": "Listo",
+      "tag": "Etiquetar cuentas",
+      "tagCount": "Etiquetar cuentas ({{count}})",
+      "tagged_one": "Etiquetada: {{usernames}}",
+      "tagged_other": "{{count}} cuentas etiquetadas: {{usernames}}"
+    },
+    "spacing": {
+      "before": "La publicación en la posición {{position}} de tu cuadrícula necesita unos {{minutes}} minutos para salir antes que esta.",
+      "after": "Esta publicación necesita unos {{minutes}} minutos para salir antes que la de la posición {{position}} de tu cuadrícula.",
+      "video": "Una publicación con vídeo puede tardar varios minutos en salir, e Instagram ordena las publicaciones según cuándo salen.",
+      "image": "Instagram puede tardar unos minutos en publicar, y ordena las publicaciones según cuándo salen.",
+      "noRoom": "No hay un momento entre estas publicaciones que deje espacio suficiente. Aun así puedes programarla.",
+      "use": "Usar {{time}}",
+      "legend": "Las horas marcadas quedan demasiado cerca de una publicación ya programada: {{image}} minutos para fotos, {{video}} para un vídeo y más si es grande."
     }
   },
   "published": {
@@ -94,5 +134,14 @@
     "provider_busy": "Todavía se está procesando. Inténtalo de nuevo en un momento.",
     "provider_failed": "El servicio de programación no respondió. Inténtalo de nuevo en un momento."
   },
-  "disclaimer": "Lineup es una aplicación independiente. No está afiliada a Instagram ni a Meta, ni cuenta con su respaldo o patrocinio, e Instagram es una marca de Meta Platforms, Inc."
+  "disclaimer": "Lineup es una aplicación independiente. No está afiliada a Instagram ni a Meta, ni cuenta con su respaldo o patrocinio, e Instagram es una marca de Meta Platforms, Inc.",
+  "swapped": {
+    "title": "Algunas publicaciones salieron en otro orden",
+    "description": "Instagram ordena tus publicaciones según cuándo salieron de verdad, no según la hora que programaste, así que estas dos cambiaron de lugar en tu perfil.",
+    "tip": "Dejar más tiempo entre publicaciones, sobre todo si llevan vídeo, lo evita.",
+    "scheduled": "Programada para {{time}}",
+    "live": "Salió a las {{time}}",
+    "picture": "Una publicación que salió en otro orden",
+    "dismiss": "Entendido"
+  }
 }

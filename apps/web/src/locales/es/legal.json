@@ -1,5 +1,5 @@
 {
-  "updated": "Última actualización: 7 de noviembre de 2026",
+  "updated": "Última actualización: 22 de noviembre de 2026",
   "privacy": {
     "title": "Política de privacidad",
     "summary": "Lineup es un planificador que funciona en tu navegador. Tus imágenes se quedan en tu dispositivo y no hay cuentas. Esta página enumera todo lo que se almacena y dónde.",
@@ -35,7 +35,14 @@
         "paragraphs": [
           "No guardamos ninguna de tus imágenes, planes ni claves. No tenemos base de datos ni cuentas.",
           "Lineup está alojado en Cloudflare, que trata tu dirección IP y las páginas que solicitas, como cualquier servicio de alojamiento web, para servir la app y protegerla. Las solicitudes a nuestra API también se guardan en los registros de Cloudflare hasta siete días, para ayudarnos a corregir fallos. Esos registros no incluyen tus imágenes ni tu clave.",
-          "No hay analítica, ni publicidad, ni scripts de terceros. Las fuentes se sirven desde nuestra propia dirección."
+          "No hay publicidad, ni seguimiento entre visitas, ni scripts de terceros. Las fuentes se sirven desde nuestra propia dirección."
+        ]
+      },
+      {
+        "heading": "Qué registramos cuando se publica una publicación",
+        "paragraphs": [
+          "Cuando una publicación que programaste se detecta como publicada, tu navegador nos envía una nota anónima para que podamos saber cuánto tardan Zernio e Instagram. Contiene un número aleatorio creado en el momento, la hora que elegiste y la hora en que salió, si era una imagen, un carrusel o un vídeo, cuántas imágenes y vídeos tenía, su tamaño total, el tamaño y la duración del vídeo más largo, la versión de Lineup y una etiqueta anónima de tu cuenta de Instagram.",
+          "La etiqueta es un código revuelto, hecho a partir del nombre de usuario de tu cuenta con un secreto que solo tenemos nosotros. Registramos el código y nunca el nombre de usuario, así que el código no puede convertirse de nuevo en un nombre y nadie puede saber de qué cuenta procede sin conocer ya el nombre de usuario. La nota no contiene pie de foto, etiquetas, nombre de usuario, enlaces, identificador de la publicación, clave ni imagen, y se envía una sola vez por publicación. La conservamos en nuestros registros hasta siete días y no se guarda nada más."
         ]
       },
       {

@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-// Fails when the Worker outgrows its gzip budget (ADR-0005). wrangler deploy --dry-run reports
-// the size Cloudflare limits, and it needs no login, so it runs in CI. Run it after the build.
-//
-//   worker-budget.mjs --gzip-kib 32
 import { spawnSync } from 'node:child_process'
 import { parseArgs } from 'node:util'
 
@@ -21,7 +17,6 @@ const { stdout, stderr, status } = spawnSync('pnpm', ['exec', 'wrangler', 'deplo
 })
 if (status !== 0) fail(`wrangler deploy --dry-run failed:\n${stdout}${stderr}`)
 
-// A wrangler that words this differently has to fail here, not pass unmeasured.
 const [, size, unit] = stdout.match(/Total Upload:.*gzip: ([\d.]+) (KiB|MiB)/) ?? []
 if (!size) fail(`no gzip size in wrangler's output:\n${stdout}`)
 

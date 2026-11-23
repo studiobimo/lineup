@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "shadcn": {
-      "command": "pnpm",
-      "args": ["--dir", "apps/web", "exec", "shadcn", "mcp"]
+      "command": "node",
+      "args": [".devtools/scripts/shadcn-mcp.mjs"]
     }
   }
 }

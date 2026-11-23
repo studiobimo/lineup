@@ -87,6 +87,30 @@ describe('sending a post', () => {
     expect(linked).toMatchObject({ id: 'post', accountId: 'account', status: 'scheduled' })
   })
 
+  it('returns the shape of the post, for the publish-delay telemetry', async () => {
+    provider()
+    const image = await send(['a'])
+    expect(image.media).toEqual({
+      kind: 'image',
+      images: 1,
+      videos: 0,
+      totalBytes: 1,
+      largestVideoBytes: undefined,
+      largestVideoSeconds: undefined
+    })
+    addVideo('v', { duration: 42, size: 5_000 })
+    const carousel = await send(['a', 'v'])
+    expect(carousel.media).toMatchObject({
+      kind: 'carousel',
+      images: 1,
+      videos: 1,
+      totalBytes: 5_001,
+      largestVideoBytes: 5_000,
+      largestVideoSeconds: 42
+    })
+    expect((await send(['v'])).media).toMatchObject({ kind: 'reel', videos: 1, images: 0 })
+  })
+
   it('says which image is on its way', async () => {
     provider()
     const positions: number[] = []
@@ -139,7 +163,9 @@ describe('sending a post', () => {
     expect(second.body.mediaUrls).toEqual(['m:b.jpeg', 'm:a.jpeg'])
     expect(stored()).toHaveLength(4)
   })
+})
 
+describe('sending a post, with video and what is gone', () => {
   it('takes a new key once the provider will have forgotten the old one', async () => {
     const { posts } = provider({ loseAnswers: 1 })
     await expect(send(['a'])).rejects.toBeInstanceOf(ProviderRequestError)
@@ -184,5 +210,17 @@ describe('sending a post', () => {
     await expect(sending).rejects.toBeInstanceOf(VideoLimitError)
     await expect(sending).rejects.toMatchObject({ limit })
     expect(sent).toEqual([])
+  })
+
+  it('sends the tags with the post', async () => {
+    const { posts } = provider()
+    const userTags = [{ username: 'friend', x: 0.5, y: 0.25 }]
+    await sendPost({
+      cell: 'tagged',
+      images: ['a'],
+      post: { ...post, userTags },
+      onImage: () => undefined
+    })
+    expect(posts()[0].body).toMatchObject({ userTags })
   })
 })

@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Layers, Trash2, X } from 'lucide-react'
+import { Layers, X } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useStore } from 'zustand'
 import { useTranslation } from 'react-i18next'
@@ -7,20 +7,29 @@ import { IconButton } from '@/components/icon-button'
 import { Button } from '@/components/ui/button'
 import { lastingToast } from '@/lib/lasting-toast'
 
-import { containerOf, groupProblem, inBoardOrder } from './board'
+import { groupProblem, inBoardOrder } from './board'
 import { BottomBar } from './bottom-bar'
+import { selectionContext } from './cell-actions'
 import { dragStore } from './drag-target'
 import { instagram } from './network-profile'
 import { plannerStore } from './planner'
+import { type ActionRowsProps, useActionRows } from './use-action-rows'
 import { clearSelection, selectedCells, useSelectionSize } from './selection-store'
+
+function ActionButtons({ act, ...rows }: ActionRowsProps & { act: (action: () => void) => void }) {
+  return useActionRows(rows).map(({ key, Icon, text, run }) => (
+    <Button key={key} variant="ghost" size="sm" onClick={() => act(run)}>
+      <Icon />
+      {text}
+    </Button>
+  ))
+}
 
 function SelectionActions({ count }: { count: number }) {
   const { t } = useTranslation('planner')
-  const { board, moveCells, remove } = plannerStore.getState()
+  const { board } = plannerStore.getState()
   const chosen = selectedCells()
-  const inTray = chosen.some((cell) => containerOf(board, cell) === 'tray')
-  const inGrid = chosen.some((cell) => containerOf(board, cell) === 'grid')
-  // An action ends the selection, as cells that moved away are no longer where they were chosen.
+  const context = selectionContext(board, chosen)
   const act = (action: () => void) => {
     action()
     clearSelection()
@@ -42,26 +51,12 @@ function SelectionActions({ count }: { count: number }) {
       <p aria-live="polite" className="px-2 text-sm whitespace-nowrap">
         {t('selected', { count })}
       </p>
-      {inTray && (
-        <Button variant="ghost" size="sm" onClick={() => act(() => moveCells(chosen, 'grid'))}>
-          <ArrowRightLeft />
-          {t('moveToGrid')}
-        </Button>
-      )}
-      {inGrid && (
-        <Button variant="ghost" size="sm" onClick={() => act(() => moveCells(chosen, 'tray'))}>
-          <ArrowRightLeft />
-          {t('moveToTray')}
-        </Button>
-      )}
+      <ActionButtons surface="selectionMove" context={context} act={act} />
       <Button variant="ghost" size="sm" onClick={groupSelection}>
         <Layers />
         {t('group')}
       </Button>
-      <Button variant="ghost" size="sm" onClick={() => act(() => remove(chosen))}>
-        <Trash2 />
-        {t('remove')}
-      </Button>
+      <ActionButtons surface="selectionRemove" context={context} act={act} />
       <IconButton
         variant="ghost"
         size="icon-sm"
@@ -74,7 +69,6 @@ function SelectionActions({ count }: { count: number }) {
   )
 }
 
-/** Out of the way of a drag, which has a hint in the same place and is not about the selection. */
 export function SelectionBar() {
   const count = useSelectionSize()
   const dragging = useStore(dragStore, (state) => state.dragging)

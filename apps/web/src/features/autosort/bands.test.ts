@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import { type BandCell, bands, type BandsRequest } from './bands'
 
-/** Half dark, half light, every fifth one vivid, and a hue that varies. */
 const feed = (size: number): BandCell[] =>
   Array.from({ length: size }, (_, index) => ({
     id: String(index).padStart(3, '0'),
@@ -79,7 +78,9 @@ describe('bands', () => {
     )
     expect(order.slice(0, 3).sort()).toEqual(['b', 'd', 'i'])
   })
+})
 
+describe('bands, places and the limits', () => {
   it('keeps a place together, and orders places by their newest photo', () => {
     const shot = (id: string, place: string, takenAt?: number) => ({
       id,

@@ -1,12 +1,3 @@
-// Managed by studiobimo/project-template (profile vite-react-tanstack); change it there.
-//
-// Every message the profile's scripts print, gen.mjs and bundle-budget.mjs, in one place: the
-// Node half of what .devtools/scripts/strings.sh is to the shell scripts. A message that
-// names a value is a function of it, so the value is always an argument.
-//
-// The text of the files gen.mjs writes is not here. Those are templates of code, and a
-// generated app's own strings start in its src/locales/ catalogs.
-
 export const glyph = { ok: '✔', fail: '✖' }
 export const devtools = 'make -C .devtools'
 export const gen = 'node .devtools/scripts/gen.mjs'
@@ -32,7 +23,6 @@ export const genMessages = {
     `APP_DIR is ${appDir}: list it under packages: at the top of pnpm-workspace.yaml first`
 }
 
-// What to do after each generator, one line per step.
 export const genNext = {
   route: 'the router plugin adds it to src/routeTree.gen.ts on the next dev or build run',
   feature: (name) => `route it: ${gen} route /${name} --feature ${name}`,
@@ -43,6 +33,14 @@ export const genNext = {
   shadcn: (appDir) =>
     `${pnpmIn(appDir)} exec shadcn init          # the design tokens and components.json, for shadcn/ui`,
   commit: 'git add -A                     # src/routeTree.gen.ts and pnpm-lock.yaml included'
+}
+
+export const packageMessages = {
+  usage: (tasks) => `usage: packages.mjs <${tasks.join('|')}> [app-dir...]`,
+  noTsconfig: (name) =>
+    `${name} has a src/ and no tsconfig.json: add one that extends .devtools/vite/tsconfig.package.json`,
+  unlistedApp: (name) =>
+    `${name} has a vite.config.ts but is not in APPS, so it has no build and no budget: list it in .devtools/Makefile`
 }
 
 export const budgetMessages = {

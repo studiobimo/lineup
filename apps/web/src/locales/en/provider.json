@@ -47,7 +47,7 @@
     "timeZone": "In your time zone, {{zone}}.",
     "timeInvalid": "Pick a time that is still to come.",
     "outOfOrder": "With this time, posts will not go out in the order of your grid.",
-    "notice": "When you schedule, the images and caption are sent to {{provider}} and Instagram. Nothing else leaves this device.",
+    "notice": "When you schedule, the images and caption are sent to {{provider}} and Instagram. When it is published, one anonymous note of its kind, size and delay is sent to Lineup. Nothing else leaves this device.",
     "noKey": "Add your key in Settings to schedule this.",
     "readOnly": "This key is read-only. Replace it in Settings with a read and write key to schedule this.",
     "noAccount": "Connect an Instagram account in Settings to schedule this. Instagram only allows it for a professional account.",
@@ -57,6 +57,11 @@
     "cancelDescription": "It will not go out, and is removed from {{provider}}. The image goes back to being a planned cell.",
     "cancelConfirm": "Cancel post",
     "keep": "Keep it",
+    "live": {
+      "published": "Your post is published.",
+      "view": "View post",
+      "failed": "A post did not go out."
+    },
     "view": "View on Instagram",
     "free": "Free this cell",
     "freePublished": "Freeing this cell leaves the post on Instagram, and it shows after the planned cells.",
@@ -70,6 +75,41 @@
       "length": "Instagram takes a Reel of up to {{minutes}} minutes.",
       "count_one": "A carousel can hold one video.",
       "count_other": "A carousel can hold {{count}} videos."
+    },
+    "tags": {
+      "title": "Tag accounts",
+      "hint": "Tap the picture where you want a tag, type the username and press Enter. Drag a tag to move it, or use the arrow keys (hold Shift for bigger steps). Up to {{limit}} per post.",
+      "videoHint": "Add the accounts to tag in this video. Up to {{limit}} per post.",
+      "slide": "Slide {{position}} ({{count}})",
+      "picture": "The picture to tag",
+      "unnamed": "Tag {{position}}",
+      "marker": "{{name}}, {{x}} from the left, {{y}} from the top. Move with the arrow keys, remove with Delete.",
+      "username": "Username of tag {{position}}",
+      "placeholder": "username",
+      "remove": "Remove tag {{position}}",
+      "add": "Add an account",
+      "full": "That is the most Instagram allows on a post, {{limit}} tags.",
+      "place": "Place a tag on the picture. Then type the username.",
+      "pending": "Username for the new tag",
+      "confirm": "Add the tag",
+      "none": "No tags yet.",
+      "tapPicture": "Tap the picture to add a tag."
+    },
+    "screens": {
+      "done": "Done",
+      "tag": "Tag accounts",
+      "tagCount": "Tag accounts ({{count}})",
+      "tagged_one": "Tagged: {{usernames}}",
+      "tagged_other": "{{count}} accounts tagged: {{usernames}}"
+    },
+    "spacing": {
+      "before": "The post at position {{position}} on your grid needs about {{minutes}} minutes to go live before this one.",
+      "after": "This post needs about {{minutes}} minutes to go live before the post at position {{position}} on your grid.",
+      "video": "A post with a video can take several minutes to go live, and Instagram orders posts by when they go live.",
+      "image": "Instagram can take a few minutes to publish a post, and orders posts by when they go live.",
+      "noRoom": "There is no time between these posts that leaves enough room. You can still schedule it.",
+      "use": "Use {{time}}",
+      "legend": "Marked times are too near a post already scheduled: {{image}} minutes for pictures, {{video}} for a video, and more for a large one."
     }
   },
   "published": {
@@ -94,5 +134,14 @@
     "provider_busy": "This is still being worked on. Try again in a moment.",
     "provider_failed": "The scheduling service did not answer. Try again in a moment."
   },
-  "disclaimer": "Lineup is an independent app. It is not affiliated with, endorsed by or sponsored by Instagram or Meta, and Instagram is a trademark of Meta Platforms, Inc."
+  "disclaimer": "Lineup is an independent app. It is not affiliated with, endorsed by or sponsored by Instagram or Meta, and Instagram is a trademark of Meta Platforms, Inc.",
+  "swapped": {
+    "title": "Some posts went live in a different order",
+    "description": "Instagram orders your posts by when they actually went live, not by the time you scheduled, so these two swapped places on your profile.",
+    "tip": "Leaving more time between posts, especially posts with a video, avoids this.",
+    "scheduled": "Scheduled for {{time}}",
+    "live": "Live at {{time}}",
+    "picture": "A post that went live out of order",
+    "dismiss": "Got it"
+  }
 }

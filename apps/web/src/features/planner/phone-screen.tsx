@@ -27,10 +27,8 @@ import { useProfile } from './profile-store'
 import { CellThumbnail } from './thumbnail'
 import { useNearViewport } from './use-near-viewport'
 
-// A new account's feed still reads as a feed, with room for what is planned next.
 const MINIMUM_SLOTS = instagram.columns * 3
 
-/** A phone's status bar leaves out AM and PM. */
 function phoneTime() {
   return dateTimeFormat({ hour: 'numeric', minute: '2-digit' })
     .formatToParts(new Date())
@@ -79,7 +77,6 @@ function NavBar({ handle }: { handle?: string }) {
   )
 }
 
-/** A blank bar, not a sample number: nothing here is the user's until an account is connected. */
 function Blank({ className }: { className: string }) {
   return <span className={cn('block rounded-full bg-foreground/10', className)} />
 }
@@ -144,7 +141,7 @@ function Profile({ name, avatarUrl, posts, followers }: ProfileProps) {
 
 function ProfileTabs() {
   return (
-    <div className="sticky top-0 z-10 grid grid-cols-3 border-b bg-background">
+    <div className="sticky top-0 z-10 grid grid-cols-3 border-b bg-feed">
       <span className="-mb-px flex justify-center border-b border-foreground py-2.5">
         <Grid3x3 className="size-6" />
       </span>
@@ -160,7 +157,7 @@ function ProfileTabs() {
 
 function TabBar() {
   return (
-    <div className="relative flex h-[5.1875rem] shrink-0 justify-around border-t bg-background pt-3 [&_svg]:size-6">
+    <div className="relative flex h-[5.1875rem] shrink-0 justify-around border-t bg-feed pt-3 [&_svg]:size-6">
       <House />
       <Search />
       <SquarePlus />
@@ -186,7 +183,6 @@ function PreviewCell({ id, position }: { id: string; position: number }) {
   )
 }
 
-/** Instagram's own type and layout, not the app's: this is what the feed will sit inside. */
 export function PhoneScreen({ feed }: { feed: RefObject<HTMLDivElement | null> }) {
   const { t } = useTranslation('planner')
   const grid = usePlanner(({ board }) => board.grid)
@@ -195,12 +191,11 @@ export function PhoneScreen({ feed }: { feed: RefObject<HTMLDivElement | null> }
   const posts = grid.length + published.length
   const emptySlots = Math.max(0, MINIMUM_SLOTS - posts)
   return (
-    <div className="flex h-full flex-col bg-background font-[system-ui] text-foreground">
+    <div className="flex h-full flex-col bg-feed font-[system-ui] text-foreground">
       <div aria-hidden className="contents">
         <StatusBar />
         <NavBar handle={account?.username ?? typed.handle} />
       </div>
-      {/* Nothing inside takes focus, and the keyboard has to be able to scroll this too. */}
       <div
         ref={feed}
         data-scroll-root

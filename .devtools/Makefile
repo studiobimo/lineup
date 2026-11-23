@@ -9,8 +9,9 @@ APP_DIR := apps/web
 # follow it. Keep raising this rather than cut features: heavy trimming starts at half of
 # Cloudflare's bundle limit. Raising it still needs a reason. The city list and the metadata reader
 # are 82 KiB of this, and load only for someone who turns on capture dates or locations. M4's forms
-# and the provider's screens load with Settings or a schedule, never before.
-BUNDLE_TOTAL_KIB := 600
+# and the provider's screens load with Settings or a schedule, never before. The date and time
+# picker (react-day-picker, 26 KiB) rides with the schedule dialog's chunk and raised it to 650.
+BUNDLE_TOTAL_KIB := 650
 
 # The PRD's limit on what loads before any lazy route.
 FIRST_LOAD_KB := 200
@@ -25,20 +26,7 @@ include vite.mk
 # Nothing imports these yet, so tsc would not reach them through the app.
 TSC_PROJECTS += ../../packages/api ../../packages/contract
 
-# ADR-0019: each environment ships from one branch, so a laptop cannot put a feature on production.
-DEPLOY_ENVS := development production
-DEPLOY_BRANCH_development := develop
-DEPLOY_BRANCH_production := main
-
-.PHONY: e2e memory-budget first-load worker-budget knip duplication bundle-report openapi api-breaking deploy-branch
-
-deploy: deploy-branch
-
-deploy-branch:
-	$(require-deploy-env)
-	@# Workers Builds checks out a detached HEAD, so git has no branch; it names it in WORKERS_CI_BRANCH.
-	@branch=$$(git branch --show-current); branch=$${branch:-$$WORKERS_CI_BRANCH}; [ "$$branch" = "$(DEPLOY_BRANCH_$(ENV))" ] || { \
-		echo "$(GLYPH_FAIL) $(ENV) ships from $(DEPLOY_BRANCH_$(ENV)), and this is $$branch" >&2; exit 1; }
+.PHONY: e2e memory-budget first-load worker-budget bundle-report openapi api-breaking zernio-mock
 
 e2e: build playwright-install ## Playwright, against the built app
 	$(APP_PNPM) exec playwright test --project=chromium
@@ -54,11 +42,8 @@ worker-budget: build ## Fail if the Worker outgrows its gzip budget
 	$(APP_CD) && $(MISE) exec -- node $(ROOT)/.devtools/scripts/worker-budget.mjs \
 		--gzip-kib $(WORKER_GZIP_KIB)
 
-knip: ## Fail on unused files, dependencies and exports
-	$(PNPM) exec knip
-
-duplication: ## Fail if copied code passes the threshold in .jscpd.json
-	$(PNPM) exec jscpd
+zernio-mock: ## Run a fake Zernio on :8788 for the provider flow (set ZERNIO_BASE_URL in apps/web/.dev.vars)
+	$(MISE) exec -- node $(ROOT)/.devtools/scripts/zernio-mock.mjs
 
 openapi: ## Regenerate the API reference from the routes
 	$(PNPM) --filter lineup-api exec vitest run src/openapi.test.ts --update
@@ -76,4 +61,8 @@ api-breaking: ## Fail if the API reference breaks v1, against BASE (a new docume
 bundle-report: ## Build, and write a picture of the bundle to dist/bundle-report.html
 	$(APP_CD) && ANALYZE=1 $(MISE) exec -- pnpm exec vite build
 
-ci: e2e memory-budget first-load worker-budget knip duplication
+# Browser suites run only in a full run (a pull request into main, a push, the ci:full label), so a
+# pull request into develop skips them; `ci` runs them after its own checks unless CI_FULL=false.
+# first-load and worker-budget need no browser but build the app, which is most of the cost.
+# Each target names its own prerequisites, so the order here is only the run order.
+FULL_CI_TARGETS += playwright-install e2e memory-budget first-load worker-budget

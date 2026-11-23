@@ -4,7 +4,6 @@ import { extractColour } from './colour'
 
 type Rgb = [number, number, number]
 
-/** Pixels in bands, as a share of the image: [[colour, 0.9], [colour, 0.1]]. */
 function image(bands: [Rgb, number][], total = 1024) {
   const pixels = bands.flatMap(([colour, share]) =>
     Array.from({ length: Math.round(total * share) }, () => [...colour, 255])
@@ -80,7 +79,6 @@ describe('extractColour', () => {
     expect(extractColour(pixels)).toEqual(extractColour(pixels))
   })
 
-  // A guard against something pathological, not a benchmark: a busy machine has taken 90 ms.
   it('is fast enough for the sample it runs on', () => {
     const pixels = Uint8ClampedArray.from({ length: 32 * 32 * 4 }, (_, index) => (index * 37) % 256)
     const start = performance.now()

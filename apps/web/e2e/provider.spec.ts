@@ -110,9 +110,28 @@ test('published posts carry on after the planned cells, and stay after a reload'
 })
 
 const IN_A_WEEK = new Date(Date.now() + 7 * 86_400_000)
-/** As a date and time field wants it, here and in the zone the test runs in. */
-const fieldTime = (date: Date) =>
-  new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
+const pad = (n: number) => String(n).padStart(2, '0')
+
+// Drives the custom date and time picker: Playwright runs in en-US, so it has a 12-hour clock. ~keep
+async function pickTime(dialog: Locator, when: Date) {
+  const page = dialog.page()
+  await dialog.getByLabel('Date and time').click()
+  const day = page.locator(
+    `[data-day="${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}"] button`
+  )
+  while (!(await day.isVisible())) await page.getByRole('button', { name: 'Next month' }).click()
+  await day.click()
+  await page
+    .getByRole('option', { name: pad(when.getHours() % 12 || 12), exact: true })
+    .first()
+    .click()
+  await page
+    .getByRole('listbox', { name: 'Minute' })
+    .getByRole('option', { name: pad(when.getMinutes()), exact: true })
+    .click()
+  await page.getByRole('option', { name: when.getHours() < 12 ? 'AM' : 'PM', exact: true }).click()
+  await page.keyboard.press('Escape')
+}
 
 async function planOnGrid(page: Page, count = 1) {
   await page.goto('/')
@@ -134,7 +153,7 @@ async function openSchedule(page: Page, position = 0) {
 
 async function schedule(dialog: Locator, when = IN_A_WEEK, caption = 'Hello') {
   await dialog.getByLabel('Caption').fill(caption)
-  await dialog.getByLabel('Date and time').fill(fieldTime(when))
+  await pickTime(dialog, when)
   await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
 }
 
@@ -146,6 +165,12 @@ test('a planned image is sent, scheduled and held in place', async ({ page }) =>
 
   const dialog = await openSchedule(page)
   await expect(dialog.getByText(/sent to Zernio and Instagram/)).toBeVisible()
+  await dialog.getByRole('button', { name: 'Tag accounts', exact: true }).click()
+  await dialog.getByTestId('tag-picture').click()
+  await dialog.getByRole('textbox', { name: 'Username for the new tag' }).fill('friend')
+  await page.keyboard.press('Enter')
+  await dialog.getByRole('button', { name: 'Done', exact: true }).click()
+  await expect(dialog.getByText('Tagged: @friend')).toBeVisible()
   await schedule(dialog)
   await expect(dialog).toBeHidden()
   await expect(page.getByRole('heading', { name: /^Scheduled for/ })).toBeVisible()
@@ -214,7 +239,6 @@ test('a retry after a lost answer does not post twice', async ({ page }) => {
   expect(new Set(keys).size).toBe(1)
 })
 
-/** A cell on the grid with a post at the provider, ready for what happens to the post next. */
 async function scheduledCell(page: Page) {
   const provider = await mockProvider(page)
   await planOnGrid(page)
@@ -228,24 +252,118 @@ async function scheduledCell(page: Page) {
 const postBadge = (page: Page, name: RegExp | string) =>
   grid(page).first().getByRole('button', { name })
 
-test('a post that goes out says so, links to it, and is not shown twice', async ({ page }) => {
+test('a post that goes out leaves the board and shows only as the provider’s copy', async ({
+  page
+}) => {
   const provider = await scheduledCell(page)
   const url = 'https://www.instagram.com/p/abc/'
-  provider.scheduled[0] = { ...provider.scheduled[0], status: 'published', url }
+  await expect(grid(page)).toHaveCount(1)
+  provider.scheduled[0] = {
+    ...provider.scheduled[0],
+    status: 'published',
+    url,
+    publishedAt: new Date(
+      Date.parse(String(provider.scheduled[0].scheduledFor)) + 90_000
+    ).toISOString()
+  }
   provider.published.push({ id: provider.scheduled[0].id, url, publishedAt: YESTERDAY })
   await page.reload()
 
-  await postBadge(page, 'Published').click()
-  const dialog = page.getByRole('dialog', { name: 'Your post' })
-  await expect(dialog.getByRole('link', { name: 'View on Instagram' })).toHaveAttribute('href', url)
-  await expect(dialog.getByRole('button', { name: 'Save changes' })).toHaveCount(0)
-  await page.keyboard.press('Escape')
-  await expect(publishedCells(page)).toHaveCount(0)
-
-  await postBadge(page, 'Published').click()
-  await dialog.getByRole('button', { name: 'Free this cell' }).click()
-  await expect(dialog).toBeHidden()
+  await expect(page.getByText('Your post is published.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'View post' })).toBeVisible()
   await expect(publishedCells(page)).toHaveCount(1)
+  await expect(grid(page)).toHaveCount(0)
+  await expect(postBadge(page, 'Published')).toHaveCount(0)
+
+  await page.reload()
+  await expect(publishedCells(page)).toHaveCount(1)
+  await expect(grid(page)).toHaveCount(0)
+
+  // ~keep
+  // One anonymous event, sent once and not again after the reloads, with nothing of the post in it.
+  expect(provider.telemetry).toHaveLength(1)
+  expect(provider.telemetry[0]).toMatchObject({
+    kind: 'image',
+    images: 1,
+    videos: 0,
+    delaySeconds: 90,
+    account: 'studio'
+  })
+  expect(JSON.stringify(provider.telemetry)).not.toContain(url)
+  expect(JSON.stringify(provider.telemetry)).not.toContain('Hello')
+  expect(JSON.stringify(provider.telemetry)).not.toContain(String(provider.scheduled[0].id))
+})
+
+const MINUTES = 60_000
+const later = (minutes: number) => new Date(IN_A_WEEK.getTime() + minutes * MINUTES)
+
+// The first cell of the grid is the newest post, so the second is scheduled earlier. ~keep
+async function scheduleTwo(page: Page, minutes: number) {
+  const provider = await mockProvider(page)
+  await planOnGrid(page, 2)
+  await connect(page)
+  const first = await openSchedule(page)
+  await schedule(first, IN_A_WEEK, 'First')
+  await expect(first).toBeHidden()
+  const second = await openSchedule(page, 1)
+  await second.getByLabel('Caption').fill('Second')
+  await pickTime(second, later(-minutes))
+  return { provider, second }
+}
+
+// Schedules the second post, then how far apart the two were sent. ~keep
+async function gapScheduled({ provider, second }: Awaited<ReturnType<typeof scheduleTwo>>) {
+  await second.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await expect(second).toBeHidden()
+  const [one, two] = provider.bodies.filter((body) => body.scheduledFor)
+  return Date.parse(String(one.scheduledFor)) - Date.parse(String(two.scheduledFor))
+}
+
+test('a post too close to the one before warns, suggests a time, and can still be scheduled', async ({
+  page
+}) => {
+  const { provider, second } = await scheduleTwo(page, 2)
+  await expect(
+    second.getByText(/about 5 minutes to go live before the post at position 1 on your grid/)
+  ).toBeVisible()
+  await expect(second.getByRole('button', { name: 'Schedule', exact: true })).toBeEnabled()
+
+  await second.getByRole('button', { name: /^Use / }).click()
+  await expect(second.getByText(/about 5 minutes to go live/)).toHaveCount(0)
+  expect(await gapScheduled({ provider, second })).toBe(5 * MINUTES)
+})
+
+test('a warning can be ignored, and the post is scheduled as chosen', async ({ page }) => {
+  const { provider, second } = await scheduleTwo(page, 2)
+  await expect(second.getByText(/about 5 minutes to go live/)).toBeVisible()
+  expect(await gapScheduled({ provider, second })).toBe(2 * MINUTES)
+})
+
+test('posts that went live in a different order are explained once', async ({ page }) => {
+  const { provider, second } = await scheduleTwo(page, 10)
+  await expect(second.getByText(/about \d+ minutes to go live/)).toHaveCount(0)
+  await second.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await expect(second).toBeHidden()
+
+  const at = (minutes: number) => new Date(Date.now() - 3_600_000 + minutes * MINUTES).toISOString()
+  provider.scheduled = provider.scheduled.map((post) => ({ ...post, status: 'published' }))
+  provider.published.push(
+    { id: 'post-1', publishedAt: at(12) },
+    { id: 'post-2', publishedAt: at(20) }
+  )
+  await page.reload()
+
+  const notice = page.getByRole('alertdialog', {
+    name: 'Some posts went live in a different order'
+  })
+  await expect(notice).toBeVisible()
+  await expect(notice.getByText(/orders your posts by when they actually went live/)).toBeVisible()
+  await notice.getByRole('button', { name: 'Got it' }).click()
+  await expect(notice).toBeHidden()
+
+  await page.reload()
+  await expect(publishedCells(page)).toHaveCount(2)
+  await expect(notice).toBeHidden()
 })
 
 test('a post that failed gives the reason, and a new time tries again', async ({ page }) => {
@@ -257,7 +375,7 @@ test('a post that failed gives the reason, and a new time tries again', async ({
   await postBadge(page, `Did not go out: ${failure}`).click()
   const dialog = page.getByRole('dialog', { name: 'Your post' })
   await expect(dialog.getByText(failure)).toBeVisible()
-  await dialog.getByLabel('Date and time').fill(fieldTime(IN_A_WEEK))
+  await pickTime(dialog, IN_A_WEEK)
   await dialog.getByRole('button', { name: 'Save changes' }).click()
   await expect(dialog).toBeHidden()
   await expect(postBadge(page, /^Scheduled for/)).toBeVisible()

@@ -42,6 +42,13 @@ async function openAlbum(page: Page) {
   await tray(page).first().getByRole('button', { name: 'Open album' }).click()
 }
 
+async function albumOnGrid(page: Page) {
+  await boardOf(page, 3)
+  await groupFirst(page, 2)
+  await page.getByRole('button', { name: 'Move all to the grid' }).click()
+  await expect(grid(page)).toHaveCount(2)
+}
+
 test('a selection becomes one cell, marked as an album, and undo takes it back', async ({
   page
 }) => {
@@ -52,9 +59,9 @@ test('a selection becomes one cell, marked as an album, and undo takes it back',
   await expect(page.getByText('Album of 3 images')).toBeAttached()
   await expect(bar(page)).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect(tray(page)).toHaveCount(4)
-  await page.getByRole('button', { name: 'Redo' }).click()
+  await page.getByRole('button', { name: 'Redo' }).first().click()
   await expect(tray(page)).toHaveCount(2)
   expect(errors).toEqual([])
 })
@@ -99,7 +106,6 @@ test('an album opens, reorders from the keyboard, and undo puts it back', async 
   await dialog.getByRole('group', { name: 'Album image 1', exact: true }).focus()
   await page.keyboard.press('Space')
   await expect(page.getByText('Picked up Album image 1.')).toBeAttached()
-  // The sensor starts listening a tick after the pick-up, which no hand on a keyboard can beat.
   await page.waitForTimeout(50)
   await page.keyboard.press('ArrowRight')
   await expect(page.getByText('Over Album image 2.')).toBeAttached()
@@ -108,7 +114,7 @@ test('an album opens, reorders from the keyboard, and undo puts it back', async 
 
   await page.keyboard.press('Escape')
   await expect(dialog).toHaveCount(0)
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect.poll(() => albumOnBoard(page)).toEqual(before)
   expect(errors).toEqual([])
 })
@@ -128,7 +134,7 @@ test('ungrouping puts the images back where the album was', async ({ page }) => 
   await page.getByRole('dialog').getByRole('button', { name: 'Ungroup' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(tray(page)).toHaveCount(4)
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect(tray(page)).toHaveCount(3)
 })
 
@@ -150,10 +156,7 @@ test('the lightbox steps through an album before the next cell', async ({ page }
 })
 
 test('an album drags as one cell, across and back', async ({ page }) => {
-  await boardOf(page, 3)
-  await groupFirst(page, 2)
-  await page.getByRole('button', { name: 'Move all to the grid' }).click()
-  await expect(grid(page)).toHaveCount(2)
+  await albumOnGrid(page)
   const first = (await grid(page).nth(0).boundingBox())!
   const second = (await grid(page).nth(1).boundingBox())!
   await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2)
@@ -166,10 +169,7 @@ test('an album drags as one cell, across and back', async ({ page }) => {
 })
 
 test('an album is one post in the phone preview, with the carousel marker', async ({ page }) => {
-  await boardOf(page, 3)
-  await groupFirst(page, 2)
-  await page.getByRole('button', { name: 'Move all to the grid' }).click()
-  await expect(grid(page)).toHaveCount(2)
+  await albumOnGrid(page)
   await page.getByRole('button', { name: 'Preview on a phone' }).click()
   const phone = page.getByRole('dialog')
   await expect(phone.getByRole('img')).toHaveCount(2)

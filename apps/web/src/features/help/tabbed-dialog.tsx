@@ -17,14 +17,9 @@ export interface DialogTab {
   value: string
   label: string
   icon: LucideIcon
-  /** Given the way to close the dialog, for a tab whose action leaves it. */
   content: (close: () => void) => ReactNode
 }
 
-/**
- * The frame of Settings and Help: tabs down the side, or along the top where there is no room,
- * and one height for every tab, so the dialog does not jump as someone moves between them.
- */
 export function TabbedDialog({
   title,
   description,
@@ -55,7 +50,6 @@ export function TabbedDialog({
               {tabs.map(({ value, label, icon: Icon }) => (
                 <TabsTab key={value} value={value}>
                   <Icon aria-hidden="true" />
-                  {/* Icons alone where the tabs run along the top, and the label is still read. */}
                   <span className="max-sm:sr-only">{label}</span>
                 </TabsTab>
               ))}

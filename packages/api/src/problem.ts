@@ -3,9 +3,10 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import type { Problem } from 'lineup-contract'
 
 import type { ProviderBindings } from './provider/routes'
+import type { TelemetryBindings } from './telemetry/routes'
 
 export interface ApiEnv {
-  Bindings: ProviderBindings
+  Bindings: ProviderBindings & TelemetryBindings
   Variables: { requestId: string }
 }
 
@@ -14,7 +15,6 @@ type ProblemFields = Pick<Problem, 'code' | 'title' | 'detail' | 'errors' | 'pro
   retryAfter?: number
 }
 
-/** Thrown from anywhere below a route, so that one place turns failures into responses. */
 export class ProblemError extends Error {
   readonly fields: ProblemFields
 

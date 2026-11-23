@@ -1,44 +1,37 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Ellipsis } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 
 import { ExternalLink } from '@/components/external-link'
-import { IconButton } from '@/components/icon-button'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
+import { IconMenu } from '@/components/icon-menu'
 import { provider } from '@/config/provider'
 import { DialogNote, DialogSection, DialogStack } from '@/features/help/dialog-sections'
 import { dateTimeFormat } from '@/i18n/format'
 
 import { AccountChoice } from './account-choice'
-import { answer, providerApi, ProviderRequestError } from './api'
+import { providerApi, ProviderRequestError } from './api'
 import { forgetConnection, hasLiveKey, saveConnection, useConnection } from './connection'
+import { ErrorNotice } from './error-notice'
 import { KeyForm, KeyGuide } from './key-form'
 import { ProviderQueries } from './provider-queries'
-import { keyQuery, PROVIDER_KEY } from './queries'
-import { useProblemText } from './use-problem-text'
+import { keyQuery } from './queries'
+import { useProviderAction } from './use-provider-action'
 
 function useForgetKey() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: () => answer(providerApi.key.$delete()),
-    onSuccess: () => {
-      forgetConnection()
-      queryClient.removeQueries({ queryKey: [PROVIDER_KEY] })
-    }
+  return useProviderAction(() => providerApi.key.$delete(), {
+    cache: 'remove',
+    onSuccess: forgetConnection
   })
 }
 
 function ConnectedKey() {
   const { t } = useTranslation('provider')
-  const problemText = useProblemText()
   const { last4, expiresAt, canPost } = useConnection()
   const [replacing, setReplacing] = useState(false)
   const forget = useForgetKey()
   const { data: status, error } = useQuery(keyQuery)
 
-  // The browser dropped the cookie, or the Worker can no longer open it: this hint is out of date.
   useEffect(() => {
     if (error instanceof ProviderRequestError && error.problem?.status === 404) forgetConnection()
   }, [error])
@@ -57,35 +50,27 @@ function ConnectedKey() {
             {t('key.connected', { last4, date: expires })}
           </p>
         </div>
-        <Menu>
-          <MenuTrigger
-            render={
-              <IconButton variant="ghost" size="icon-sm" label={t('key.options')}>
-                <Ellipsis />
-              </IconButton>
+        <IconMenu
+          label={t('key.options')}
+          icon={<Ellipsis />}
+          align="end"
+          triggerProps={{ variant: 'ghost', size: 'icon-sm' }}
+          items={[
+            { label: t('key.replace'), onClick: () => setReplacing(true) },
+            {
+              label: t('key.forget'),
+              variant: 'destructive',
+              disabled: forget.isPending,
+              onClick: () => forget.mutate()
             }
-          />
-          <MenuPopup align="end">
-            <MenuItem onClick={() => setReplacing(true)}>{t('key.replace')}</MenuItem>
-            <MenuItem
-              variant="destructive"
-              disabled={forget.isPending}
-              onClick={() => forget.mutate()}
-            >
-              {t('key.forget')}
-            </MenuItem>
-          </MenuPopup>
-        </Menu>
+          ]}
+        />
       </div>
       {canPost === false && <DialogNote>{t('key.readOnly')}</DialogNote>}
       {replacing && (
         <KeyForm onSaved={() => setReplacing(false)} onCancel={() => setReplacing(false)} />
       )}
-      {forget.error && (
-        <Alert variant="error">
-          <AlertDescription>{problemText(forget.error)}</AlertDescription>
-        </Alert>
-      )}
+      <ErrorNotice error={forget.error} />
       {!replacing && <AccountChoice />}
     </div>
   )

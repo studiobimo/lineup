@@ -11,7 +11,6 @@ async function violations(page: Page) {
   return violations.map(({ id, nodes }) => `${id}: ${nodes.map((node) => node.target).join(', ')}`)
 }
 
-/** A dialog still fading in reads as low contrast. */
 async function settled(page: Page, role: 'dialog' | 'alertdialog' = 'dialog') {
   const dialog = page.getByRole(role)
   await dialog.waitFor()
@@ -37,8 +36,18 @@ async function fillBoard(page: Page) {
   await expect(page.getByRole('img')).toHaveCount(8)
 }
 
-// Axe is the expensive part of each test, so dark mode, where contrast differs, checks only the
-// fullest screen.
+async function openFullSize(page: Page) {
+  await fillBoard(page)
+  await grid(page).first().focus()
+  await page.keyboard.press('Enter')
+  await page.getByRole('menuitem', { name: 'Open full size' }).click()
+}
+
+async function filledPlanner({ page }: { page: Page }) {
+  await fillBoard(page)
+  expect(await violations(page)).toEqual([])
+}
+
 test.describe('in light', () => {
   test('the empty planner', async ({ page }) => {
     await page.goto('/')
@@ -46,10 +55,7 @@ test.describe('in light', () => {
     expect(await violations(page)).toEqual([])
   })
 
-  test('a planner with images, its grid and tray filled', async ({ page }) => {
-    await fillBoard(page)
-    expect(await violations(page)).toEqual([])
-  })
+  test('a planner with images, its grid and tray filled', filledPlanner)
 
   test('the lightbox and the phone preview', async ({ page }) => {
     await fillBoard(page)
@@ -57,7 +63,7 @@ test.describe('in light', () => {
     expect(await violations(page)).toEqual([])
     await page.keyboard.press('Escape')
     await page.locator('section').getByRole('img').first().dblclick()
-    await page.getByRole('dialog').waitFor()
+    await settled(page)
     expect(await violations(page)).toEqual([])
   })
 })
@@ -96,10 +102,7 @@ test('a phone preview too long for the phone scrolls from the keyboard', async (
 })
 
 test('the arrows pan a zoomed picture, and step through one that is not', async ({ page }) => {
-  await fillBoard(page)
-  await grid(page).first().focus()
-  await page.keyboard.press('Enter')
-  await page.getByRole('menuitem', { name: 'Open full size' }).click()
+  await openFullSize(page)
   const lightbox = page.getByRole('dialog')
   await lightbox.getByRole('button', { name: 'Zoom in' }).click()
   const at = () => lightbox.locator('[data-zoom]').evaluate((zoomed) => zoomed.style.transform)
@@ -132,10 +135,7 @@ test('a zoomed picture pans without dragging', async ({ page }) => {
 test('focus opens a picture without a tooltip, so Escape goes straight to closing', async ({
   page
 }) => {
-  await fillBoard(page)
-  await grid(page).first().focus()
-  await page.keyboard.press('Enter')
-  await page.getByRole('menuitem', { name: 'Open full size' }).click()
+  await openFullSize(page)
   await page.getByRole('dialog').waitFor()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toHaveCount(0)
@@ -145,8 +145,7 @@ test('focus opens a picture without a tooltip, so Escape goes straight to closin
 test('focus does not land under the header', async ({ page }) => {
   await fillBoard(page)
   await page.setViewportSize({ width: 640, height: 360 })
-  const undo = page.getByRole('button', { name: 'Undo' })
-  // Under the header, but on the page, so without room left for the header nothing would scroll.
+  const undo = page.getByRole('button', { name: 'Undo' }).first()
   await undo.evaluate((button) => scrollTo(0, scrollY + button.getBoundingClientRect().top))
   await undo.focus()
   const header = await page.getByRole('banner').boundingBox()
@@ -168,10 +167,9 @@ test('a focused photo is marked in two colours, one of which shows on any photo'
   expect(colours.outer).not.toEqual(colours.inner)
 })
 
-/** The one place a person meets a destructive button without first opening anything else. */
 async function openClear(page: Page) {
   await fillBoard(page)
-  await page.getByRole('button', { name: 'Clear' }).click()
+  await page.getByRole('button', { name: 'Clear', exact: true }).click()
   await settled(page, 'alertdialog')
 }
 
@@ -191,7 +189,7 @@ test('a mouse reorders without dragging, and undo puts it back', async ({ page }
   const swapped = [before[1], before[0], ...before.slice(2)]
   await expect.poll(async () => (await savedBoard(page)).grid).toEqual(swapped)
 
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect.poll(async () => (await savedBoard(page)).grid).toEqual(before)
 })
 
@@ -272,12 +270,34 @@ test('the schedule form says what is wrong, beside the field it is about', async
 
   const dialog = page.getByRole('dialog', { name: 'Schedule a post' })
   await dialog.getByLabel('Caption').fill('x'.repeat(2201))
-  await dialog.getByLabel('Date and time').fill('2020-01-01T10:00')
+  // ~keep Past days cannot be picked, so an empty time is how the form gets an invalid one.
+  // Axe also reads the picker while it is open.
+  await dialog.getByLabel('Date and time').click()
+  await expect(page.getByRole('listbox', { name: 'Hour' })).toBeVisible()
+  await page
+    .locator('[data-slot="popover-popup"]')
+    .evaluate((element) =>
+      Promise.all(element.getAnimations({ subtree: true }).map(({ finished }) => finished))
+    )
+  expect(await violations(page)).toEqual([])
+  await page.getByRole('button', { name: 'Clear', exact: true }).click()
+  await page.keyboard.press('Escape')
   await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
   await expect(dialog.getByLabel('Caption')).toHaveAccessibleDescription('1 over the limit of 2200')
   await expect(dialog.getByLabel('Date and time')).toHaveAccessibleDescription(
     'Pick a time that is still to come.'
   )
+  expect(await violations(page)).toEqual([])
+
+  await dialog.getByRole('button', { name: 'Tag accounts', exact: true }).click()
+  await expect(dialog.getByRole('heading', { name: 'Tag accounts' })).toBeFocused()
+  await dialog.getByTestId('tag-picture').click()
+  await dialog.getByRole('textbox', { name: 'Username for the new tag' }).fill('friend')
+  await page.keyboard.press('Enter')
+  await expect(dialog.getByRole('textbox', { name: 'Username of tag 1' })).toHaveValue('friend')
+  expect(await violations(page)).toEqual([])
+  await dialog.getByRole('button', { name: 'Done', exact: true }).click()
+  await expect(dialog.getByRole('button', { name: 'Tag accounts (1)' })).toBeFocused()
   expect(await violations(page)).toEqual([])
 })
 
@@ -289,8 +309,5 @@ test.describe('in dark', () => {
     expect(await violations(page)).toEqual([])
   })
 
-  test('a planner with images, its grid and tray filled', async ({ page }) => {
-    await fillBoard(page)
-    expect(await violations(page)).toEqual([])
-  })
+  test('a planner with images, its grid and tray filled', filledPlanner)
 })

@@ -7,7 +7,6 @@ export type Profile = z.infer<typeof profileSchema>
 
 export const keyInputSchema = z.object({
   key: z.string().trim().min(8).max(512),
-  /** Sent once a key that sees several profiles has been answered with the choice. */
   profileId: id.optional()
 })
 export type KeyInput = z.infer<typeof keyInputSchema>
@@ -15,7 +14,6 @@ export type KeyInput = z.infer<typeof keyInputSchema>
 export const keyStatusSchema = z.object({
   last4: z.string(),
   expiresAt: z.iso.datetime(),
-  /** False for a read-only key, which still reads the account's posts. */
   canPost: z.boolean()
 })
 export type KeyStatus = z.infer<typeof keyStatusSchema>
@@ -25,7 +23,6 @@ export const accountSchema = z.object({
   username: z.string(),
   displayName: z.string().optional(),
   avatarUrl: z.url().optional(),
-  /** Only where the provider's plan includes it. */
   followers: z.number().optional(),
   needsReconnection: z.boolean()
 })
@@ -36,9 +33,7 @@ export const connectUrlSchema = z.object({ url: z.url() })
 export const publishedPostSchema = z.object({
   id,
   url: z.url().optional(),
-  /** A picture only: a video's own file is `videoUrl`. */
   thumbnailUrl: z.url().optional(),
-  /** Only on a video, for its first frame where the provider has no thumbnail. */
   videoUrl: z.url().optional(),
   caption: z.string().optional(),
   publishedAt: z.iso.datetime({ offset: true }).optional()
@@ -74,25 +69,68 @@ export const scheduledPostSchema = z.object({
   timeZone: z.string().optional(),
   caption: z.string().optional(),
   url: z.url().optional(),
-  /** Why it failed, in the provider's words, for a post with that status. */
-  failure: z.string().optional()
+  failure: z.string().optional(),
+  publishedAt: z.iso.datetime({ offset: true }).optional()
 })
 export type ScheduledPost = z.infer<typeof scheduledPostSchema>
 
+// ~keep Both sides need it: the API refuses a post nearer than this, and the web app blocks the
+// same times before they are sent.
+export const SOONEST_MS = 60_000
+
+// ~keep The earliest time worth offering, on a whole minute so it matches a picker column.
+export const soonestSchedule = (now = Date.now()) =>
+  new Date(Math.ceil((now + SOONEST_MS) / 60_000) * 60_000)
+
 const when = { scheduledFor: z.iso.datetime(), timeZone: z.string().min(1) }
 
-export const newPostSchema = z.object({
-  ...when,
-  accountId: id,
-  caption: z.string(),
-  mediaUrls: z.array(z.url()).min(1),
-  /** What each of `mediaUrls` is, in the same order. Without it, every one is an image. */
-  mediaTypes: z.array(mediaTypeSchema).optional()
+// Instagram allows 20 people to be tagged on one post; Zernio documents no limit. ~keep
+export const TAGS_PER_POST = 20
+
+export const usernameSchema = z.string().regex(/^[A-Za-z0-9._]{1,30}$/)
+
+export const cleanUsername = (typed: string) => typed.trim().replace(/^@+/, '').toLowerCase()
+
+export const userTagSchema = z.object({
+  username: usernameSchema,
+  x: z.number().min(0).max(1).optional(),
+  y: z.number().min(0).max(1).optional(),
+  mediaIndex: z.number().int().min(0).optional()
 })
+export type UserTag = z.infer<typeof userTagSchema>
+
+export const newPostSchema = z
+  .object({
+    ...when,
+    accountId: id,
+    caption: z.string(),
+    mediaUrls: z.array(z.url()).min(1),
+    mediaTypes: z.array(mediaTypeSchema).optional(),
+    userTags: z.array(userTagSchema).max(TAGS_PER_POST).optional()
+  })
+  .superRefine(({ userTags, mediaUrls, mediaTypes }, context) => {
+    for (const [index, { mediaIndex = 0, x, y }] of (userTags ?? []).entries()) {
+      if (mediaIndex >= mediaUrls.length) {
+        context.addIssue({
+          code: 'custom',
+          path: ['userTags', index, 'mediaIndex'],
+          message: 'No such slide'
+        })
+      } else if (
+        (mediaTypes?.[mediaIndex] ?? 'image') === 'image' &&
+        (x === undefined || y === undefined)
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['userTags', index, 'x'],
+          message: 'A tag on an image needs a point'
+        })
+      }
+    }
+  })
 export type NewPost = z.infer<typeof newPostSchema>
 
 export const postChangesSchema = z.object({ ...when, caption: z.string().optional() })
 export type PostChanges = z.infer<typeof postChangesSchema>
 
-/** Every list is in an envelope, as docs/API.md says. */
 export const listOf = <Item extends z.ZodType>(item: Item) => z.object({ items: z.array(item) })

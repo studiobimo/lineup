@@ -6,7 +6,6 @@ import { addImages, image } from './fixtures'
 
 const { hasTouch, isMobile } = devices['Pixel 7']
 
-// Short enough that the 12 cells below make the page scroll.
 test.use({ hasTouch, isMobile, viewport: { width: 360, height: 640 } })
 
 type Spot = { x: number; y: number }
@@ -16,7 +15,6 @@ const middle = async (cell: Locator): Promise<Spot> => {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
 }
 
-/** Playwright has only `tap`, so a held press has to go through the protocol. */
 async function fingerOn(page: Page) {
   const session = await page.context().newCDPSession(page)
   const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', spot?: Spot) =>

@@ -1,9 +1,17 @@
 {
   "extends": "../../.devtools/vite/tsconfig.base.json",
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "tsBuildInfoFile": "../../node_modules/.tmp/web-tsconfig.node.tsbuildinfo",
     "lib": ["ES2023"],
     "types": ["node"]
   },
-  "include": ["e2e", "src/file-system-access.d.ts", "playwright.config.ts", "vite.config.ts", "vitest.config.ts", "../../.devtools/vite/*.ts", "../../.devtools/host/*.ts"]
+  "include": [
+    "e2e",
+    "src/file-system-access.d.ts",
+    "playwright.config.ts",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "../../.devtools/vite/*.ts",
+    "../../.devtools/host/*.ts"
+  ]
 }

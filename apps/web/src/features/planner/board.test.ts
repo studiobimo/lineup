@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  adjacent,
   addToTray,
   cellOf,
   cellsThatCrossed,
@@ -21,6 +22,7 @@ import {
   move,
   moveAll,
   moveCells,
+  moveToStart,
   outOfOrder,
   remove,
   reorderAlbum,
@@ -30,12 +32,23 @@ import {
   takeFromAlbum,
   toggleLock,
   ungroup,
-  withKnownImages
+  withKnownImages,
+  withoutImages,
+  publishedCells
 } from './board'
 import type { CellPost } from './board-schema'
 import type { Board } from './board-store'
 
 const board = { tray: ['a', 'b'], grid: ['c', 'd', 'e'] }
+
+describe('adjacent', () => {
+  it('is the item one step along, or undefined at the ends', () => {
+    expect(adjacent(['a', 'b', 'c'], 'b', -1)).toBe('a')
+    expect(adjacent(['a', 'b', 'c'], 'b', 1)).toBe('c')
+    expect(adjacent(['a', 'b', 'c'], 'a', -1)).toBeUndefined()
+    expect(adjacent(['a', 'b', 'c'], 'c', 1)).toBeUndefined()
+  })
+})
 
 describe('neighbour', () => {
   const board = { tray: ['a'], grid: ['b', 'c', 'd', 'e'], locked: ['c'] }
@@ -68,7 +81,7 @@ describe('locked cells', () => {
   it('stay in the grid when moved, cleared or deleted', () => {
     expect(keepLocked(locked, moveAll(locked, 'grid'))).toEqual({
       ...locked,
-      tray: ['a', 'b', 'd', 'e'],
+      tray: ['b', 'd', 'e', 'a'],
       grid: ['c']
     })
     expect(keepLocked(locked, move(locked, 'c', 'tray')).grid).toEqual(locked.grid)
@@ -243,14 +256,52 @@ describe('board operations', () => {
     expect(move(board, 'e', 'grid', 0).grid).toEqual(['e', 'c', 'd'])
   })
 
+  it('sends a tray cell to the start of the grid', () => {
+    expect(moveToStart(board, ['a'], 'grid')).toEqual({
+      tray: ['b'],
+      grid: ['a', 'c', 'd', 'e']
+    })
+  })
+
+  it('sends a grid cell to the start of the tray, the same way', () => {
+    expect(moveToStart(board, ['d'], 'tray')).toEqual({
+      tray: ['d', 'a', 'b'],
+      grid: ['c', 'e']
+    })
+  })
+
+  it('starts after the locked and posted cells, which keep their places', () => {
+    const posted = {
+      tray: ['a'],
+      grid: ['b', 'c', 'd'],
+      posts: { b: postFor('2030-01-01T10:00:00Z') }
+    }
+    expect(moveToStart(posted, ['a'], 'grid').grid).toEqual(['b', 'a', 'c', 'd'])
+    const locked = { tray: ['a'], grid: ['b', 'c'], locked: ['b'] }
+    expect(moveToStart(locked, ['a'], 'grid').grid).toEqual(['b', 'a', 'c'])
+  })
+
+  it('appends when every grid cell is locked or the grid is empty', () => {
+    expect(moveToStart({ tray: ['a'], grid: ['b'], locked: ['b'] }, ['a'], 'grid').grid).toEqual([
+      'b',
+      'a'
+    ])
+    expect(moveToStart({ tray: ['a'], grid: [] }, ['a'], 'grid').grid).toEqual(['a'])
+  })
+
   it('swaps within a container and between them', () => {
     expect(swap(board, 'c', 'e').grid).toEqual(['e', 'd', 'c'])
     expect(swap(board, 'a', 'd')).toEqual({ tray: ['d', 'b'], grid: ['c', 'a', 'e'] })
   })
 
-  it('moves everything at once, keeping the order', () => {
-    expect(moveAll(board, 'tray')).toEqual({ tray: [], grid: ['c', 'd', 'e', 'a', 'b'] })
-    expect(moveAll(board, 'grid')).toEqual({ tray: ['a', 'b', 'c', 'd', 'e'], grid: [] })
+  it('moves the tray to the start of the grid, in tray order, ahead of the planned cells', () => {
+    expect(moveAll(board, 'tray')).toEqual({ tray: [], grid: ['a', 'b', 'c', 'd', 'e'] })
+    const locked = { tray: ['a', 'b'], grid: ['c', 'd'], locked: ['c'] }
+    expect(moveAll(locked, 'tray')).toEqual({ tray: [], grid: ['c', 'a', 'b', 'd'], locked: ['c'] })
+  })
+
+  it('moves the grid to the start of the tray, keeping the order', () => {
+    expect(moveAll(board, 'grid')).toEqual({ tray: ['c', 'd', 'e', 'a', 'b'], grid: [] })
   })
 
   it('shuffles one container and keeps every cell', () => {
@@ -285,17 +336,28 @@ describe('board operations', () => {
 describe('moving several cells', () => {
   const board: Board = { tray: ['a', 'b', 'c'], grid: ['d', 'e'] }
 
-  it('keeps their order on the board, whatever order they were chosen in', () => {
+  it('sends them to the start of the grid in tray order, whatever order they were chosen in', () => {
     expect(moveCells(board, ['c', 'a'], 'grid')).toEqual({
       tray: ['b'],
-      grid: ['d', 'e', 'a', 'c']
+      grid: ['a', 'c', 'd', 'e']
     })
+  })
+
+  it('starts after a locked cell, which keeps its place', () => {
+    const locked: Board = { tray: ['a', 'b', 'c'], grid: ['d', 'e'], locked: ['d'] }
+    expect(moveCells(locked, ['c', 'a'], 'grid').grid).toEqual(['d', 'a', 'c', 'e'])
+  })
+
+  it('sends them to the start of the tray, in grid order, the same as a single cell', () => {
+    const planned = { tray: ['a'], grid: ['b', 'c', 'd'] }
+    expect(moveCells(planned, ['d', 'b'], 'tray')).toEqual({ tray: ['b', 'd', 'a'], grid: ['c'] })
+    expect(moveToStart(planned, ['b'], 'tray')).toEqual({ tray: ['b', 'a'], grid: ['c', 'd'] })
   })
 
   it('leaves alone those already there', () => {
     expect(moveCells(board, ['a', 'd'], 'grid')).toEqual({
       tray: ['b', 'c'],
-      grid: ['d', 'e', 'a']
+      grid: ['a', 'd', 'e']
     })
   })
 })
@@ -419,7 +481,6 @@ describe('editing an album', () => {
   })
 })
 
-// Every action in E2, E4 and E5 treats an album as one cell, and undo needs nothing of its own.
 describe('an album moves as one', () => {
   const albums = { album: ['b', 'c'] }
   const board: Board = { tray: ['a', 'album'], grid: ['d', 'e'], albums }
@@ -487,5 +548,35 @@ describe('flightsBetween', () => {
     const moved = { tray: ['b', 'c'], grid: ['d', 'a'] }
     expect(flightsBetween(board, moved)).toEqual([{ from: 'a', to: 'a', image: 'a' }])
     expect(flightsBetween(board, { tray: ['b', 'c'], grid: ['d'] })).toEqual([])
+  })
+})
+
+describe('a published cell', () => {
+  const post = {
+    id: 'post',
+    accountId: 'account',
+    scheduledFor: '2030-01-01T10:00:00.000Z',
+    timeZone: 'Europe/London',
+    caption: ''
+  }
+
+  it('is found by the status of its post alone', () => {
+    const posts = {
+      c: { ...post, status: 'published' as const },
+      d: { ...post, status: 'scheduled' as const },
+      e: { ...post, status: 'failed' as const }
+    }
+    expect(publishedCells({ ...board, posts })).toEqual(['c'])
+    expect(publishedCells(board)).toEqual([])
+  })
+
+  it('goes with its images, from a step that held it as loose cells or in an album', () => {
+    const step = { tray: ['a'], grid: ['b', 'c', 'd'], albums: { x: ['b', 'c'] }, posts: undefined }
+    expect(withoutImages({ ...step, grid: ['x', 'd'] }, ['b', 'c'])).toEqual({
+      tray: ['a'],
+      grid: ['d'],
+      albums: {}
+    })
+    expect(withoutImages(step, ['b', 'c']).grid).toEqual(['d'])
   })
 })

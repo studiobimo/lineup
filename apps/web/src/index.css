@@ -43,6 +43,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-muted-foreground: var(--muted-foreground);
+  --color-feed: var(--feed);
   --color-device: var(--device);
   --color-on-photo: var(--on-photo);
   --color-photo-scrim: var(--photo-scrim);
@@ -118,6 +119,7 @@
       translate: 0 0;
     }
   }
+  /* jscpd:ignore-start */
   @keyframes toast-success-even {
     0% {
       scale: 1;
@@ -149,6 +151,7 @@
       translate: 0 0;
     }
   }
+  /* jscpd:ignore-end */
 }
 
 :root {
@@ -171,6 +174,7 @@
   /* Opaque: a control over an image has to stay readable whatever is under it. */
   --control-hover: color-mix(in srgb, var(--popover) 90%, var(--foreground));
   --device: var(--color-neutral-950);
+  --feed: var(--color-white);
   --field-border: --alpha(var(--color-black) / 44%);
   --foreground: var(--color-neutral-800);
   --input: --alpha(var(--color-black) / 10%);
@@ -217,6 +221,7 @@
   --card: color-mix(in srgb, var(--background) 98%, var(--color-white));
   --card-foreground: var(--color-neutral-100);
   --destructive: var(--color-red-600);
+  --feed: var(--color-black);
   --field-border: --alpha(var(--color-white) / 42%);
   --foreground: var(--color-neutral-100);
   --input: --alpha(var(--color-white) / 8%);

@@ -6,7 +6,6 @@ import type { ProcessedImage } from './process-image'
 const image = { width: 1, height: 1 } as ProcessedImage
 const unreadable = new Blob(['unreadable'])
 
-// Answers like the real worker: one reply per file, null for a file that will not decode.
 function fakeWorker() {
   const worker = {
     onmessage: null as ((event: { data: ProcessedImage | null }) => void) | null,
@@ -22,7 +21,6 @@ function fakeWorker() {
 
 const create = (worker: ReturnType<typeof fakeWorker>) => () => worker as unknown as Worker
 
-/** Every batch the import handed over, and the result. */
 async function run(files: Blob[], options: Partial<Parameters<typeof importImages>[1]> = {}) {
   const batches: ProcessedImage[][] = []
   const result = await importImages(files, {
@@ -85,7 +83,9 @@ describe('importImages', () => {
     const { batches } = await run(Array.from({ length: 25 }, () => new Blob()))
     expect(batches.map((batch) => batch.length)).toEqual([10, 10, 5])
   })
+})
 
+describe('importImages, with the store and video', () => {
   it('waits for a batch to be stored before it reads on', async () => {
     const worker = fakeWorker()
     let release = () => {}

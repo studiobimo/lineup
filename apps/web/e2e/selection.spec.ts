@@ -31,7 +31,7 @@ test('several cells move together, in one undoable step', async ({ page }) => {
   await expect(grid(page)).toHaveCount(2)
   await expect(bar(page)).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
   await expect(tray(page)).toHaveCount(4)
   expect(errors).toEqual([])
 })

@@ -1,12 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ProviderError } from './provider'
-import { zernio } from './zernio'
+import { baseUrlFor, zernio } from './zernio'
 
 const KEY = 'sk_test_key'
 const respond = (body: unknown, status = 200, headers?: HeadersInit) =>
   new Response(body === undefined ? null : JSON.stringify(body), { status, headers })
-// A post synced from Instagram, in the shape Zernio sends rather than the one it documents.
 const external = (platformPostId: string, fields: Record<string, unknown> = {}, target = {}) => ({
   _id: `zernio-${platformPostId}`,
   origin: 'external',
@@ -15,22 +14,24 @@ const external = (platformPostId: string, fields: Record<string, unknown> = {}, 
   ...fields
 })
 
+const stub = vi.fn<typeof fetch>()
+
+const provider = zernio(KEY)
+
+const sent = (call = 0) => {
+  const [url, init] = stub.mock.calls[call]
+  const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : undefined
+  return { url: String(url), method: init?.method, headers: init?.headers, body }
+}
+
+beforeEach(() => {
+  stub.mockReset()
+  vi.stubGlobal('fetch', stub)
+})
+
+afterEach(() => vi.unstubAllGlobals())
+
 describe('zernio', () => {
-  const stub = vi.fn<typeof fetch>()
-  const provider = zernio(KEY)
-  const sent = (call = 0) => {
-    const [url, init] = stub.mock.calls[call]
-    const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : undefined
-    return { url: String(url), method: init?.method, headers: init?.headers, body }
-  }
-
-  beforeEach(() => {
-    stub.mockReset()
-    vi.stubGlobal('fetch', stub)
-  })
-
-  afterEach(() => vi.unstubAllGlobals())
-
   it('sends the key as a bearer token, to Zernio and nowhere else', async () => {
     stub.mockResolvedValue(respond({ profiles: [{ _id: 'one', name: 'Main' }] }))
     expect(await provider.profiles()).toEqual([{ id: 'one', name: 'Main' }])
@@ -80,7 +81,9 @@ describe('zernio', () => {
     stub.mockResolvedValue(respond({}, 503))
     await expect(provider.narrowed('profile', 30)).rejects.toMatchObject({ failure: 'down' })
   })
+})
 
+describe('zernio, accounts', () => {
   it('lists only Instagram accounts that are active', async () => {
     stub.mockResolvedValue(
       respond({
@@ -103,7 +106,9 @@ describe('zernio', () => {
     ])
     expect(sent().url).toContain('profileId=profile')
   })
+})
 
+describe('zernio, merged posts', () => {
   it('merges posts from elsewhere and from here, newest first, without the same one twice', async () => {
     stub.mockImplementation(async (url) =>
       String(url).includes('source=external')
@@ -153,7 +158,9 @@ describe('zernio', () => {
     expect(posts.map(({ id }) => id)).toEqual(['new', 'twice', 'old'])
     expect(posts[0].thumbnailUrl).toBe('https://media.zernio.com/new.jpg')
   })
+})
 
+describe('zernio, posts from here and elsewhere', () => {
   it('keeps posts whose optional fields Zernio sent as null', async () => {
     stub.mockImplementation(async (url) =>
       String(url).includes('source=external')
@@ -201,7 +208,9 @@ describe('zernio', () => {
     const posts = await provider.publishedPosts('account')
     expect(posts.map(({ id }) => id)).toEqual(['ig-1'])
   })
+})
 
+describe('zernio, a post from elsewhere', () => {
   it('shows a post from elsewhere with its picture, caption, link and date', async () => {
     stub.mockImplementation(async (url) =>
       respond({
@@ -257,7 +266,9 @@ describe('zernio', () => {
       expect(post.videoUrl).toBe(media.url)
     }
   )
+})
 
+describe('zernio, scheduling', () => {
   it('lists an account whose optional fields Zernio sent as null', async () => {
     stub.mockResolvedValue(
       respond({
@@ -315,8 +326,32 @@ describe('zernio', () => {
       ]
     })
     expect(body).not.toHaveProperty('publishNow')
+    expect(JSON.stringify(body)).not.toContain('platformSpecificData')
   })
 
+  it('puts the tags in the Instagram options of the platform', async () => {
+    stub.mockResolvedValue(respond({ post: { _id: 'post', status: 'scheduled' } }, 201))
+    const userTags = [{ username: 'friend', x: 0.25, y: 0.5, mediaIndex: 1 }]
+    await provider.schedule(
+      {
+        accountId: 'account',
+        caption: '',
+        scheduledFor: '2030-01-01T10:00:00Z',
+        timeZone: 'Europe/Madrid',
+        mediaUrls: ['https://media.zernio.com/1.jpg', 'https://media.zernio.com/2.jpg'],
+        userTags
+      },
+      'once'
+    )
+    expect(sent().body).toMatchObject({
+      platforms: [
+        { platform: 'instagram', accountId: 'account', platformSpecificData: { userTags } }
+      ]
+    })
+  })
+})
+
+describe('zernio, video and cancelling', () => {
   it('sends a video as one, beside the images of its carousel', async () => {
     stub.mockResolvedValue(respond({ post: { _id: 'post', status: 'scheduled' } }, 201))
     await provider.schedule(
@@ -355,6 +390,24 @@ describe('zernio', () => {
     expect(post).toMatchObject({ status: expected, failure: 'Too wide' })
   })
 
+  it('passes on when the platform published a post, for the delay telemetry', async () => {
+    stub.mockResolvedValue(
+      respond({
+        posts: [
+          {
+            _id: 'post',
+            status: 'published',
+            platforms: [{ publishedAt: '2030-01-01T10:03:20Z', platformPostUrl: null }]
+          },
+          { _id: 'soon', status: 'scheduled', platforms: [] }
+        ]
+      })
+    )
+    const posts = await provider.scheduledPosts('account')
+    expect(posts[0]).toMatchObject({ publishedAt: '2030-01-01T10:03:20Z' })
+    expect(posts[1].publishedAt).toBeUndefined()
+  })
+
   it('treats cancelling a post that has already gone as done', async () => {
     stub.mockResolvedValue(respond({ error: 'gone' }, 404))
     await expect(provider.cancel('post')).resolves.toBeUndefined()
@@ -370,7 +423,9 @@ describe('zernio', () => {
       details: { detail: 'Published posts cannot be deleted' }
     })
   })
+})
 
+describe('zernio, failures', () => {
   it.each([
     [401, 'key'],
     [403, 'forbidden'],
@@ -395,4 +450,30 @@ describe('zernio', () => {
     stub.mockResolvedValueOnce(new Response('<html>', { status: 200 }))
     await expect(provider.profiles()).rejects.toMatchObject({ failure: 'down' })
   })
+})
+
+describe('the base URL override', () => {
+  it('honours a local address, for the fake Zernio', async () => {
+    stub.mockResolvedValue(respond({ profiles: [] }))
+    await zernio(KEY, 'http://localhost:8788/').profiles()
+    expect(sent().url).toBe('http://localhost:8788/profiles')
+  })
+
+  it.each([
+    'https://zernio.com.evil.test/api/v1',
+    'https://localhost:8788',
+    'http://localhost.evil.test',
+    'http://localhost@evil.test',
+    'http://evil.test/localhost',
+    'http://10.0.0.1:8788',
+    'ftp://localhost',
+    ''
+  ])('ignores %j, so a key never goes elsewhere', (override) => {
+    expect(baseUrlFor(override)).toBe('https://zernio.com/api/v1')
+  })
+
+  it.each(['http://localhost', 'http://127.0.0.1:8788', 'http://localhost:8788/api/v1'])(
+    'accepts %s',
+    (override) => expect(baseUrlFor(override)).toBe(override)
+  )
 })

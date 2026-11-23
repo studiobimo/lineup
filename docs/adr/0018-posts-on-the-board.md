@@ -1,6 +1,6 @@
 # ADR-0018: Scheduled posts on the board
 
-- **Status:** Accepted
+- **Status:** Accepted, in part superseded by [ADR-0024](0024-published-cells-leave-the-board.md): a published cell leaves the board and shows only as the provider's copy
 - **Date:** 2026-11-01
 
 ## Context

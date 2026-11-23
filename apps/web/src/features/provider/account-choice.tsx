@@ -1,37 +1,32 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import type { Account } from 'lineup-contract'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DialogNote } from '@/features/help/dialog-sections'
 
-import { answer, providerApi } from './api'
+import { providerApi } from './api'
 import { saveConnection, useConnection } from './connection'
+import { ErrorNotice } from './error-notice'
 import { accountsQuery } from './queries'
-import { useProblemText } from './use-problem-text'
+import { useProviderAction } from './use-provider-action'
 
 const chooseAccount = ({ id, username }: Account) => saveConnection({ accountId: id, username })
 
 function ConnectAccount() {
   const { t } = useTranslation('provider')
-  const problemText = useProblemText()
-  const connect = useMutation({
-    mutationFn: () => answer(providerApi['connect-url'].$get()),
+  const connect = useProviderAction(() => providerApi['connect-url'].$get(), {
+    cache: 'keep',
     onSuccess: ({ url }) => window.location.assign(url)
   })
   return (
     <div className="flex flex-col gap-2">
       <DialogNote>{t('account.none')}</DialogNote>
-      {connect.error && (
-        <Alert variant="error">
-          <AlertDescription>{problemText(connect.error)}</AlertDescription>
-        </Alert>
-      )}
+      <ErrorNotice error={connect.error} />
       <Button
         variant="outline"
         className="self-start"
@@ -46,25 +41,22 @@ function ConnectAccount() {
 
 export function AccountChoice() {
   const { t } = useTranslation('provider')
-  const problemText = useProblemText()
   const { accountId } = useConnection()
   const { data: accounts, error, refetch } = useQuery(accountsQuery)
   const chosen = accounts?.find(({ id }) => id === accountId)
   const only = accounts?.length === 1 ? accounts[0] : undefined
 
   useEffect(() => {
-    // Nothing to choose between, or the account that was chosen has since gone.
     if (only && !chosen) chooseAccount(only)
   }, [only, chosen])
 
   if (error) {
     return (
-      <Alert variant="error">
-        <AlertDescription>{problemText(error)}</AlertDescription>
+      <ErrorNotice error={error}>
         <Button variant="outline" size="sm" className="mt-2" onClick={() => void refetch()}>
           {t('tryAgain')}
         </Button>
-      </Alert>
+      </ErrorNotice>
     )
   }
   if (!accounts) return <Skeleton className="h-9 w-full" />

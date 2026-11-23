@@ -5,10 +5,8 @@ import { toastManager } from '@/components/ui/toast'
 
 import { plannerStore, usePlanner } from './planner'
 
-// Often enough to catch a drive coming back, and rarely enough that nothing notices.
 const RETRY_SAVE_MS = 5000
 
-/** Stays up until a save goes through, because this is not something to miss. */
 export function SaveFailure() {
   const { t } = useTranslation('planner')
   const failed = usePlanner((state) => state.saveFailed)

@@ -12,3 +12,7 @@ LICENSE
 # Lineup's pull requests go to develop (ADR-0019), so its Dependabot entries name it as
 # target-branch. The template's entries open them against main.
 .github/dependabot.yml
+
+# jscpd would flag the generated API reference, a file this repo commits (apps/web/public/api-docs);
+# the template's list does not know it.
+.jscpd.json

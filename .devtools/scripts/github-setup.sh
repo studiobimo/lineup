@@ -10,7 +10,7 @@
 #   --ref <ref>  tag or branch of the settings repo to use (default: v1)
 #
 #   DESC="..."                 also set the repository description
-#   ENVS="staging production"  also create these deployment environments
+#   ENVS="development production"  also create these deployment environments
 #
 # The settings and rulesets are not in this file. They live in studiobimo/.github
 # (settings/ and rulesets/), next to the script that applies them, so every
@@ -34,15 +34,7 @@ mode=apply
 from=""
 ref="${SETTINGS_REF_DEFAULT}"
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --check) mode=check; shift ;;
-        --from) need_value "$@"; from="$2"; shift 2 ;;
-        --ref) need_value "$@"; ref="$2"; shift 2 ;;
-        -h | --help) usage_of "${BASH_SOURCE[0]}"; exit "${EXIT_OK}" ;;
-        *) die "${MSG_UNKNOWN_ARG}" "$1" ;;
-    esac
-done
+parse_check_from_ref "$@"
 
 for tool in gh jq; do
     command -v "${tool}" >/dev/null 2>&1 || die "${MSG_NEEDS_TOOL}" "${tool}" "${tool}"
@@ -107,6 +99,23 @@ for env in ${envs[@]+"${envs[@]}"}; do
         gh api -X PUT "repos/${repo}/environments/${env}" >/dev/null
     fi
 done
+
+# ensure_label <name> <description>: creates a label the repository lacks. It is created rather
+# than compared: a label the project already has under that name keeps its own colour and
+# description.
+ensure_label() {
+    grep -Fxq -- "$1" <<<"${labels}" && return 0
+    differs "${MSG_GH_LABEL_MISSING}" "$1"
+    if [[ "${mode}" == apply ]]; then
+        gh label create "$1" --repo "${repo}" --description "$2" >/dev/null
+    fi
+}
+
+labels="$(gh label list --repo "${repo}" --limit 1000 --json name --jq '.[].name')" || die "${MSG_GH_NO_LABELS}" "${repo}"
+# ci-project reads the first to run the full suites; repo-health reads the second to let a
+# reviewed pull request change an analyser's config.
+ensure_label "${CI_FULL_LABEL}" "${CI_FULL_LABEL_DESC}"
+ensure_label "${REPO_HEALTH_CONFIG_LABEL}" "${REPO_HEALTH_CONFIG_LABEL_DESC}"
 
 if ((differences > 0)) && [[ "${mode}" == check ]]; then
     fail "${MSG_GH_DIFFERS}" "${repo}"

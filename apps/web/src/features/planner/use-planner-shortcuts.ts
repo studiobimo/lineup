@@ -10,7 +10,6 @@ import { plannerStore } from './planner'
 import { clearSelection, selectedCells } from './selection-store'
 import { cellStep, isDelete, shortcutFor } from './shortcuts'
 
-/** Focus moves on to the next cell, so a run of deletes does not start again from the top. */
 function removeCell(cell: HTMLElement) {
   const next = cell.nextElementSibling ?? cell.previousElementSibling
   const { dropId } = cell.dataset
@@ -29,39 +28,38 @@ function focusNeighbour(cell: HTMLElement, key: string) {
   return true
 }
 
+function handleCellKey(event: KeyboardEvent, target: HTMLElement, dropId: string) {
+  if (isDelete(event)) {
+    event.preventDefault()
+    if (!dragStore.getState().dragging) removeCell(target)
+    return true
+  }
+  if (event.defaultPrevented || dragStore.getState().dragging) return false
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    openCellMenu({ id: dropId, cell: target })
+    return true
+  }
+  const plain = !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey
+  if (!plain || !focusNeighbour(target, event.key)) return false
+  event.preventDefault()
+  return true
+}
+
+function keydown(event: KeyboardEvent) {
+  const { target, key } = event
+  const dropId = target instanceof HTMLElement ? target.dataset.dropId : undefined
+  if (target instanceof HTMLElement && dropId && handleCellKey(event, target, dropId)) return
+  if (key === 'Escape' && !dialogIsOpen() && !dragStore.getState().dragging) clearSelection()
+  const shortcut = shortcutFor(event)
+  if (!shortcut || inTextField(target) || dialogIsOpen()) return
+  event.preventDefault()
+  if (dragStore.getState().dragging) return
+  plannerStore.getState()[shortcut]()
+}
+
 export function usePlannerShortcuts() {
   useEffect(() => {
-    const keydown = (event: KeyboardEvent) => {
-      const { target, key } = event
-      const dropId = target instanceof HTMLElement ? target.dataset.dropId : undefined
-      if (target instanceof HTMLElement && dropId) {
-        if (isDelete(event)) {
-          event.preventDefault()
-          if (!dragStore.getState().dragging) removeCell(target)
-          return
-        }
-        // The drag sensor has already had these, and it marks the ones that were for it.
-        if (!event.defaultPrevented && !dragStore.getState().dragging) {
-          if (key === 'Enter') {
-            event.preventDefault()
-            openCellMenu({ id: dropId, cell: target })
-            return
-          }
-          const plain = !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey
-          if (plain && focusNeighbour(target, key)) {
-            event.preventDefault()
-            return
-          }
-        }
-      }
-      if (key === 'Escape' && !dialogIsOpen() && !dragStore.getState().dragging) clearSelection()
-      const shortcut = shortcutFor(event)
-      if (!shortcut || inTextField(event.target) || dialogIsOpen()) return
-      event.preventDefault()
-      // A board that changes under a drag would drop the cell somewhere the user never aimed at.
-      if (dragStore.getState().dragging) return
-      plannerStore.getState()[shortcut]()
-    }
     window.addEventListener('keydown', keydown)
     return () => window.removeEventListener('keydown', keydown)
   }, [])

@@ -1,5 +1,6 @@
 import {
   animate,
+  type MotionValue,
   useMotionValue,
   useReducedMotion,
   useSpring,
@@ -18,26 +19,15 @@ export const GHOST_WIDTH = 192
 export const GHOST_HEIGHT = (GHOST_WIDTH * height) / width
 
 const GHOST_OPACITY = 0.65
-// A cell dropped into an album goes in behind its cover, which stays what the cell shows.
 const MERGED_SCALE = 0.6
-// On a phone the full size would cover most of the grid.
 const MAX_VIEWPORT_SHARE = 0.4
 const MAX_LEAN_DEGREES = 10
-// The pointer speed, in px/s, at which the ghost reaches its full lean.
 const FULL_LEAN_SPEED = 1600
 const LEAN_SPRING = { stiffness: 320, damping: 24, mass: 0.6 }
 
 const restingScale = () => Math.min(1, (window.innerWidth * MAX_VIEWPORT_SHARE) / GHOST_WIDTH)
 
-/**
- * One element from pick-up to landing, so nothing is handed over at the moment of a drop. It sits at
- * the pointer plus an offset: the offset is what lifts it off a cell and lands it on one, which
- * leaves the pointer's speed, and so the lean, to the pointer alone.
- */
-export function useDragGhost() {
-  const reduced = useReducedMotion()
-  const [id, setId] = useState<string | null>(null)
-
+function useGhostMotion() {
   const pointerX = useMotionValue(0)
   const pointerY = useMotionValue(0)
   const offsetX = useMotionValue(0)
@@ -57,10 +47,37 @@ export function useDragGhost() {
     useTransform(() => lean.get() * leaning.get()),
     LEAN_SPRING
   )
+  return { pointerX, pointerY, offsetX, offsetY, scale, opacity, leaning, x, y, rotate }
+}
+
+function usePointerMoves(pointerX: MotionValue<number>, pointerY: MotionValue<number>) {
+  const follow = useCallback(
+    ({ x, y }: Point) => {
+      pointerX.set(x)
+      pointerY.set(y)
+    },
+    [pointerX, pointerY]
+  )
+
+  const glide = useCallback(
+    ({ x, y }: Point) => {
+      animate(pointerX, x, settle)
+      animate(pointerY, y, settle)
+    },
+    [pointerX, pointerY]
+  )
+  return { follow, glide }
+}
+
+export function useDragGhost() {
+  const reduced = useReducedMotion()
+  const [id, setId] = useState<string | null>(null)
+
+  const { pointerX, pointerY, offsetX, offsetY, scale, opacity, leaning, x, y, rotate } =
+    useGhostMotion()
 
   const landed = useRef<(() => void) | null>(null)
 
-  /** A new drag can start before a landing has finished. */
   const finishLanding = useCallback(() => {
     const done = landed.current
     landed.current = null
@@ -87,22 +104,7 @@ export function useDragGhost() {
     [finishLanding, leaning, offsetX, offsetY, opacity, pointerX, pointerY, scale]
   )
 
-  const follow = useCallback(
-    ({ x, y }: Point) => {
-      pointerX.set(x)
-      pointerY.set(y)
-    },
-    [pointerX, pointerY]
-  )
-
-  /** A key press jumps from cell to cell, so the ghost travels there instead. */
-  const glide = useCallback(
-    ({ x, y }: Point) => {
-      animate(pointerX, x, settle)
-      animate(pointerY, y, settle)
-    },
-    [pointerX, pointerY]
-  )
+  const { follow, glide } = usePointerMoves(pointerX, pointerY)
 
   const land = useCallback(
     (to: Box | undefined, done: () => void, { merging = false } = {}) => {

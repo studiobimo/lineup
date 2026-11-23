@@ -1,12 +1,3 @@
-// Managed by studiobimo/project-template (profile vite-react-tanstack); change it there.
-//
-// The shared ESLint rules, with the hosting profile's from .devtools/host/eslint.js when
-// there is one. eslint.config.js spreads them and adds the project's own:
-//
-//   export default defineConfig([app, { files: ['src/**/*.tsx'], rules: { ... } }])
-//
-// `app` is the React app's. `base` is what any other workspace package extends the same way,
-// from an eslint.config.js of its own: ESLint uses the nearest one to each file.
 import { existsSync } from 'node:fs'
 
 import js from '@eslint/js'
@@ -36,36 +27,21 @@ export const base = defineConfig([
   }
 ])
 
-export const app = defineConfig([
+export const react = defineConfig([
   base,
-  globalIgnores(['src/routeTree.gen.ts']),
+  globalIgnores(['src/components/ui']),
   {
     files: ['**/*.{ts,tsx}'],
-    extends: [
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-      pluginQuery.configs['flat/recommended'],
-      pluginRouter.configs['flat/recommended']
-    ],
+    extends: [reactHooks.configs.flat.recommended, pluginQuery.configs['flat/recommended']],
     languageOptions: { globals: globals.browser }
   },
   {
-    // shadcn/ui primitives export their variants next to the component, providers their
-    // use* hook, and route files their Route: none of that breaks Fast Refresh.
-    files: ['src/components/ui/**/*.{ts,tsx}', 'src/**/*-provider.tsx', 'src/routes/**/*.tsx'],
-    rules: { 'react-refresh/only-export-components': 'off' }
-  },
-  {
-    // The shadcn/ui primitives carry their own accessibility semantics.
     files: ['src/**/*.tsx'],
-    ignores: ['src/components/ui/**'],
     extends: [jsxA11y.flatConfigs.recommended]
   },
   {
-    // Every string a person reads comes from src/locales/ through t(), whether or not the
-    // app is translated yet: text in JSX, and the attributes that are read or announced.
     files: ['src/**/*.tsx'],
-    ignores: ['src/components/ui/**', 'src/**/*.test.tsx'],
+    ignores: ['src/**/*.test.tsx'],
     plugins: { i18next },
     rules: {
       'i18next/no-literal-string': [
@@ -88,6 +64,19 @@ export const app = defineConfig([
         }
       ]
     }
+  }
+])
+
+export const app = defineConfig([
+  react,
+  globalIgnores(['src/routeTree.gen.ts']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [reactRefresh.configs.vite, pluginRouter.configs['flat/recommended']]
+  },
+  {
+    files: ['src/**/*-provider.tsx', 'src/routes/**/*.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' }
   },
   ...host
 ])

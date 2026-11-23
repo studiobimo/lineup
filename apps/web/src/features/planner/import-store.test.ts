@@ -14,7 +14,6 @@ vi.mock('./import-images', () => ({ importImages: vi.fn() }))
 const photo = () => new File(['pixels'], 'photo.jpg', { type: 'image/jpeg' })
 const processed = { width: 1, height: 1 } as unknown as ProcessedImage
 
-// The route loads these before it renders the page.
 beforeAll(() => loadStrings('planner'))
 
 const importing = { add: vi.fn(), finish: vi.fn() }

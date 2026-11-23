@@ -25,7 +25,6 @@ describe('nearestCity', () => {
     expect(nearestCity(0, 179.9, [['Over the line', 'XX', 0, -179.9]])).toBe('Over the line, XX')
   })
 
-  // A guard against something pathological, and no budget: other tests run beside it.
   it('searches every city quickly enough for a batch', () => {
     const start = performance.now()
     for (let photo = 0; photo < 300; photo += 1) lookUp(40, -74)

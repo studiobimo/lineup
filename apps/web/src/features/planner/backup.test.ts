@@ -94,7 +94,9 @@ describe('a backup', () => {
     expect(backup.board).toEqual({ tray: ['a'], grid: [] })
     expect(await textOf(backup)).toEqual([['a', 't', 'p']])
   })
+})
 
+describe('a backup that cannot be read', () => {
   it('reads no bytes into the manifest, however large the images', async () => {
     const big = { ...store(), getPublishCopy: async () => new Blob([new Uint8Array(4096)]) }
     const file = await createBackup(big, board)

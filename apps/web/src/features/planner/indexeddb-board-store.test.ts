@@ -5,8 +5,6 @@ import { describe, expect, it, vi } from 'vitest'
 import type { StoredImage } from './board-store'
 import { createIndexedDbBoardStore, migrations } from './indexeddb-board-store'
 
-// fake-indexeddb clones with Node's structuredClone, which jsdom's Blob does not survive. The
-// store never looks inside a blob, so bytes stand in for one.
 const blob = (text: string) => new TextEncoder().encode(text) as unknown as Blob
 
 let databases = 0
@@ -74,7 +72,9 @@ describe('the IndexedDB board store', () => {
     await store.saveHistory(history)
     expect(await store.loadHistory()).toEqual(history)
   })
+})
 
+describe('the IndexedDB board store, across versions and browsers', () => {
   it('opens a board saved by an earlier schema, through the migrations after it', async () => {
     const name = uniqueName()
     await createIndexedDbBoardStore(name).saveBoard({ tray: ['a'], grid: [] })

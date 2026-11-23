@@ -3,12 +3,7 @@ import { boardStore, plannerStore } from '@/features/planner/planner'
 
 import type { ImageColour } from './colour'
 
-/**
- * Images from before colours were kept. One at a time and in the worker, so that the page never
- * notices, and each is saved as it is done, so that a reload picks up where this left off.
- */
 export async function backfillColours(createWorker = createImageWorker) {
-  // No tone means a colour from before bands, which needs the photo read again.
   const pending = Object.values(plannerStore.getState().images).filter(
     ({ colour }) => colour?.tone === undefined
   )
@@ -19,7 +14,6 @@ export async function backfillColours(createWorker = createImageWorker) {
       if (plannerStore.getState().session !== 'active') return
       const file = await boardStore.getThumbnail(id)
       if (!file) continue
-      // An image this cannot read sorts with those that have no colour, and nothing else suffers.
       const colour = await runInWorker<ImageColour>(worker, { kind: 'colour', file }).catch(
         () => null
       )

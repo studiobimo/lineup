@@ -1,11 +1,11 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 
+import { HeaderSlot } from '@/components/header-slot'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { site } from '@/config/site'
 
 interface AppShellProps {
-  /** Header buttons that belong to a feature, which the shell itself must not know about. */
   actions?: ReactNode
   children: ReactNode
 }
@@ -18,6 +18,7 @@ export function AppShell({ actions, children }: AppShellProps) {
           {site.name}
         </Link>
         <div className="flex items-center gap-1">
+          <HeaderSlot />
           {actions}
           <ThemeToggle />
         </div>

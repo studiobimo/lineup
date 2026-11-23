@@ -9,7 +9,6 @@ interface PublishedPictureProps {
   label: string
 }
 
-/** A signed link at Instagram can lapse, and it is no reason to leave a broken image in the feed. */
 export function PublishedPicture({
   post: { thumbnailUrl, videoUrl },
   label
@@ -31,7 +30,6 @@ export function PublishedPicture({
   return (
     <div ref={holder} className="size-full">
       {near && !thumbnailUrl && videoUrl && (
-        // Its first frame, from as little of the file as the browser can get it from.
         <video
           src={`${videoUrl}#t=0.1`}
           aria-label={label}

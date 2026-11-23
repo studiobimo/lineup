@@ -6,6 +6,12 @@
       "runtimeExecutable": "make",
       "runtimeArgs": ["-C", ".devtools", "dev"],
       "port": 5173
+    },
+    {
+      "name": "zernio-mock",
+      "runtimeExecutable": "make",
+      "runtimeArgs": ["-C", ".devtools", "zernio-mock"],
+      "port": 8788
     }
   ]
 }

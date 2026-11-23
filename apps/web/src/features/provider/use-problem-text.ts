@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next'
 
 import { ProviderRequestError } from './api'
 
-/** What to tell a person about a failed request, in the provider's own words if it refused. */
 export function useProblemText() {
   const { t } = useTranslation('provider')
   return (error: Error | null) => {
