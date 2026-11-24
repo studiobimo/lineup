@@ -301,6 +301,21 @@ test('the schedule dialog steps through every slide of an album', async ({ page 
   )
 })
 
+test('the picture stays in view while the fields scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await mockProvider(page)
+  await planOnGrid(page, 3)
+  await groupCells(page, grid(page), 3)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  await dialog.getByRole('button', { name: 'Accessibility' }).click()
+  const viewer = dialog.getByRole('group', { name: "The post's slides" })
+  await dialog.getByLabel('Alt text for slide 3').scrollIntoViewIfNeeded()
+  await dialog.getByRole('button', { name: 'Advanced settings' }).scrollIntoViewIfNeeded()
+  await expect(viewer).toBeInViewport({ ratio: 1 })
+})
+
 test('the schedule dialog reorders an album from the keyboard, and undo puts it back', async ({
   page
 }) => {
