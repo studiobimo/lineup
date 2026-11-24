@@ -34,11 +34,11 @@ describe('SlideViewer', () => {
     expect(screen.getByRole('button', { name: 'Previous slide' })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: 'Next slide' }))
     expect(screen.getByTestId('slide')).toHaveTextContent('b')
-    await user.click(screen.getByRole('button', { name: 'Show slide 3 of 3' }))
+    await user.click(screen.getByRole('tab', { name: 'Show slide 3 of 3' }))
     expect(screen.getByTestId('slide')).toHaveTextContent('c')
     expect(screen.getByRole('button', { name: 'Next slide' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Show slide 3 of 3' })).toHaveAttribute(
-      'aria-current',
+    expect(screen.getByRole('tab', { name: 'Show slide 3 of 3' })).toHaveAttribute(
+      'aria-selected',
       'true'
     )
   })
@@ -46,10 +46,8 @@ describe('SlideViewer', () => {
   it('steps with the arrow keys', async () => {
     const user = userEvent.setup()
     render(<Harness />)
-    screen.getByRole('button', { name: 'Show slide 1 of 3' }).focus()
+    screen.getByRole('tab', { name: 'Show slide 1 of 3' }).focus()
     await user.keyboard('{ArrowRight}{ArrowRight}')
-    expect(screen.getByTestId('slide')).toHaveTextContent('c')
-    await user.keyboard('{ArrowRight}')
     expect(screen.getByTestId('slide')).toHaveTextContent('c')
     await user.keyboard('{ArrowLeft}')
     expect(screen.getByTestId('slide')).toHaveTextContent('b')

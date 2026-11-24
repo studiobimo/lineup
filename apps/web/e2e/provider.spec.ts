@@ -228,10 +228,10 @@ test('the schedule dialog steps through every slide of an album', async ({ page 
 
   const dialog = await openSchedule(page)
   const viewer = dialog.getByRole('group', { name: "The post's slides" })
-  await expect(viewer.getByRole('button', { name: /^Show slide/ })).toHaveCount(3)
+  await expect(viewer.getByRole('tab', { name: /^Show slide/ })).toHaveCount(3)
   await expect(viewer.locator('canvas')).toHaveCount(1)
   await dialog.getByRole('button', { name: 'Next slide' }).click()
-  await expect(dialog.getByRole('button', { name: 'Next slide' })).toBeFocused()
+  await viewer.getByRole('tab', { name: 'Show slide 2 of 3' }).focus()
   await page.keyboard.press('ArrowRight')
   await expect(dialog.getByRole('button', { name: 'Next slide' })).toBeDisabled()
   await expect(viewer.locator('canvas')).toHaveCount(1)

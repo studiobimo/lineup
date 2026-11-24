@@ -1,8 +1,8 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@/components/icon-button'
+import { Tabs, TabsPrimitive } from '@/components/ui/tabs'
 import { cellShape } from '@/features/planner/network-profile'
 import { Thumbnail } from '@/features/planner/thumbnail'
 import { cn } from '@/lib/utils'
@@ -19,8 +19,6 @@ interface SlideViewerProps {
   className?: string
 }
 
-const STEPS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 }
-
 export function SlideViewer({ slides, index, onIndexChange, className }: SlideViewerProps) {
   const { t } = useTranslation('provider')
   const last = slides.length - 1
@@ -29,13 +27,6 @@ export function SlideViewer({ slides, index, onIndexChange, className }: SlideVi
   const many = slides.length > 1
   const go = (to: number) => onIndexChange(Math.min(Math.max(to, 0), last))
 
-  const onKeyDown = (event: KeyboardEvent) => {
-    const step = STEPS[event.key]
-    if (!many || !step) return
-    event.preventDefault()
-    go(current + step)
-  }
-
   return (
     <div
       role={many ? 'group' : undefined}
@@ -43,7 +34,6 @@ export function SlideViewer({ slides, index, onIndexChange, className }: SlideVi
       aria-label={many ? t('post.viewer.label') : undefined}
       className={cn('relative overflow-hidden rounded-sm bg-muted', className)}
       style={cellShape}
-      onKeyDown={onKeyDown}
     >
       <Thumbnail key={slide.id} id={slide.id} label={t('post.picture')} />
       {many && (
@@ -71,21 +61,22 @@ export function SlideViewer({ slides, index, onIndexChange, className }: SlideVi
           >
             <ChevronRight />
           </IconButton>
-          <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
-            {slides.map(({ id }, position) => (
-              <button
-                key={id}
-                type="button"
-                aria-label={t('post.viewer.go', { position: position + 1, count: slides.length })}
-                aria-current={position === current}
-                className={cn(
-                  'size-2 rounded-full bg-background/60 ring-1 ring-foreground/20 outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  position === current && 'bg-primary'
-                )}
-                onClick={() => go(position)}
-              />
-            ))}
-          </div>
+          <Tabs value={String(current)} onValueChange={(value) => go(Number(value))}>
+            <TabsPrimitive.List
+              activateOnFocus
+              aria-label={t('post.viewer.label')}
+              className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5"
+            >
+              {slides.map(({ id }, position) => (
+                <TabsPrimitive.Tab
+                  key={id}
+                  value={String(position)}
+                  aria-label={t('post.viewer.go', { position: position + 1, count: slides.length })}
+                  className="size-2 cursor-pointer rounded-full bg-background/60 ring-1 ring-foreground/20 outline-none focus-visible:ring-2 focus-visible:ring-ring data-active:bg-primary"
+                />
+              ))}
+            </TabsPrimitive.List>
+          </Tabs>
         </>
       )}
     </div>
