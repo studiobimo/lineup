@@ -314,9 +314,49 @@ const readMethods = (call: Call): Pick<Provider, 'publishedPosts' | 'scheduledPo
   }
 })
 
+const keptMediaSchema = z.object({
+  type: z.string().nullish(),
+  url: z.string().nullish(),
+  altText: z.string().nullish(),
+  thumbnail: z.string().nullish(),
+  instagramThumbnail: z.string().nullish()
+})
+
+const keptTargetSchema = z.object({
+  platform: z.string(),
+  accountId: z.union([z.string(), z.object({ _id: z.string() })]),
+  platformSpecificData: z.record(z.string(), z.unknown()).nullish()
+})
+
+const keptPostSchema = z.object({
+  post: z.object({
+    mediaItems: z.array(keptMediaSchema).nullish(),
+    platforms: z.array(keptTargetSchema).nullish()
+  })
+})
+
+const OUTPUT_ONLY = ['droppedCollaborators']
+
+const present = (fields: Record<string, unknown>) =>
+  Object.fromEntries(Object.entries(fields).filter(([, value]) => value != null))
+
+function whatToKeep({ post }: z.infer<typeof keptPostSchema>) {
+  const mediaItems = post.mediaItems?.map(present)
+  const platforms = post.platforms?.map(({ platform, accountId, platformSpecificData }) => ({
+    platform,
+    accountId: typeof accountId === 'string' ? accountId : accountId._id,
+    ...(platformSpecificData && {
+      platformSpecificData: Object.fromEntries(
+        Object.entries(platformSpecificData).filter(([name]) => !OUTPUT_ONLY.includes(name))
+      )
+    })
+  }))
+  return { ...(mediaItems?.length && { mediaItems }), ...(platforms?.length && { platforms }) }
+}
+
 const writeMethods = (call: Call): Pick<Provider, 'schedule' | 'update' | 'cancel'> => ({
   async schedule(
-    { accountId, caption, scheduledFor, timeZone, mediaUrls, mediaTypes, userTags },
+    { accountId, caption, scheduledFor, timeZone, mediaUrls, mediaTypes, userTags, altTexts },
     idempotencyKey
   ) {
     const { post } = await call('/posts', postSchema, {
@@ -326,10 +366,11 @@ const writeMethods = (call: Call): Pick<Provider, 'schedule' | 'update' | 'cance
         content: caption,
         scheduledFor,
         timezone: timeZone,
-        mediaItems: mediaUrls.map((url, index) => ({
-          type: mediaTypes?.[index] ?? 'image',
-          url
-        })),
+        mediaItems: mediaUrls.map((url, index) => {
+          const type = mediaTypes?.[index] ?? 'image'
+          const altText = type === 'image' ? altTexts?.[index]?.trim() : undefined
+          return { type, url, ...(altText && { altText }) }
+        }),
         platforms: [
           {
             platform: PLATFORM,
@@ -343,9 +384,11 @@ const writeMethods = (call: Call): Pick<Provider, 'schedule' | 'update' | 'cance
   },
 
   async update(id, { scheduledFor, timeZone, caption }) {
-    const { post } = await call(`/posts/${encodeURIComponent(id)}`, postSchema, {
+    const path = `/posts/${encodeURIComponent(id)}`
+    const kept = whatToKeep(await call(path, keptPostSchema))
+    const { post } = await call(path, postSchema, {
       method: 'PUT',
-      body: { scheduledFor, timezone: timeZone, content: caption }
+      body: { scheduledFor, timezone: timeZone, content: caption, ...kept }
     })
     return toScheduledPost(post)
   },

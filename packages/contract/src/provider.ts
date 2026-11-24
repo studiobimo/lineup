@@ -88,6 +88,8 @@ const when = { scheduledFor: z.iso.datetime(), timeZone: z.string().min(1) }
 // Instagram allows 20 people to be tagged on one post; Zernio documents no limit. ~keep
 export const TAGS_PER_POST = 20
 
+export const POST = { limit: { altText: 1000 } } as const
+
 export const usernameSchema = z.string().regex(/^[A-Za-z0-9._]{1,30}$/)
 
 export const cleanUsername = (typed: string) => typed.trim().replace(/^@+/, '').toLowerCase()
@@ -107,9 +109,13 @@ export const newPostSchema = z
     caption: z.string(),
     mediaUrls: z.array(z.url()).min(1),
     mediaTypes: z.array(mediaTypeSchema).optional(),
-    userTags: z.array(userTagSchema).max(TAGS_PER_POST).optional()
+    userTags: z.array(userTagSchema).max(TAGS_PER_POST).optional(),
+    altTexts: z.array(z.string().max(POST.limit.altText)).optional()
   })
-  .superRefine(({ userTags, mediaUrls, mediaTypes }, context) => {
+  .superRefine(({ userTags, mediaUrls, mediaTypes, altTexts }, context) => {
+    if ((altTexts?.length ?? 0) > mediaUrls.length) {
+      context.addIssue({ code: 'custom', path: ['altTexts'], message: 'No such slide' })
+    }
     for (const [index, { mediaIndex = 0, x, y }] of (userTags ?? []).entries()) {
       if (mediaIndex >= mediaUrls.length) {
         context.addIssue({

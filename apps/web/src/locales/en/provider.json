@@ -118,6 +118,11 @@
       "previous": "Previous slide",
       "next": "Next slide",
       "go": "Show slide {{position}} of {{count}}"
+    },
+    "alt": {
+      "title": "Accessibility",
+      "hint": "Describe each picture for people who use a screen reader.",
+      "slide": "Alt text for slide {{position}}"
     }
   },
   "published": {

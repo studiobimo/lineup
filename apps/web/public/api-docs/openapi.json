@@ -3322,7 +3322,7 @@
       },
       "post": {
         "operationId": "postApiV1ProviderScheduledPosts",
-        "description": "Schedule, with tags if any. Needs `Idempotency-Key`, and refuses a time in the past",
+        "description": "Schedule, with tags and alt text if any. Needs `Idempotency-Key`, and refuses a time in the past",
         "security": [
           {
             "providerKey": []
@@ -4120,6 +4120,13 @@
                         "username"
                       ]
                     }
+                  },
+                  "altTexts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 1000
+                    }
                   }
                 },
                 "required": [
@@ -4138,7 +4145,7 @@
     "/api/v1/provider/scheduled-posts/{id}": {
       "patch": {
         "operationId": "patchApiV1ProviderScheduledPostsById",
-        "description": "Change the time or the caption until it is published. Tags cannot change",
+        "description": "Change the time or the caption until it is published. Everything else is kept as scheduled",
         "security": [
           {
             "providerKey": []

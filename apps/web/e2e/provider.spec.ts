@@ -157,6 +157,23 @@ async function schedule(dialog: Locator, when = IN_A_WEEK, caption = 'Hello') {
   await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
 }
 
+test('alt text is written under Accessibility and sent with the picture', async ({ page }) => {
+  const provider = await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  const section = dialog.getByRole('button', { name: 'Accessibility' })
+  await expect(section).toHaveAttribute('aria-expanded', 'false')
+  await section.click()
+  await dialog.getByLabel('Alt text for slide 1').fill('A grey cat on a sofa')
+  await schedule(dialog)
+  await expect(dialog).toBeHidden()
+
+  const at = provider.requests.indexOf('POST /scheduled-posts')
+  expect(provider.bodies[at]).toMatchObject({ altTexts: ['A grey cat on a sofa'] })
+})
+
 test('a planned image is sent, scheduled and held in place', async ({ page }) => {
   const errors = watchErrors(page)
   const provider = await mockProvider(page)
