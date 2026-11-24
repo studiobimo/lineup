@@ -135,72 +135,91 @@ function listPosts(query) {
   return found.slice(0, limit)
 }
 
+async function presign({ request, response }) {
+  const { filename = 'file', contentType = 'application/octet-stream' } = await readJson(request)
+  const id = `${randomUUID()}-${String(filename).replace(/[^\w.-]/g, '_')}`
+  uploads.set(id, { type: contentType, bytes: undefined })
+  return json(response, 200, {
+    uploadUrl: `${ORIGIN}/uploads/${id}`,
+    publicUrl: `${ORIGIN}/uploads/${id}`
+  })
+}
+
+async function createPost({ request, response }) {
+  const key = request.headers['idempotency-key']
+  if (key && idempotent.has(key))
+    return json(response, 200, { post: view(posts.get(idempotent.get(key))) })
+  const body = await readJson(request)
+  console.log(`POST /posts body:\n${JSON.stringify(body, null, 2)}`)
+  const id = `mock-post-${randomUUID().slice(0, 8)}`
+  const now = Date.now()
+  posts.set(id, {
+    ...body,
+    _id: id,
+    origin: 'zernio',
+    mediaProductType: 'FEED',
+    scheduledFor: body.scheduledFor ?? new Date(now).toISOString(),
+    createdAt: new Date(now).toISOString(),
+    status: 'scheduled'
+  })
+  if (key) idempotent.set(key, id)
+  return json(response, 201, { post: view(posts.get(id)) })
+}
+
+async function updatePost({ request, response, match }) {
+  const stored = posts.get(match[1])
+  if (!stored) return fail(response, 404, 'Post not found')
+  if (view(stored).status !== 'scheduled')
+    return fail(response, 409, 'The post is already going out')
+  const body = await readJson(request)
+  console.log(`PUT /posts/${match[1]} body:\n${JSON.stringify(body, null, 2)}`)
+  for (const field of ['scheduledFor', 'timezone', 'content']) {
+    if (body[field] !== undefined) stored[field] = body[field]
+  }
+  return json(response, 200, { post: view(stored) })
+}
+
+function deletePost({ response, match }) {
+  if (!posts.has(match[1])) return fail(response, 404, 'Post not found')
+  posts.delete(match[1])
+  return json(response, 200, { message: 'Deleted' })
+}
+
+const routes = [
+  ['GET', /^\/profiles$/, ({ response }) => json(response, 200, { profiles })],
+  [
+    'POST',
+    /^\/api-keys$/,
+    ({ response }) =>
+      json(response, 201, { apiKey: { key: `mock-narrow-${randomUUID().slice(0, 8)}` } })
+  ],
+  ['GET', /^\/accounts$/, ({ response }) => json(response, 200, { accounts })],
+  [
+    'GET',
+    /^\/connect\/instagram$/,
+    ({ response, url }) =>
+      json(response, 200, { authUrl: url.searchParams.get('redirect_url') ?? ORIGIN })
+  ],
+  ['POST', /^\/media\/presign$/, presign],
+  [
+    'GET',
+    /^\/posts$/,
+    ({ response, url }) => json(response, 200, { posts: listPosts(url.searchParams) })
+  ],
+  ['POST', /^\/posts$/, createPost],
+  ['PUT', /^\/posts\/([^/]+)$/, updatePost],
+  ['DELETE', /^\/posts\/([^/]+)$/, deletePost]
+]
+
 async function api(request, response, url) {
   const path = url.pathname.replace(/^\/api\/v1/, '')
   const bearer = /^Bearer (.+)$/.exec(request.headers.authorization ?? '')?.[1]
   if (!bearer || bearer === BAD_KEY) return fail(response, 401, 'Invalid API key')
-  const { method } = request
-  const post = /^\/posts\/([^/]+)$/.exec(path)
-
-  if (method === 'GET' && path === '/profiles') return json(response, 200, { profiles })
-  if (method === 'POST' && path === '/api-keys') {
-    return json(response, 201, { apiKey: { key: `mock-narrow-${randomUUID().slice(0, 8)}` } })
+  for (const [method, pattern, handler] of routes) {
+    const match = request.method === method ? pattern.exec(path) : null
+    if (match) return handler({ request, response, url, match })
   }
-  if (method === 'GET' && path === '/accounts') return json(response, 200, { accounts })
-  if (method === 'GET' && path === '/connect/instagram') {
-    const back = url.searchParams.get('redirect_url') ?? ORIGIN
-    return json(response, 200, { authUrl: back })
-  }
-  if (method === 'POST' && path === '/media/presign') {
-    const { filename = 'file', contentType = 'application/octet-stream' } = await readJson(request)
-    const id = `${randomUUID()}-${String(filename).replace(/[^\w.-]/g, '_')}`
-    uploads.set(id, { type: contentType, bytes: undefined })
-    return json(response, 200, {
-      uploadUrl: `${ORIGIN}/uploads/${id}`,
-      publicUrl: `${ORIGIN}/uploads/${id}`
-    })
-  }
-  if (method === 'GET' && path === '/posts') {
-    return json(response, 200, { posts: listPosts(url.searchParams) })
-  }
-  if (method === 'POST' && path === '/posts') {
-    const key = request.headers['idempotency-key']
-    if (key && idempotent.has(key))
-      return json(response, 200, { post: view(posts.get(idempotent.get(key))) })
-    const body = await readJson(request)
-    console.log(`POST /posts body:\n${JSON.stringify(body, null, 2)}`)
-    const id = `mock-post-${randomUUID().slice(0, 8)}`
-    const now = Date.now()
-    posts.set(id, {
-      ...body,
-      _id: id,
-      origin: 'zernio',
-      mediaProductType: 'FEED',
-      scheduledFor: body.scheduledFor ?? new Date(now).toISOString(),
-      createdAt: new Date(now).toISOString(),
-      status: 'scheduled'
-    })
-    if (key) idempotent.set(key, id)
-    return json(response, 201, { post: view(posts.get(id)) })
-  }
-  if (post && method === 'PUT') {
-    const stored = posts.get(post[1])
-    if (!stored) return fail(response, 404, 'Post not found')
-    if (view(stored).status !== 'scheduled')
-      return fail(response, 409, 'The post is already going out')
-    const body = await readJson(request)
-    console.log(`PUT /posts/${post[1]} body:\n${JSON.stringify(body, null, 2)}`)
-    for (const field of ['scheduledFor', 'timezone', 'content']) {
-      if (body[field] !== undefined) stored[field] = body[field]
-    }
-    return json(response, 200, { post: view(stored) })
-  }
-  if (post && method === 'DELETE') {
-    if (!posts.has(post[1])) return fail(response, 404, 'Post not found')
-    posts.delete(post[1])
-    return json(response, 200, { message: 'Deleted' })
-  }
-  return fail(response, 404, `The mock has no ${method} ${path}`)
+  return fail(response, 404, `The mock has no ${request.method} ${path}`)
 }
 
 const cors = {

@@ -42,12 +42,12 @@ async function tag(user: ReturnType<typeof userEvent.setup>, username: string) {
   await user.type(pendingName(), `${username}{Enter}`)
 }
 
-describe('TagPicker', () => {
-  beforeAll(() => loadStrings('provider'))
-  beforeEach(() => {
-    latest = []
-  })
+beforeAll(() => loadStrings('provider'))
+beforeEach(() => {
+  latest = []
+})
 
+describe('TagPicker', () => {
   it('places a pending point first and adds the tag only when a username is confirmed', async () => {
     const user = userEvent.setup()
     render(<Harness />)
@@ -104,7 +104,9 @@ describe('TagPicker', () => {
     await user.click(document.body)
     expect(latest).toEqual([])
   })
+})
 
+describe('TagPicker, moving and removing tags', () => {
   it('moves a tag with the arrow keys, ten times as far with Shift', async () => {
     const user = userEvent.setup()
     render(<Harness />)

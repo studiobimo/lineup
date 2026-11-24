@@ -133,7 +133,9 @@ describe('POST /telemetry/publish-delay', () => {
     await post({ ...event, account: undefined })
     expect(logged()[0]).not.toHaveProperty(TAG)
   })
+})
 
+describe('POST /telemetry/publish-delay, requests it refuses or limits', () => {
   it('refuses a handle that is not trimmed and lowercased', async () => {
     expect((await post({ ...event, account: ' Studio.Bimo ' })).status).toBe(400)
   })
