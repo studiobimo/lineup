@@ -111,6 +111,8 @@ the action in the header, Instagram's 20-minute minimum, and the post options Ze
 
 ### Exit criteria
 
+- ZRN-7: on `development`, Schedule sits in the dialog's header, and no time under 20 minutes
+  away can be chosen
 - ZRN-20: on `development`, every slide of an album is viewed in order from the schedule dialog and
   the tag screen, and a single image shows no controls
 - ZRN-21: on `development`, an album's slides are reordered by drag and by keyboard, the board
