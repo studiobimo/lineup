@@ -57,12 +57,12 @@ test('an image is given its colour on import, through the real worker', async ({
   expect(colour).toMatchObject({ dominant: { hue: expect.any(Number) } })
 })
 
-test('bands put the dark images first and the light ones after', async ({ page }) => {
+test('magic sort puts the dark images first and the light ones after', async ({ page }) => {
   await page.goto('/')
   await addImages(page, testImages)
   await page.getByRole('button', { name: 'Move all to the grid' }).click()
   await page.getByRole('button', { name: 'Sort the grid by colour' }).click()
-  await page.getByRole('menuitem', { name: 'Bands, 2 rows' }).click()
+  await page.getByRole('menuitem', { name: 'Magic sort, 2 rows' }).click()
 
   const darkFirst = async () => {
     const [{ grid }, images] = await Promise.all([savedBoard(page), savedImages(page)])

@@ -116,4 +116,21 @@ describe('bands, places and the limits', () => {
     arrange(cells, 4)
     expect(performance.now() - start).toBeLessThan(100)
   })
+
+  it('ends on the tone of the posts that follow it', () => {
+    const cells = feed(24)
+    const meeting = (tone: number) => {
+      const neighbours = [{ id: 'live', tone, vivid: 0.1, hue: null }]
+      const order = bands({ cells, rowsPerBand: 2, columns: 3, neighbours })
+      return toneOf(cells, order.slice(-3))
+    }
+    expect(meeting(0.2)).toBeLessThan(meeting(0.8))
+  })
+
+  it('keeps every image once when it has neighbours', () => {
+    const cells = feed(20)
+    const neighbours = [{ id: 'live', tone: 0.9, vivid: 0.1, hue: null }]
+    const order = bands({ cells, rowsPerBand: 2, columns: 3, neighbours })
+    expect([...order].sort()).toEqual(cells.map(({ id }) => id))
+  })
 })
