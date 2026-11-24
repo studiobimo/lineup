@@ -195,6 +195,27 @@ test('collaborators are invited, and a fourth is refused', async ({ page }) => {
   expect(provider.bodies[at]).toMatchObject({ collaborators: ['one', 'two', 'three'] })
 })
 
+test('comments can be turned off and a first comment added under Advanced settings', async ({
+  page
+}) => {
+  const provider = await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  const section = dialog.getByRole('button', { name: 'Advanced settings' })
+  await expect(section).toHaveAttribute('aria-expanded', 'false')
+  await section.click()
+  await expect(dialog.getByText(/best effort/)).toBeVisible()
+  await dialog.getByRole('switch', { name: 'Turn off commenting' }).click()
+  await dialog.getByLabel('First comment').fill('Link in bio')
+  await schedule(dialog)
+  await expect(dialog).toBeHidden()
+
+  const at = provider.requests.indexOf('POST /scheduled-posts')
+  expect(provider.bodies[at]).toMatchObject({ commentsEnabled: false, firstComment: 'Link in bio' })
+})
+
 test('a planned image is sent, scheduled and held in place', async ({ page }) => {
   const errors = watchErrors(page)
   const provider = await mockProvider(page)

@@ -223,7 +223,7 @@ const scheduleRoutes = (providerFor: ProviderFor) =>
       '/scheduled-posts',
       documented({
         description:
-          'Schedule, with tags, alt text and collaborators if any. Needs `Idempotency-Key`, and refuses a time in the past',
+          'Schedule, with tags, alt text, collaborators and comment options if any. Needs `Idempotency-Key`, and refuses a time in the past',
         status: 201,
         answer: scheduledPostSchema,
         refuses: [400, 409, 422]

@@ -75,7 +75,9 @@ export const scheduledPostSchema = z.object({
   failure: z.string().optional(),
   publishedAt: z.iso.datetime({ offset: true }).optional(),
   collaborators: z.array(z.string()).optional(),
-  droppedCollaborators: z.array(droppedCollaboratorSchema).optional()
+  droppedCollaborators: z.array(droppedCollaboratorSchema).optional(),
+  commentsEnabled: z.boolean().optional(),
+  firstComment: z.string().optional()
 })
 export type ScheduledPost = z.infer<typeof scheduledPostSchema>
 
@@ -93,7 +95,7 @@ const when = { scheduledFor: z.iso.datetime(), timeZone: z.string().min(1) }
 // Instagram allows 20 people to be tagged on one post; Zernio documents no limit. ~keep
 export const TAGS_PER_POST = 20
 
-export const POST = { limit: { altText: 1000, collaborators: 3 } } as const
+export const POST = { limit: { altText: 1000, collaborators: 3, firstComment: 2200 } } as const
 
 export const usernameSchema = z.string().regex(/^[A-Za-z0-9._]{1,30}$/)
 
@@ -116,7 +118,9 @@ export const newPostSchema = z
     mediaTypes: z.array(mediaTypeSchema).optional(),
     userTags: z.array(userTagSchema).max(TAGS_PER_POST).optional(),
     altTexts: z.array(z.string().max(POST.limit.altText)).optional(),
-    collaborators: z.array(usernameSchema).max(POST.limit.collaborators).optional()
+    collaborators: z.array(usernameSchema).max(POST.limit.collaborators).optional(),
+    commentsEnabled: z.boolean().optional(),
+    firstComment: z.string().max(POST.limit.firstComment).optional()
   })
   .superRefine(({ userTags, mediaUrls, mediaTypes, altTexts, collaborators }, context) => {
     if (

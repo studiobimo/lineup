@@ -78,6 +78,18 @@ describe('newPostSchema, collaborators', () => {
   })
 })
 
+describe('newPostSchema, comment options', () => {
+  it('takes comments turned off and a first comment', () => {
+    expect(valid({ commentsEnabled: false, firstComment: 'Link in bio' })).toBe(true)
+    expect(valid({ commentsEnabled: 'no' })).toBe(false)
+  })
+
+  it('caps the first comment', () => {
+    expect(valid({ firstComment: 'a'.repeat(POST.limit.firstComment) })).toBe(true)
+    expect(valid({ firstComment: 'a'.repeat(POST.limit.firstComment + 1) })).toBe(false)
+  })
+})
+
 describe('cleanUsername', () => {
   it('drops the @ and the case', () => {
     expect(cleanUsername('  @Some.One ')).toBe('some.one')

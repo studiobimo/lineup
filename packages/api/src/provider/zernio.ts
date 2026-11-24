@@ -66,6 +66,8 @@ const zernioPostSchema = z.object({
         platformSpecificData: z
           .object({
             collaborators: z.array(z.string()).nullish(),
+            commentsEnabled: z.boolean().nullish(),
+            firstComment: z.string().nullish(),
             droppedCollaborators: z
               .array(z.object({ username: z.string(), reason: z.string() }))
               .nullish()
@@ -122,7 +124,9 @@ function toScheduledPost(post: ZernioPost): ScheduledPost {
     failure: target?.errorMessage ?? undefined,
     publishedAt: target?.publishedAt ?? undefined,
     collaborators: target?.platformSpecificData?.collaborators ?? undefined,
-    droppedCollaborators: target?.platformSpecificData?.droppedCollaborators ?? undefined
+    droppedCollaborators: target?.platformSpecificData?.droppedCollaborators ?? undefined,
+    commentsEnabled: target?.platformSpecificData?.commentsEnabled ?? undefined,
+    firstComment: target?.platformSpecificData?.firstComment ?? undefined
   }
 }
 
@@ -364,32 +368,19 @@ function whatToKeep({ post }: z.infer<typeof keptPostSchema>) {
   return { ...(mediaItems?.length && { mediaItems }), ...(platforms?.length && { platforms }) }
 }
 
-const platformOptions = ({
-  userTags,
-  collaborators
-}: Pick<NewPost, 'userTags' | 'collaborators'>) => {
+const platformOptions = ({ userTags, collaborators, commentsEnabled, firstComment }: NewPost) => {
   const options = {
     ...(userTags?.length && { userTags }),
-    ...(collaborators?.length && { collaborators })
+    ...(collaborators?.length && { collaborators }),
+    ...(commentsEnabled === false && { commentsEnabled }),
+    ...(firstComment?.trim() && { firstComment: firstComment.trim() })
   }
   return Object.keys(options).length > 0 ? { platformSpecificData: options } : {}
 }
 
 const writeMethods = (call: Call): Pick<Provider, 'schedule' | 'update' | 'cancel'> => ({
-  async schedule(
-    {
-      accountId,
-      caption,
-      scheduledFor,
-      timeZone,
-      mediaUrls,
-      mediaTypes,
-      userTags,
-      altTexts,
-      collaborators
-    },
-    idempotencyKey
-  ) {
+  async schedule(input, idempotencyKey) {
+    const { accountId, caption, scheduledFor, timeZone, mediaUrls, mediaTypes, altTexts } = input
     const { post } = await call('/posts', postSchema, {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey },
@@ -402,9 +393,7 @@ const writeMethods = (call: Call): Pick<Provider, 'schedule' | 'update' | 'cance
           const altText = type === 'image' ? altTexts?.[index]?.trim() : undefined
           return { type, url, ...(altText && { altText }) }
         }),
-        platforms: [
-          { platform: PLATFORM, accountId, ...platformOptions({ userTags, collaborators }) }
-        ]
+        platforms: [{ platform: PLATFORM, accountId, ...platformOptions(input) }]
       }
     })
     return toScheduledPost(post)

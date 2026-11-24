@@ -2839,6 +2839,12 @@
                               ],
                               "additionalProperties": false
                             }
+                          },
+                          "commentsEnabled": {
+                            "type": "boolean"
+                          },
+                          "firstComment": {
+                            "type": "string"
                           }
                         },
                         "required": [
@@ -3347,7 +3353,7 @@
       },
       "post": {
         "operationId": "postApiV1ProviderScheduledPosts",
-        "description": "Schedule, with tags, alt text and collaborators if any. Needs `Idempotency-Key`, and refuses a time in the past",
+        "description": "Schedule, with tags, alt text, collaborators and comment options if any. Needs `Idempotency-Key`, and refuses a time in the past",
         "security": [
           {
             "providerKey": []
@@ -3422,6 +3428,12 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "commentsEnabled": {
+                      "type": "boolean"
+                    },
+                    "firstComment": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -4185,6 +4197,13 @@
                       "type": "string",
                       "pattern": "^[A-Za-z0-9._]{1,30}$"
                     }
+                  },
+                  "commentsEnabled": {
+                    "type": "boolean"
+                  },
+                  "firstComment": {
+                    "type": "string",
+                    "maxLength": 2200
                   }
                 },
                 "required": [
@@ -4278,6 +4297,12 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "commentsEnabled": {
+                      "type": "boolean"
+                    },
+                    "firstComment": {
+                      "type": "string"
                     }
                   },
                   "required": [

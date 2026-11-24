@@ -1,20 +1,32 @@
 export interface PostOptions {
   altTexts: string[]
   collaborators: string[]
+  commentsOff: boolean
+  firstComment: string
 }
 
-export const NO_OPTIONS: PostOptions = { altTexts: [], collaborators: [] }
+export const NO_OPTIONS: PostOptions = {
+  altTexts: [],
+  collaborators: [],
+  commentsOff: false,
+  firstComment: ''
+}
 
 interface Slide {
   id: string
   video: boolean
 }
 
-export const sentOptions = ({ altTexts, collaborators }: PostOptions, slides: Slide[]) => {
+export const sentOptions = (
+  { altTexts, collaborators, commentsOff, firstComment }: PostOptions,
+  slides: Slide[]
+) => {
   const described = toAltTexts(altTexts, slides)
   return {
     ...(described && { altTexts: described }),
-    ...(collaborators.length > 0 && { collaborators })
+    ...(collaborators.length > 0 && { collaborators }),
+    ...(commentsOff && { commentsEnabled: false }),
+    ...(firstComment.trim() && { firstComment })
   }
 }
 
