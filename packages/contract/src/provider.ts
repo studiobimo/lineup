@@ -62,6 +62,9 @@ export const postStatusSchema = z.enum([
 ])
 export type PostStatus = z.infer<typeof postStatusSchema>
 
+export const droppedCollaboratorSchema = z.object({ username: z.string(), reason: z.string() })
+export type DroppedCollaborator = z.infer<typeof droppedCollaboratorSchema>
+
 export const scheduledPostSchema = z.object({
   id,
   status: postStatusSchema,
@@ -70,7 +73,9 @@ export const scheduledPostSchema = z.object({
   caption: z.string().optional(),
   url: z.url().optional(),
   failure: z.string().optional(),
-  publishedAt: z.iso.datetime({ offset: true }).optional()
+  publishedAt: z.iso.datetime({ offset: true }).optional(),
+  collaborators: z.array(z.string()).optional(),
+  droppedCollaborators: z.array(droppedCollaboratorSchema).optional()
 })
 export type ScheduledPost = z.infer<typeof scheduledPostSchema>
 
@@ -88,7 +93,7 @@ const when = { scheduledFor: z.iso.datetime(), timeZone: z.string().min(1) }
 // Instagram allows 20 people to be tagged on one post; Zernio documents no limit. ~keep
 export const TAGS_PER_POST = 20
 
-export const POST = { limit: { altText: 1000 } } as const
+export const POST = { limit: { altText: 1000, collaborators: 3 } } as const
 
 export const usernameSchema = z.string().regex(/^[A-Za-z0-9._]{1,30}$/)
 
@@ -110,9 +115,15 @@ export const newPostSchema = z
     mediaUrls: z.array(z.url()).min(1),
     mediaTypes: z.array(mediaTypeSchema).optional(),
     userTags: z.array(userTagSchema).max(TAGS_PER_POST).optional(),
-    altTexts: z.array(z.string().max(POST.limit.altText)).optional()
+    altTexts: z.array(z.string().max(POST.limit.altText)).optional(),
+    collaborators: z.array(usernameSchema).max(POST.limit.collaborators).optional()
   })
-  .superRefine(({ userTags, mediaUrls, mediaTypes, altTexts }, context) => {
+  .superRefine(({ userTags, mediaUrls, mediaTypes, altTexts, collaborators }, context) => {
+    if (
+      new Set(collaborators?.map((name) => name.toLowerCase())).size < (collaborators?.length ?? 0)
+    ) {
+      context.addIssue({ code: 'custom', path: ['collaborators'], message: 'Each one once' })
+    }
     if ((altTexts?.length ?? 0) > mediaUrls.length) {
       context.addIssue({ code: 'custom', path: ['altTexts'], message: 'No such slide' })
     }

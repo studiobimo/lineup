@@ -1,4 +1,4 @@
-import type { PostStatus, ScheduledPost } from 'lineup-contract'
+import type { NewPost, PostStatus, ScheduledPost } from 'lineup-contract'
 import { z } from 'zod'
 
 import { type Provider, ProviderError, type ProviderFailure } from './provider'
@@ -62,7 +62,15 @@ const zernioPostSchema = z.object({
         platformPostId: z.string().nullish(),
         platformPostUrl: z.string().nullish(),
         publishedAt: z.string().nullish(),
-        errorMessage: z.string().nullish()
+        errorMessage: z.string().nullish(),
+        platformSpecificData: z
+          .object({
+            collaborators: z.array(z.string()).nullish(),
+            droppedCollaborators: z
+              .array(z.object({ username: z.string(), reason: z.string() }))
+              .nullish()
+          })
+          .nullish()
       })
     )
     .nullish()
@@ -112,7 +120,9 @@ function toScheduledPost(post: ZernioPost): ScheduledPost {
     caption: post.content ?? undefined,
     url: target?.platformPostUrl ?? undefined,
     failure: target?.errorMessage ?? undefined,
-    publishedAt: target?.publishedAt ?? undefined
+    publishedAt: target?.publishedAt ?? undefined,
+    collaborators: target?.platformSpecificData?.collaborators ?? undefined,
+    droppedCollaborators: target?.platformSpecificData?.droppedCollaborators ?? undefined
   }
 }
 
@@ -354,9 +364,30 @@ function whatToKeep({ post }: z.infer<typeof keptPostSchema>) {
   return { ...(mediaItems?.length && { mediaItems }), ...(platforms?.length && { platforms }) }
 }
 
+const platformOptions = ({
+  userTags,
+  collaborators
+}: Pick<NewPost, 'userTags' | 'collaborators'>) => {
+  const options = {
+    ...(userTags?.length && { userTags }),
+    ...(collaborators?.length && { collaborators })
+  }
+  return Object.keys(options).length > 0 ? { platformSpecificData: options } : {}
+}
+
 const writeMethods = (call: Call): Pick<Provider, 'schedule' | 'update' | 'cancel'> => ({
   async schedule(
-    { accountId, caption, scheduledFor, timeZone, mediaUrls, mediaTypes, userTags, altTexts },
+    {
+      accountId,
+      caption,
+      scheduledFor,
+      timeZone,
+      mediaUrls,
+      mediaTypes,
+      userTags,
+      altTexts,
+      collaborators
+    },
     idempotencyKey
   ) {
     const { post } = await call('/posts', postSchema, {
@@ -372,11 +403,7 @@ const writeMethods = (call: Call): Pick<Provider, 'schedule' | 'update' | 'cance
           return { type, url, ...(altText && { altText }) }
         }),
         platforms: [
-          {
-            platform: PLATFORM,
-            accountId,
-            ...(userTags?.length && { platformSpecificData: { userTags } })
-          }
+          { platform: PLATFORM, accountId, ...platformOptions({ userTags, collaborators }) }
         ]
       }
     })

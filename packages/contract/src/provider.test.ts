@@ -62,6 +62,22 @@ describe('newPostSchema, alt text', () => {
   })
 })
 
+describe('newPostSchema, collaborators', () => {
+  it('takes up to three usernames', () => {
+    expect(valid({ collaborators: ['one', 'two', 'three.3'] })).toBe(true)
+    expect(
+      valid({
+        collaborators: Array.from({ length: POST.limit.collaborators + 1 }, (_, i) => `a${i}`)
+      })
+    ).toBe(false)
+  })
+
+  it('refuses a name Instagram would not take, or one given twice', () => {
+    expect(valid({ collaborators: ['@one'] })).toBe(false)
+    expect(valid({ collaborators: ['One', 'one'] })).toBe(false)
+  })
+})
+
 describe('cleanUsername', () => {
   it('drops the @ and the case', () => {
     expect(cleanUsername('  @Some.One ')).toBe('some.one')

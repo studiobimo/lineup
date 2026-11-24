@@ -128,6 +128,21 @@
       "slide": "Slide {{position}}",
       "label": "Reorder the slides",
       "instructions": "Press Space to pick up a slide, move it with the arrow keys, and press Space to drop it. Press Enter to show it."
+    },
+    "collaborators": {
+      "title": "Collaborators",
+      "label": "Invite a collaborator",
+      "placeholder": "username",
+      "add": "Add",
+      "hint": "Up to {{limit}} Instagram accounts. They get an invite, and the post is shared once they accept.",
+      "full": "That is the most Instagram allows, {{limit}} collaborators. Remove one to add another.",
+      "again": "That account is already invited.",
+      "remove": "Remove @{{name}}"
+    },
+    "facts": {
+      "collaborators_one": "Invited to collaborate: {{usernames}}",
+      "collaborators_other": "{{count}} collaborators invited: {{usernames}}",
+      "dropped": "Instagram did not invite @{{name}}: {{reason}}"
     }
   },
   "published": {

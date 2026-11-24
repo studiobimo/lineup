@@ -450,20 +450,79 @@ describe('zernio, changing a post', () => {
   })
 })
 
+const scheduleOne = async (extra: Partial<Parameters<typeof provider.schedule>[0]> = {}) => {
+  stub.mockResolvedValue(respond({ post: { _id: 'post', status: 'scheduled' } }, 201))
+  await provider.schedule(
+    {
+      accountId: 'account',
+      caption: '',
+      scheduledFor: '2030-01-01T10:00:00Z',
+      timeZone: 'Europe/Madrid',
+      mediaUrls: ['https://m.test/1.jpg'],
+      ...extra
+    },
+    'once'
+  )
+}
+
+describe('zernio, collaborators', () => {
+  it('sends them beside the tags in the Instagram options', async () => {
+    await scheduleOne({
+      userTags: [{ username: 'friend', x: 0.1, y: 0.2 }],
+      collaborators: ['one', 'two']
+    })
+    expect(sent().body).toMatchObject({
+      platforms: [
+        {
+          platformSpecificData: {
+            userTags: [{ username: 'friend', x: 0.1, y: 0.2 }],
+            collaborators: ['one', 'two']
+          }
+        }
+      ]
+    })
+  })
+
+  it('sends no options when there are none', async () => {
+    await scheduleOne({
+      collaborators: []
+    })
+    expect(JSON.stringify(sent().body)).not.toContain('platformSpecificData')
+  })
+
+  it('reports the ones Instagram dropped', async () => {
+    stub.mockResolvedValue(
+      respond({
+        posts: [
+          {
+            _id: 'post',
+            status: 'scheduled',
+            platforms: [
+              {
+                platformSpecificData: {
+                  collaborators: ['one', 'two'],
+                  droppedCollaborators: [{ username: 'two', reason: 'Account is private' }]
+                }
+              }
+            ]
+          }
+        ]
+      })
+    )
+    const [post] = await provider.scheduledPosts('account')
+    expect(post).toMatchObject({
+      collaborators: ['one', 'two'],
+      droppedCollaborators: [{ username: 'two', reason: 'Account is private' }]
+    })
+  })
+})
+
 describe('zernio, video and cancelling', () => {
   it('sends a video as one, beside the images of its carousel', async () => {
-    stub.mockResolvedValue(respond({ post: { _id: 'post', status: 'scheduled' } }, 201))
-    await provider.schedule(
-      {
-        accountId: 'account',
-        caption: '',
-        scheduledFor: '2030-01-01T10:00:00Z',
-        timeZone: 'Europe/Madrid',
-        mediaUrls: ['https://media.zernio.com/1.jpg', 'https://media.zernio.com/2.mp4'],
-        mediaTypes: ['image', 'video']
-      },
-      'once'
-    )
+    await scheduleOne({
+      mediaUrls: ['https://media.zernio.com/1.jpg', 'https://media.zernio.com/2.mp4'],
+      mediaTypes: ['image', 'video']
+    })
     expect(sent().body).toMatchObject({
       mediaItems: [
         { type: 'image', url: 'https://media.zernio.com/1.jpg' },
