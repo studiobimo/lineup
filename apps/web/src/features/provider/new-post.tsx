@@ -27,10 +27,11 @@ import { useProblemText } from './use-problem-text'
 interface NewPostProps {
   cell: string
   accountId: string
+  headerAction: HTMLElement | null
   onDone: () => void
 }
 
-export function NewPost({ cell, accountId, onDone }: NewPostProps) {
+export function NewPost({ cell, accountId, headerAction, onDone }: NewPostProps) {
   const { t } = useTranslation('provider')
   const problemText = useProblemText()
   const album = usePlanner(({ board }) => board.albums?.[cell])
@@ -94,6 +95,7 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
           : t('post.schedule')
       }
       pending={send.isPending}
+      headerAction={headerAction}
       problem={problem}
       onSubmit={send.mutateAsync}
     >

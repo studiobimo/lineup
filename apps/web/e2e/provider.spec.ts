@@ -290,6 +290,29 @@ test('the schedule dialog reorders an album from the keyboard, and undo puts it 
   await expect.poll(albumOnBoard).toEqual(before)
 })
 
+const SCREENS = [
+  { name: 'a laptop', width: 1280, height: 720 },
+  { name: 'a phone', width: 375, height: 812 }
+]
+
+for (const { name, width, height } of SCREENS) {
+  for (const count of [1, 3]) {
+    test(`Schedule is in view without scrolling on ${name}, with ${count} image(s)`, async ({
+      page
+    }) => {
+      await mockProvider(page)
+      await planOnGrid(page, count)
+      if (count > 1) await groupCells(page, grid(page), count)
+      await connect(page)
+      await page.setViewportSize({ width, height })
+      const dialog = await openSchedule(page)
+      await expect(dialog.getByRole('button', { name: 'Schedule', exact: true })).toBeInViewport({
+        ratio: 1
+      })
+    })
+  }
+}
+
 test('a single image shows no slide controls', async ({ page }) => {
   await mockProvider(page)
   await planOnGrid(page)
