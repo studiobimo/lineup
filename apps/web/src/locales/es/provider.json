@@ -123,6 +123,11 @@
       "title": "Accesibilidad",
       "hint": "Describe cada imagen para quienes usan un lector de pantalla.",
       "slide": "Texto alternativo de la diapositiva {{position}}"
+    },
+    "strip": {
+      "slide": "Diapositiva {{position}}",
+      "label": "Reordenar las diapositivas",
+      "instructions": "Pulsa Espacio para coger una diapositiva, muévela con las flechas y pulsa Espacio para soltarla. Pulsa Intro para mostrarla."
     }
   },
   "published": {

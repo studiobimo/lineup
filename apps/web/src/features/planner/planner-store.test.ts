@@ -671,6 +671,17 @@ describe('the planner store, with an album on the board', () => {
     expect(state().board.tray).toEqual([album, 'c'])
   })
 
+  it('reorders it in one step, and undo and redo restore the order', async () => {
+    const { store, album } = await grouped()
+    const { getState: state } = store
+    state().reorderAlbum(album, ['b', 'a'])
+    expect(state().board.albums?.[album]).toEqual(['b', 'a'])
+    state().undo()
+    expect(state().board.albums?.[album]).toEqual(['a', 'b'])
+    state().redo()
+    expect(state().board.albums?.[album]).toEqual(['b', 'a'])
+  })
+
   it('deletes it in one step, and undo brings every image back', async () => {
     const { boardStore, store, album } = await grouped()
     store.getState().remove([album])

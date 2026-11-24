@@ -10,6 +10,7 @@ import { fieldProps, usePostForm } from './use-post-form'
 import { CaptionField, TimeField } from './post-fields'
 import { type PostFormValues } from './post-schema'
 import { ScheduleWarning } from './schedule-warning'
+import { SlideStrip } from './slide-strip'
 import { SlideViewer } from './slide-viewer'
 import { TagPicker } from './tag-picker'
 import type { TagDraft } from './tags'
@@ -165,7 +166,12 @@ export function PostScreens({
       ) : (
         <>
           <MediaFields
-            media={<SlideViewer slides={slides} index={slide} onIndexChange={setSlide} />}
+            media={
+              <div className="flex flex-col gap-2">
+                <SlideViewer slides={slides} index={slide} onIndexChange={setSlide} />
+                <SlideStrip cell={cell} slides={slides} index={slide} onIndexChange={setSlide} />
+              </div>
+            }
           >
             <form.Field name="caption">
               {(field) => <CaptionField {...fieldProps(field)} />}
