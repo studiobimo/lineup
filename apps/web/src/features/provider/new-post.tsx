@@ -4,12 +4,10 @@ import { useTranslation } from 'react-i18next'
 
 import { toastManager } from '@/components/ui/toast'
 import { provider } from '@/config/provider'
-import { instagram } from '@/features/planner/network-profile'
 import { plannerStore, usePlanner } from '@/features/planner/planner'
 
-import { AltTextSection } from './alt-text-section'
-import { CollaboratorsSection } from './collaborators-section'
-import { NO_OPTIONS, toAltTexts } from './post-options'
+import { NO_OPTIONS, sentOptions } from './post-options'
+import { PostSections } from './post-sections'
 import { type PostFormValues } from './post-schema'
 import { PostScreens } from './post-screens'
 import {
@@ -21,9 +19,9 @@ import {
 } from './post-time'
 import { PROVIDER_KEY } from './queries'
 import { toUserTags, type TagDraft } from './tags'
-import { MissingCopyError, sendPost, VideoLimitError } from './send-post'
+import { sendPost } from './send-post'
 import { useDefaultTime } from './use-spacing'
-import { useProblemText } from './use-problem-text'
+import { useSendProblem } from './use-send-problem'
 
 interface NewPostProps {
   cell: string
@@ -34,7 +32,6 @@ interface NewPostProps {
 
 export function NewPost({ cell, accountId, headerAction, onDone }: NewPostProps) {
   const { t } = useTranslation('provider')
-  const problemText = useProblemText()
   const album = usePlanner(({ board }) => board.albums?.[cell])
   const images = useMemo(() => album ?? [cell], [album, cell])
   const [sending, setSending] = useState(0)
@@ -50,15 +47,13 @@ export function NewPost({ cell, accountId, headerAction, onDone }: NewPostProps)
     mutationFn: async ({ caption, when }: PostFormValues) => {
       const scheduledFor = fromFieldTime(when)
       const userTags = toUserTags(tags)
-      const altTexts = toAltTexts(options.altTexts, slides)
       const post = {
         accountId,
         caption,
         scheduledFor,
         timeZone: localTimeZone(),
         ...(userTags.length > 0 && { userTags }),
-        ...(altTexts && { altTexts }),
-        ...(options.collaborators.length > 0 && { collaborators: options.collaborators })
+        ...sentOptions(options, slides)
       }
       return sendPost({ cell, images, post, onImage: setSending })
     },
@@ -72,17 +67,7 @@ export function NewPost({ cell, accountId, headerAction, onDone }: NewPostProps)
     onSettled: () => setSending(0)
   })
 
-  const { error } = send
-  const problem =
-    error instanceof MissingCopyError
-      ? t('post.missingCopy')
-      : error instanceof VideoLimitError
-        ? t(`post.videoLimit.${error.limit}`, {
-            size: instagram.videoSizeLimit / 1024 / 1024,
-            minutes: instagram.reelLengthLimit / 60,
-            count: instagram.videosPerPost
-          })
-        : problemText(error)
+  const problem = useSendProblem(send.error)
 
   return (
     <PostScreens
@@ -101,15 +86,7 @@ export function NewPost({ cell, accountId, headerAction, onDone }: NewPostProps)
       problem={problem}
       onSubmit={send.mutateAsync}
     >
-      <AltTextSection
-        slides={slides}
-        altTexts={options.altTexts}
-        onChange={(altTexts) => setOptions({ ...options, altTexts })}
-      />
-      <CollaboratorsSection
-        collaborators={options.collaborators}
-        onChange={(collaborators) => setOptions({ ...options, collaborators })}
-      />
+      <PostSections slides={slides} options={options} onChange={setOptions} />
       <p className="text-sm text-muted-foreground">
         {t('post.notice', { provider: provider.name })}
       </p>
