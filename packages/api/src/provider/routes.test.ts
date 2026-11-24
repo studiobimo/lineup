@@ -339,7 +339,9 @@ describe('provider routes, with a key, scheduling', () => {
     expect(moved.status).toBe(422)
     expect(provider.update).not.toHaveBeenCalled()
   })
+})
 
+describe('provider routes, with a key, listing and cancelling', () => {
   it('needs an account to list scheduled posts, and reschedules and cancels', async () => {
     const headers = await signedIn()
     expect((await send('/scheduled-posts', { headers })).status).toBe(400)
