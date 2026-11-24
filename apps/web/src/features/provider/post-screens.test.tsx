@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -24,6 +24,8 @@ vi.mock('@/features/planner/planner', () => ({
 
 const FUTURE = '2999-01-01T10:00'
 
+const headerAction = document.body.appendChild(document.createElement('div'))
+
 function setup(problem?: string, tags: TagDraft[] = []) {
   const onSubmit = vi.fn(() => Promise.resolve())
   const view = (error?: string) => (
@@ -34,6 +36,7 @@ function setup(problem?: string, tags: TagDraft[] = []) {
       tags={tags}
       submitLabel="Schedule"
       pending={false}
+      headerAction={headerAction}
       problem={error}
       onTagsChange={() => undefined}
       onSubmit={onSubmit}
@@ -54,6 +57,14 @@ describe('PostScreens', () => {
     expect(screen.getByRole('button', { name: 'Tag accounts' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Next' })).toBeNull()
     expect(screen.queryByText(/Step 1/)).toBeNull()
+  })
+
+  it('puts Schedule in the header slot, and hides it on the tag screen', async () => {
+    const user = userEvent.setup()
+    setup()
+    expect(within(headerAction).getByRole('button', { name: 'Schedule' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tag accounts' }))
+    expect(within(headerAction).queryByRole('button')).toBeNull()
   })
 
   it('schedules without tagging', async () => {

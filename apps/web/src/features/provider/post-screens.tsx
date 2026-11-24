@@ -1,5 +1,6 @@
 import { useStore } from '@tanstack/react-form'
-import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react'
+import { type ReactNode, type RefObject, useEffect, useId, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,7 @@ interface PostScreensProps {
   tags: TagDraft[]
   submitLabel: string
   pending: boolean
+  headerAction: HTMLElement | null
   problem?: string
   children?: ReactNode
   onTagsChange: (tags: TagDraft[]) => void
@@ -72,22 +74,34 @@ function TaggingScreen({
 interface MainActionsProps {
   open: RefObject<HTMLButtonElement | null>
   tagCount: number
-  submitLabel: string
-  pending: boolean
   onTag: () => void
 }
 
-function MainActions({ open, tagCount, submitLabel, pending, onTag }: MainActionsProps) {
+function MainActions({ open, tagCount, onTag }: MainActionsProps) {
   const { t } = useTranslation('provider')
   return (
     <div className="flex flex-wrap justify-end gap-2">
       <Button ref={open} type="button" variant="secondary" onClick={onTag}>
         {t(tagCount > 0 ? 'post.screens.tagCount' : 'post.screens.tag', { count: tagCount })}
       </Button>
-      <Button type="submit" loading={pending}>
-        {submitLabel}
-      </Button>
     </div>
+  )
+}
+
+interface SubmitActionProps {
+  target: HTMLElement | null
+  form: string
+  label: string
+  pending: boolean
+}
+
+function SubmitAction({ target, form, label, pending }: SubmitActionProps) {
+  if (!target) return null
+  return createPortal(
+    <Button type="submit" form={form} loading={pending}>
+      {label}
+    </Button>,
+    target
   )
 }
 
@@ -124,6 +138,30 @@ function TaggedNote({ tags }: { tags: TagDraft[] }) {
   )
 }
 
+interface MainFieldsProps {
+  cell: string
+  form: ReturnType<typeof usePostForm>
+  tags: TagDraft[]
+  problem?: string
+  children?: ReactNode
+}
+
+function MainFields({ cell, form, tags, problem, children }: MainFieldsProps) {
+  const when = useStore(form.store, ({ values }) => values.when)
+  return (
+    <>
+      <form.Field name="caption">{(field) => <CaptionField {...fieldProps(field)} />}</form.Field>
+      <form.Field name="when">
+        {(field) => <TimeField cell={cell} {...fieldProps(field)} />}
+      </form.Field>
+      <TaggedNote tags={tags} />
+      <ScheduleWarning cell={cell} when={when} onUse={(time) => form.setFieldValue('when', time)} />
+      {children}
+      <ErrorNotice text={problem} />
+    </>
+  )
+}
+
 export function PostScreens({
   cell,
   initial,
@@ -131,6 +169,7 @@ export function PostScreens({
   tags,
   submitLabel,
   pending,
+  headerAction,
   problem,
   children,
   onTagsChange,
@@ -140,12 +179,13 @@ export function PostScreens({
   const [slide, setSlide] = useState(0)
   const { heading, open } = useScreenFocus(tagging)
   const form = usePostForm(initial, onSubmit)
-  const when = useStore(form.store, ({ values }) => values.when)
+  const formId = useId()
 
   useMainScreenOnProblem(problem, () => setTagging(false))
 
   return (
     <form
+      id={formId}
       className="flex flex-col gap-3"
       onSubmit={(event) => {
         event.preventDefault()
@@ -165,6 +205,7 @@ export function PostScreens({
         />
       ) : (
         <>
+          <SubmitAction target={headerAction} form={formId} label={submitLabel} pending={pending} />
           <MediaFields
             media={
               <div className="flex flex-col gap-2">
@@ -173,28 +214,11 @@ export function PostScreens({
               </div>
             }
           >
-            <form.Field name="caption">
-              {(field) => <CaptionField {...fieldProps(field)} />}
-            </form.Field>
-            <form.Field name="when">
-              {(field) => <TimeField cell={cell} {...fieldProps(field)} />}
-            </form.Field>
-            <TaggedNote tags={tags} />
-            <ScheduleWarning
-              cell={cell}
-              when={when}
-              onUse={(time) => form.setFieldValue('when', time)}
-            />
-            {children}
-            <ErrorNotice text={problem} />
+            <MainFields cell={cell} form={form} tags={tags} problem={problem}>
+              {children}
+            </MainFields>
           </MediaFields>
-          <MainActions
-            open={open}
-            tagCount={tags.length}
-            submitLabel={submitLabel}
-            pending={pending}
-            onTag={() => setTagging(true)}
-          />
+          <MainActions open={open} tagCount={tags.length} onTag={() => setTagging(true)} />
         </>
       )}
     </form>
