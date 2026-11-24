@@ -1,8 +1,9 @@
 export interface PostOptions {
   altTexts: string[]
+  collaborators: string[]
 }
 
-export const NO_OPTIONS: PostOptions = { altTexts: [] }
+export const NO_OPTIONS: PostOptions = { altTexts: [], collaborators: [] }
 
 interface Slide {
   id: string

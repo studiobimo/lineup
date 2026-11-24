@@ -116,16 +116,16 @@ There are no accounts, sessions or bearer tokens ([ADR-0008](adr/0008-sealed-pro
 
 All under `/api/v1/provider`, and the whole list. Each needs the sealed cookie except `PUT key`.
 
-| Route                              | Purpose                                                                                          |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `GET /accounts`                    | The Instagram accounts this key can reach                                                        |
-| `GET /connect-url`                 | Where to connect an account, for a key with none                                                 |
-| `GET /accounts/{id}/posts`         | What is already live, newest first                                                               |
-| `POST /uploads`                    | An upload URL. The browser sends the image straight to it                                        |
-| `GET /scheduled-posts?accountId=…` | Posts made through Lineup, with their status                                                     |
-| `POST /scheduled-posts`            | Schedule, with tags and alt text if any. Needs `Idempotency-Key`, and refuses a time in the past |
-| `PATCH /scheduled-posts/{id}`      | Change the time or the caption until it is published. Everything else is kept as scheduled       |
-| `DELETE /scheduled-posts/{id}`     | Cancel. Refused once it is published                                                             |
+| Route                              | Purpose                                                                                                         |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `GET /accounts`                    | The Instagram accounts this key can reach                                                                       |
+| `GET /connect-url`                 | Where to connect an account, for a key with none                                                                |
+| `GET /accounts/{id}/posts`         | What is already live, newest first                                                                              |
+| `POST /uploads`                    | An upload URL. The browser sends the image straight to it                                                       |
+| `GET /scheduled-posts?accountId=…` | Posts made through Lineup, with their status                                                                    |
+| `POST /scheduled-posts`            | Schedule, with tags, alt text and collaborators if any. Needs `Idempotency-Key`, and refuses a time in the past |
+| `PATCH /scheduled-posts/{id}`      | Change the time or the caption until it is published. Everything else is kept as scheduled                      |
+| `DELETE /scheduled-posts/{id}`     | Cancel. Refused once it is published                                                                            |
 
 `userTags` on a schedule request holds up to 20 `{ username, x?, y?, mediaIndex? }`. `x` and `y` run
 from 0 to 1 from the top left and are required on an image; a video ignores them. `mediaIndex` is
@@ -138,6 +138,10 @@ left out, and so is any for a video. The API sends them as `mediaItems[].altText
 A change reads the post from the provider first and sends its `mediaItems` and `platforms` back
 whole with the new time and caption, so alt text, tags and every other option stay as scheduled.
 The provider does not say that leaving them out keeps them.
+
+`collaborators` holds up to three Instagram usernames, each once, sent as
+`platformSpecificData.collaborators`. A scheduled post lists them and, once Instagram has refused
+any, `droppedCollaborators` with the username and the reason it gave.
 
 ## Telemetry
 

@@ -128,6 +128,21 @@
       "slide": "Diapositiva {{position}}",
       "label": "Reordenar las diapositivas",
       "instructions": "Pulsa Espacio para coger una diapositiva, muévela con las flechas y pulsa Espacio para soltarla. Pulsa Intro para mostrarla."
+    },
+    "collaborators": {
+      "title": "Colaboradores",
+      "label": "Invitar a un colaborador",
+      "placeholder": "usuario",
+      "add": "Añadir",
+      "hint": "Hasta {{limit}} cuentas de Instagram. Reciben una invitación y la publicación se comparte cuando la aceptan.",
+      "full": "Es el máximo que permite Instagram, {{limit}} colaboradores. Quita uno para añadir otro.",
+      "again": "Esa cuenta ya está invitada.",
+      "remove": "Quitar a @{{name}}"
+    },
+    "facts": {
+      "collaborators_one": "Invitado a colaborar: {{usernames}}",
+      "collaborators_other": "{{count}} colaboradores invitados: {{usernames}}",
+      "dropped": "Instagram no invitó a @{{name}}: {{reason}}"
     }
   },
   "published": {

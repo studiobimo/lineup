@@ -8,6 +8,7 @@ import { instagram } from '@/features/planner/network-profile'
 import { plannerStore, usePlanner } from '@/features/planner/planner'
 
 import { AltTextSection } from './alt-text-section'
+import { CollaboratorsSection } from './collaborators-section'
 import { NO_OPTIONS, toAltTexts } from './post-options'
 import { type PostFormValues } from './post-schema'
 import { PostScreens } from './post-screens'
@@ -56,7 +57,8 @@ export function NewPost({ cell, accountId, headerAction, onDone }: NewPostProps)
         scheduledFor,
         timeZone: localTimeZone(),
         ...(userTags.length > 0 && { userTags }),
-        ...(altTexts && { altTexts })
+        ...(altTexts && { altTexts }),
+        ...(options.collaborators.length > 0 && { collaborators: options.collaborators })
       }
       return sendPost({ cell, images, post, onImage: setSending })
     },
@@ -103,6 +105,10 @@ export function NewPost({ cell, accountId, headerAction, onDone }: NewPostProps)
         slides={slides}
         altTexts={options.altTexts}
         onChange={(altTexts) => setOptions({ ...options, altTexts })}
+      />
+      <CollaboratorsSection
+        collaborators={options.collaborators}
+        onChange={(collaborators) => setOptions({ ...options, collaborators })}
       />
       <p className="text-sm text-muted-foreground">
         {t('post.notice', { provider: provider.name })}

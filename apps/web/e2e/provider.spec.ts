@@ -174,6 +174,27 @@ test('alt text is written under Accessibility and sent with the picture', async 
   expect(provider.bodies[at]).toMatchObject({ altTexts: ['A grey cat on a sofa'] })
 })
 
+test('collaborators are invited, and a fourth is refused', async ({ page }) => {
+  const provider = await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  await dialog.getByRole('button', { name: 'Collaborators' }).click()
+  const name = dialog.getByLabel('Invite a collaborator')
+  for (const friend of ['one', 'two', 'three']) {
+    await name.fill(friend)
+    await name.press('Enter')
+  }
+  await expect(name).toBeDisabled()
+  await expect(dialog.getByText(/most Instagram allows, 3 collaborators/)).toBeVisible()
+  await schedule(dialog)
+  await expect(dialog).toBeHidden()
+
+  const at = provider.requests.indexOf('POST /scheduled-posts')
+  expect(provider.bodies[at]).toMatchObject({ collaborators: ['one', 'two', 'three'] })
+})
+
 test('a planned image is sent, scheduled and held in place', async ({ page }) => {
   const errors = watchErrors(page)
   const provider = await mockProvider(page)
