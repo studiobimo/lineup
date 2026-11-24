@@ -1,4 +1,4 @@
-import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
+import { closestCenter, DndContext, type DragEndEvent, type Modifier } from '@dnd-kit/core'
 import {
   arrayMove,
   horizontalListSortingStrategy,
@@ -19,6 +19,8 @@ import { cn } from '@/lib/utils'
 import type { Slide } from './slide-viewer'
 
 const { width, height } = instagram.cellRatio
+
+const horizontalOnly: Modifier = ({ transform }) => ({ ...transform, y: 0 })
 
 interface SlideStripProps {
   cell: string
@@ -99,12 +101,13 @@ export function SlideStrip({ cell, slides, index, onIndexChange }: SlideStripPro
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      modifiers={[horizontalOnly]}
       accessibility={accessibility}
       onDragEnd={reorder}
     >
       <SortableContext items={ids} strategy={horizontalListSortingStrategy}>
         <div
-          className="flex gap-1 overflow-x-auto p-1"
+          className="flex gap-1 overflow-x-auto overflow-y-hidden p-1"
           aria-label={t('post.strip.label')}
           role="group"
         >
