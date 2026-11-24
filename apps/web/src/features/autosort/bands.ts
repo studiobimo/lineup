@@ -1,3 +1,5 @@
+import { harmonise, seamGap } from './harmony'
+
 export interface BandCell {
   id: string
   tone: number
@@ -27,6 +29,27 @@ const sortedBy = (cells: BandCell[], key: (cell: BandCell) => number) =>
 const inShootOrder = (cells: BandCell[]) =>
   sortedBy(cells, (cell) => (cell.takenAt === undefined ? colourKey(cell) : -cell.takenAt))
 
+function spread(cells: BandCell[]) {
+  const colours = sortedBy(
+    cells.filter(({ hue }) => hue !== null),
+    colourKey
+  )
+  const neutrals = sortedBy(
+    cells.filter(({ hue }) => hue === null),
+    ({ tone }) => tone
+  )
+  const share = (taken: number, total: number) => (taken + 0.5) / total
+  const merged: BandCell[] = []
+  let [colour, neutral] = [0, 0]
+  while (merged.length < cells.length) {
+    const takeColour =
+      neutral >= neutrals.length ||
+      (colour < colours.length && share(colour, colours.length) <= share(neutral, neutrals.length))
+    merged.push(takeColour ? colours[colour++] : neutrals[neutral++])
+  }
+  return merged
+}
+
 function inBandOrder(pool: BandCell[]) {
   const shoots = new Map<string, BandCell[]>()
   const unknown: BandCell[] = []
@@ -39,7 +62,7 @@ function inBandOrder(pool: BandCell[]) {
   const ordered = [...shoots.values()]
     .map(inShootOrder)
     .sort((one, other) => newest(other) - newest(one) || (one[0].id < other[0].id ? -1 : 1))
-  return [...ordered.flat(), ...sortedBy(unknown, colourKey)]
+  return [...ordered.flat(), ...spread(unknown)]
 }
 
 function chunks(cells: BandCell[], size: number) {
@@ -96,15 +119,20 @@ function closestToNeighbours(
   const nearestBand = meanTone(neighbours.slice(0, size))
   const gap = (order: BandCell[]) =>
     Math.abs(meanTone(order.slice(-columns)) - nearestRow) +
-    Math.abs(meanTone(order.slice(-size)) - nearestBand)
+    Math.abs(meanTone(order.slice(-size)) - nearestBand) +
+    seamGap(order, neighbours, columns)
   return options.reduce((best, option) => (gap(option) < gap(best) ? option : best))
 }
 
 export function bands({ cells, rowsPerBand, columns, neighbours = [] }: BandsRequest) {
   const size = rowsPerBand * columns
+  const settled = (order: BandCell[]) =>
+    harmonise(order, { columns, neighbours, isFixed: isAccent })
   const dark = arrange(cells, size, columns, true)
-  if (neighbours.length === 0 || cells.length === 0) return dark.map(({ id }) => id)
+  if (neighbours.length === 0 || cells.length === 0) return settled(dark).map(({ id }) => id)
   const light = arrange(cells, size, columns, false)
   const options = [dark, light].flatMap((order) => [order, rowsReversed(order, columns)])
-  return closestToNeighbours(options, { columns, size, neighbours }).map(({ id }) => id)
+  return closestToNeighbours(options.map(settled), { columns, size, neighbours }).map(
+    ({ id }) => id
+  )
 }
