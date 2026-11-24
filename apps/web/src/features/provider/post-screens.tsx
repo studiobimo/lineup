@@ -10,7 +10,7 @@ import { fieldProps, usePostForm } from './use-post-form'
 import { CaptionField, TimeField } from './post-fields'
 import { type PostFormValues } from './post-schema'
 import { ScheduleWarning } from './schedule-warning'
-import { PostThumbnail } from './post-thumbnail'
+import { SlideViewer } from './slide-viewer'
 import { TagPicker } from './tag-picker'
 import type { TagDraft } from './tags'
 
@@ -29,20 +29,36 @@ interface PostScreensProps {
 
 interface TaggingScreenProps {
   slides: PostScreensProps['slides']
+  index: number
+  onIndexChange: (index: number) => void
   tags: TagDraft[]
   heading: RefObject<HTMLHeadingElement | null>
   onChange: (tags: TagDraft[]) => void
   onDone: () => void
 }
 
-function TaggingScreen({ slides, tags, heading, onChange, onDone }: TaggingScreenProps) {
+function TaggingScreen({
+  slides,
+  index,
+  onIndexChange,
+  tags,
+  heading,
+  onChange,
+  onDone
+}: TaggingScreenProps) {
   const { t } = useTranslation('provider')
   return (
     <>
       <h3 ref={heading} tabIndex={-1} className="text-base font-medium outline-none">
         {t('post.tags.title')}
       </h3>
-      <TagPicker slides={slides} tags={tags} onChange={onChange} />
+      <TagPicker
+        slides={slides}
+        index={index}
+        onIndexChange={onIndexChange}
+        tags={tags}
+        onChange={onChange}
+      />
       <div className="flex justify-end gap-2">
         <Button type="button" onClick={onDone}>
           {t('post.screens.done')}
@@ -87,6 +103,26 @@ function useScreenFocus(tagging: boolean) {
   return { heading, open }
 }
 
+function useMainScreenOnProblem(problem: string | undefined, onProblem: () => void) {
+  // A refusal from the server, such as a time already past, shows on the main screen. ~keep
+  const [seen, setSeen] = useState(problem)
+  if (problem !== seen) {
+    setSeen(problem)
+    if (problem) onProblem()
+  }
+}
+
+function TaggedNote({ tags }: { tags: TagDraft[] }) {
+  const { t } = useTranslation('provider')
+  if (tags.length === 0) return null
+  const usernames = tags.map(({ username }) => `@${username}`).join(', ')
+  return (
+    <p className="text-xs text-muted-foreground wrap-anywhere">
+      {t('post.screens.tagged', { count: tags.length, usernames })}
+    </p>
+  )
+}
+
 export function PostScreens({
   cell,
   initial,
@@ -99,20 +135,13 @@ export function PostScreens({
   onTagsChange,
   onSubmit
 }: PostScreensProps) {
-  const { t } = useTranslation('provider')
   const [tagging, setTagging] = useState(false)
+  const [slide, setSlide] = useState(0)
   const { heading, open } = useScreenFocus(tagging)
   const form = usePostForm(initial, onSubmit)
   const when = useStore(form.store, ({ values }) => values.when)
 
-  // A refusal from the server, such as a time already past, shows on the main screen. ~keep
-  const [seen, setSeen] = useState(problem)
-  if (problem !== seen) {
-    setSeen(problem)
-    if (problem) setTagging(false)
-  }
-
-  const usernames = tags.map(({ username }) => `@${username}`).join(', ')
+  useMainScreenOnProblem(problem, () => setTagging(false))
 
   return (
     <form
@@ -126,6 +155,8 @@ export function PostScreens({
       {tagging ? (
         <TaggingScreen
           slides={slides}
+          index={slide}
+          onIndexChange={setSlide}
           tags={tags}
           heading={heading}
           onChange={onTagsChange}
@@ -133,18 +164,16 @@ export function PostScreens({
         />
       ) : (
         <>
-          <MediaFields media={<PostThumbnail cell={cell} className="w-full" />}>
+          <MediaFields
+            media={<SlideViewer slides={slides} index={slide} onIndexChange={setSlide} />}
+          >
             <form.Field name="caption">
               {(field) => <CaptionField {...fieldProps(field)} />}
             </form.Field>
             <form.Field name="when">
               {(field) => <TimeField cell={cell} {...fieldProps(field)} />}
             </form.Field>
-            {tags.length > 0 && (
-              <p className="text-xs text-muted-foreground wrap-anywhere">
-                {t('post.screens.tagged', { count: tags.length, usernames })}
-              </p>
-            )}
+            <TaggedNote tags={tags} />
             <ScheduleWarning
               cell={cell}
               when={when}

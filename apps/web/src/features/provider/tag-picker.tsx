@@ -15,18 +15,16 @@ import { Thumbnail } from '@/features/planner/thumbnail'
 import { cn } from '@/lib/utils'
 
 import { MediaFields } from './media-fields'
+import { type Slide } from './slide-viewer'
 import { TagPicture } from './tag-picture'
 import { isValidName, mayAddTag, type TagDraft, typedUsername } from './tags'
 
 const { width, height } = instagram.cellRatio
 
-interface Slide {
-  id: string
-  video: boolean
-}
-
 interface TagPickerProps {
   slides: Slide[]
+  index: number
+  onIndexChange: (index: number) => void
   tags: TagDraft[]
   onChange: (tags: TagDraft[]) => void
 }
@@ -265,8 +263,7 @@ function TagMedia({ slide, ratio, here, pending, selected, full, handlers }: Tag
   )
 }
 
-function useTagEditor(tags: TagDraft[], onChange: (tags: TagDraft[]) => void) {
-  const [index, setIndex] = useState(0)
+function useTagEditor(tags: TagDraft[], index: number, onChange: (tags: TagDraft[]) => void) {
   const [selected, setSelected] = useState<string>()
   // A place the user has chosen but not yet named. It becomes a tag only on confirming a name. ~keep
   const [pending, setPending] = useState<{ index: number; x?: number; y?: number }>()
@@ -305,8 +302,6 @@ function useTagEditor(tags: TagDraft[], onChange: (tags: TagDraft[]) => void) {
   }
 
   return {
-    index,
-    setIndex,
     selected,
     setSelected,
     pendingHere,
@@ -320,11 +315,16 @@ function useTagEditor(tags: TagDraft[], onChange: (tags: TagDraft[]) => void) {
   }
 }
 
-export function TagPicker({ slides, tags, onChange }: TagPickerProps) {
+export function TagPicker({
+  slides,
+  index: opened,
+  onIndexChange,
+  tags,
+  onChange
+}: TagPickerProps) {
   const { t } = useTranslation('provider')
+  const index = Math.min(opened, slides.length - 1)
   const {
-    index,
-    setIndex,
     selected,
     setSelected,
     pendingHere,
@@ -335,7 +335,7 @@ export function TagPicker({ slides, tags, onChange }: TagPickerProps) {
     place,
     confirm,
     remove
-  } = useTagEditor(tags, onChange)
+  } = useTagEditor(tags, index, onChange)
   const slide = slides[index] ?? slides[0]
   const size = usePlanner(({ images }) => images[slide.id])
   const here = tags.filter(({ mediaIndex = 0 }) => mediaIndex === index)
@@ -366,7 +366,7 @@ export function TagPicker({ slides, tags, onChange }: TagPickerProps) {
           index={index}
           onPick={(position) => {
             discard()
-            setIndex(position)
+            onIndexChange(position)
           }}
         />
         <TagList

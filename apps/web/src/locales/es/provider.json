@@ -110,6 +110,14 @@
       "noRoom": "No hay un momento entre estas publicaciones que deje espacio suficiente. Aun así puedes programarla.",
       "use": "Usar {{time}}",
       "legend": "Las horas marcadas quedan demasiado cerca de una publicación ya programada: {{image}} minutos para fotos, {{video}} para un vídeo y más si es grande."
+    },
+    "viewer": {
+      "carousel": "carrusel",
+      "label": "Las diapositivas de la publicación",
+      "position": "Diapositiva {{position}} de {{count}}",
+      "previous": "Diapositiva anterior",
+      "next": "Diapositiva siguiente",
+      "go": "Mostrar diapositiva {{position}} de {{count}}"
     }
   },
   "published": {

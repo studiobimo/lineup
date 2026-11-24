@@ -220,6 +220,36 @@ test('an album goes as one post, and each image on its own', async ({ page }) =>
   expect(provider.bodies[at].mediaUrls).toHaveLength(2)
 })
 
+test('the schedule dialog steps through every slide of an album', async ({ page }) => {
+  await mockProvider(page)
+  await planOnGrid(page, 3)
+  await groupCells(page, grid(page), 3)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  const viewer = dialog.getByRole('group', { name: "The post's slides" })
+  await expect(viewer.getByRole('tab', { name: /^Show slide/ })).toHaveCount(3)
+  await expect(viewer.locator('canvas')).toHaveCount(1)
+  await dialog.getByRole('button', { name: 'Next slide' }).click()
+  await viewer.getByRole('tab', { name: 'Show slide 2 of 3' }).focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(dialog.getByRole('button', { name: 'Next slide' })).toBeDisabled()
+  await expect(viewer.locator('canvas')).toHaveCount(1)
+  await dialog.getByRole('button', { name: 'Tag accounts', exact: true }).click()
+  await expect(dialog.getByRole('button', { name: /^Slide 3/ })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
+})
+
+test('a single image shows no slide controls', async ({ page }) => {
+  await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+  const dialog = await openSchedule(page)
+  await expect(dialog.getByRole('button', { name: 'Next slide' })).toHaveCount(0)
+})
+
 test('a retry after a lost answer does not post twice', async ({ page }) => {
   const provider = await mockProvider(page, { loseNextAnswer: true })
   await planOnGrid(page)
