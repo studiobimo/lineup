@@ -13,7 +13,9 @@ interface MediaFieldsProps {
 export function MediaFields({ media, children, className }: MediaFieldsProps) {
   return (
     <div className={cn('grid gap-4 sm:grid-cols-[22rem_minmax(0,1fr)]', className)}>
-      <div className="mx-auto w-full max-w-72 sm:max-w-none">{media}</div>
+      <div className="mx-auto w-full max-w-72 sm:sticky sm:top-6 sm:max-w-none sm:self-start">
+        {media}
+      </div>
       <div className="flex min-w-0 flex-col gap-3">{children}</div>
     </div>
   )

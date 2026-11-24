@@ -7,6 +7,9 @@ import { cellShape } from '@/features/planner/network-profile'
 import { Thumbnail } from '@/features/planner/thumbnail'
 import { cn } from '@/lib/utils'
 
+const ARROW =
+  'absolute top-1/2 -translate-y-1/2 rounded-full border-border bg-background text-foreground shadow-md dark:bg-background'
+
 export interface Slide {
   id: string
   video: boolean
@@ -43,20 +46,18 @@ export function SlideViewer({ slides, index, onIndexChange, className }: SlideVi
           </p>
           <IconButton
             type="button"
-            variant="secondary"
             label={t('post.viewer.previous')}
             disabled={current === 0}
-            className="absolute top-1/2 left-2 -translate-y-1/2 rounded-full"
+            className={cn(ARROW, 'left-2')}
             onClick={() => go(current - 1)}
           >
             <ChevronLeft />
           </IconButton>
           <IconButton
             type="button"
-            variant="secondary"
             label={t('post.viewer.next')}
             disabled={current === last}
-            className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full"
+            className={cn(ARROW, 'right-2')}
             onClick={() => go(current + 1)}
           >
             <ChevronRight />

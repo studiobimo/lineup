@@ -217,8 +217,8 @@ export function PostScreens({
             <MainFields cell={cell} form={form} tags={tags} problem={problem}>
               {children}
             </MainFields>
+            <MainActions open={open} tagCount={tags.length} onTag={() => setTagging(true)} />
           </MediaFields>
-          <MainActions open={open} tagCount={tags.length} onTag={() => setTagging(true)} />
         </>
       )}
     </form>
