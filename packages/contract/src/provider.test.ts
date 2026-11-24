@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { cleanUsername, newPostSchema, TAGS_PER_POST } from './provider'
+import {
+  cleanUsername,
+  newPostSchema,
+  SOONEST_MINUTES,
+  SOONEST_MS,
+  soonestSchedule,
+  TAGS_PER_POST
+} from './provider'
 
 const post = (extra: object = {}) => ({
   accountId: 'account',
@@ -44,5 +51,24 @@ describe('newPostSchema, user tags', () => {
 describe('cleanUsername', () => {
   it('drops the @ and the case', () => {
     expect(cleanUsername('  @Some.One ')).toBe('some.one')
+  })
+})
+
+describe('soonestSchedule', () => {
+  const now = Date.parse('2030-06-01T09:10:30.000Z')
+
+  it('is 20 minutes away', () => {
+    expect(SOONEST_MINUTES).toBe(20)
+    expect(SOONEST_MS).toBe(20 * 60_000)
+  })
+
+  it('lands on the first whole minute at least 20 minutes away', () => {
+    expect(soonestSchedule(now).toISOString()).toBe('2030-06-01T09:31:00.000Z')
+    const onTheMinute = Date.parse('2030-06-01T09:10:00.000Z')
+    expect(soonestSchedule(onTheMinute).toISOString()).toBe('2030-06-01T09:30:00.000Z')
+  })
+
+  it('is never nearer than the minimum', () => {
+    expect(soonestSchedule(now).getTime() - now).toBeGreaterThanOrEqual(SOONEST_MS)
   })
 })

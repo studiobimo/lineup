@@ -1,3 +1,4 @@
+import { SOONEST_MS } from 'lineup-contract'
 import { describe, expect, it } from 'vitest'
 
 import type { CellPost } from '@/features/planner/board-schema'
@@ -135,6 +136,19 @@ describe('the time a new post starts at', () => {
   it('is where it was asked to start when nothing is near', () => {
     expect(defaultAt({}, 'a', 60)).toBe(60)
     expect(defaultAt({ c: post(0) }, 'a', 60)).toBe(60)
+  })
+
+  it('never starts before the soonest time, even when asked to', () => {
+    const soonest = T0 + SOONEST_MS
+    const time = defaultTime({
+      board: board({}),
+      images,
+      sizes: {},
+      cell: 'a',
+      from: T0,
+      soonest
+    }).getTime()
+    expect(time).toBe(soonest)
   })
 
   it('leaves the post older on the grid its gap, when that is later', () => {
