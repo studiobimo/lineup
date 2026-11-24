@@ -45,7 +45,7 @@
     "captionOver": "{{over}} over the limit of {{limit}}",
     "time": "Date and time",
     "timeZone": "In your time zone, {{zone}}.",
-    "timeInvalid": "Pick a time that is still to come.",
+    "timeInvalid": "Pick a time at least {{minutes}} minutes from now.",
     "outOfOrder": "With this time, posts will not go out in the order of your grid.",
     "notice": "When you schedule, the images and caption are sent to {{provider}} and Instagram. When it is published, one anonymous note of its kind, size and delay is sent to Lineup. Nothing else leaves this device.",
     "noKey": "Add your key in Settings to schedule this.",
@@ -137,7 +137,7 @@
     "key_not_allowed": "This key is not allowed to do that.",
     "profile_required": "Choose a profile for this key.",
     "idempotency_required": "This request was missing something. Reload the page and try again.",
-    "time_in_past": "That time has passed. Pick a later one.",
+    "time_in_past": "Pick a time at least {{minutes}} minutes from now.",
     "provider_refused": "This was refused.",
     "provider_busy": "This is still being worked on. Try again in a moment.",
     "provider_failed": "The scheduling service did not answer. Try again in a moment."

@@ -1,4 +1,4 @@
-import { soonestSchedule } from 'lineup-contract'
+import { SOONEST_MINUTES, soonestSchedule } from 'lineup-contract'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -98,7 +98,9 @@ export function TimeField({
           showInvalid && 'text-destructive-foreground'
         )}
       >
-        {showInvalid ? t('post.timeInvalid') : t('post.timeZone', { zone: localTimeZone() })}
+        {showInvalid
+          ? t('post.timeInvalid', { minutes: SOONEST_MINUTES })
+          : t('post.timeZone', { zone: localTimeZone() })}
       </p>
     </div>
   )

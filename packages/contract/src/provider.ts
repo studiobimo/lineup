@@ -76,7 +76,8 @@ export type ScheduledPost = z.infer<typeof scheduledPostSchema>
 
 // ~keep Both sides need it: the API refuses a post nearer than this, and the web app blocks the
 // same times before they are sent.
-export const SOONEST_MS = 60_000
+export const SOONEST_MINUTES = 20
+export const SOONEST_MS = SOONEST_MINUTES * 60_000
 
 // ~keep The earliest time worth offering, on a whole minute so it matches a picker column.
 export const soonestSchedule = (now = Date.now()) =>

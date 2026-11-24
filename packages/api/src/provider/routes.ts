@@ -11,6 +11,7 @@ import {
   postChangesSchema,
   publishedPostSchema,
   scheduledPostSchema,
+  SOONEST_MINUTES,
   SOONEST_MS,
   uploadRequestSchema,
   uploadSchema
@@ -50,7 +51,7 @@ function notInThePast(scheduledFor: string) {
   throw new ProblemError({
     status: 422,
     code: 'time_in_past',
-    title: 'Pick a time later than now'
+    title: `Pick a time at least ${SOONEST_MINUTES} minutes from now`
   })
 }
 

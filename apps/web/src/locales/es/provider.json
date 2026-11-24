@@ -45,7 +45,7 @@
     "captionOver": "{{over}} por encima del límite de {{limit}}",
     "time": "Fecha y hora",
     "timeZone": "En tu zona horaria, {{zone}}.",
-    "timeInvalid": "Elige una hora que aún no haya pasado.",
+    "timeInvalid": "Elige una hora al menos {{minutes}} minutos a partir de ahora.",
     "outOfOrder": "Con esta hora, las publicaciones no saldrán en el orden de tu cuadrícula.",
     "notice": "Al programar, las imágenes y el pie de foto se envían a {{provider}} y a Instagram. Cuando se publica, se envía a Lineup una nota anónima con su tipo, tamaño y retraso. Nada más sale de este dispositivo.",
     "noKey": "Añade tu clave en Ajustes para programar esto.",
@@ -137,7 +137,7 @@
     "key_not_allowed": "Esta clave no tiene permiso para hacer eso.",
     "profile_required": "Elige un perfil para esta clave.",
     "idempotency_required": "A esta solicitud le faltaba algo. Recarga la página e inténtalo de nuevo.",
-    "time_in_past": "Esa hora ya pasó. Elige una posterior.",
+    "time_in_past": "Elige una hora al menos {{minutes}} minutos a partir de ahora.",
     "provider_refused": "Se rechazó esto.",
     "provider_busy": "Todavía se está procesando. Inténtalo de nuevo en un momento.",
     "provider_failed": "El servicio de programación no respondió. Inténtalo de nuevo en un momento."

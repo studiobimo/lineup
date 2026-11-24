@@ -285,7 +285,7 @@ test('the schedule form says what is wrong, beside the field it is about', async
   await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
   await expect(dialog.getByLabel('Caption')).toHaveAccessibleDescription('1 over the limit of 2200')
   await expect(dialog.getByLabel('Date and time')).toHaveAccessibleDescription(
-    'Pick a time that is still to come.'
+    'Pick a time at least 20 minutes from now.'
   )
   expect(await violations(page)).toEqual([])
 
