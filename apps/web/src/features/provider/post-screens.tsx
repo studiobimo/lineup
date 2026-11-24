@@ -103,6 +103,26 @@ function useScreenFocus(tagging: boolean) {
   return { heading, open }
 }
 
+function useMainScreenOnProblem(problem: string | undefined, onProblem: () => void) {
+  // A refusal from the server, such as a time already past, shows on the main screen. ~keep
+  const [seen, setSeen] = useState(problem)
+  if (problem !== seen) {
+    setSeen(problem)
+    if (problem) onProblem()
+  }
+}
+
+function TaggedNote({ tags }: { tags: TagDraft[] }) {
+  const { t } = useTranslation('provider')
+  if (tags.length === 0) return null
+  const usernames = tags.map(({ username }) => `@${username}`).join(', ')
+  return (
+    <p className="text-xs text-muted-foreground wrap-anywhere">
+      {t('post.screens.tagged', { count: tags.length, usernames })}
+    </p>
+  )
+}
+
 export function PostScreens({
   cell,
   initial,
@@ -115,21 +135,13 @@ export function PostScreens({
   onTagsChange,
   onSubmit
 }: PostScreensProps) {
-  const { t } = useTranslation('provider')
   const [tagging, setTagging] = useState(false)
   const [slide, setSlide] = useState(0)
   const { heading, open } = useScreenFocus(tagging)
   const form = usePostForm(initial, onSubmit)
   const when = useStore(form.store, ({ values }) => values.when)
 
-  // A refusal from the server, such as a time already past, shows on the main screen. ~keep
-  const [seen, setSeen] = useState(problem)
-  if (problem !== seen) {
-    setSeen(problem)
-    if (problem) setTagging(false)
-  }
-
-  const usernames = tags.map(({ username }) => `@${username}`).join(', ')
+  useMainScreenOnProblem(problem, () => setTagging(false))
 
   return (
     <form
@@ -161,11 +173,7 @@ export function PostScreens({
             <form.Field name="when">
               {(field) => <TimeField cell={cell} {...fieldProps(field)} />}
             </form.Field>
-            {tags.length > 0 && (
-              <p className="text-xs text-muted-foreground wrap-anywhere">
-                {t('post.screens.tagged', { count: tags.length, usernames })}
-              </p>
-            )}
+            <TaggedNote tags={tags} />
             <ScheduleWarning
               cell={cell}
               when={when}
