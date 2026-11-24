@@ -10,7 +10,7 @@ import { fieldProps, usePostForm } from './use-post-form'
 import { CaptionField, TimeField } from './post-fields'
 import { type PostFormValues } from './post-schema'
 import { ScheduleWarning } from './schedule-warning'
-import { PostThumbnail } from './post-thumbnail'
+import { SlideViewer } from './slide-viewer'
 import { TagPicker } from './tag-picker'
 import type { TagDraft } from './tags'
 
@@ -29,20 +29,36 @@ interface PostScreensProps {
 
 interface TaggingScreenProps {
   slides: PostScreensProps['slides']
+  index: number
+  onIndexChange: (index: number) => void
   tags: TagDraft[]
   heading: RefObject<HTMLHeadingElement | null>
   onChange: (tags: TagDraft[]) => void
   onDone: () => void
 }
 
-function TaggingScreen({ slides, tags, heading, onChange, onDone }: TaggingScreenProps) {
+function TaggingScreen({
+  slides,
+  index,
+  onIndexChange,
+  tags,
+  heading,
+  onChange,
+  onDone
+}: TaggingScreenProps) {
   const { t } = useTranslation('provider')
   return (
     <>
       <h3 ref={heading} tabIndex={-1} className="text-base font-medium outline-none">
         {t('post.tags.title')}
       </h3>
-      <TagPicker slides={slides} tags={tags} onChange={onChange} />
+      <TagPicker
+        slides={slides}
+        index={index}
+        onIndexChange={onIndexChange}
+        tags={tags}
+        onChange={onChange}
+      />
       <div className="flex justify-end gap-2">
         <Button type="button" onClick={onDone}>
           {t('post.screens.done')}
@@ -101,6 +117,7 @@ export function PostScreens({
 }: PostScreensProps) {
   const { t } = useTranslation('provider')
   const [tagging, setTagging] = useState(false)
+  const [slide, setSlide] = useState(0)
   const { heading, open } = useScreenFocus(tagging)
   const form = usePostForm(initial, onSubmit)
   const when = useStore(form.store, ({ values }) => values.when)
@@ -126,6 +143,8 @@ export function PostScreens({
       {tagging ? (
         <TaggingScreen
           slides={slides}
+          index={slide}
+          onIndexChange={setSlide}
           tags={tags}
           heading={heading}
           onChange={onTagsChange}
@@ -133,7 +152,9 @@ export function PostScreens({
         />
       ) : (
         <>
-          <MediaFields media={<PostThumbnail cell={cell} className="w-full" />}>
+          <MediaFields
+            media={<SlideViewer slides={slides} index={slide} onIndexChange={setSlide} />}
+          >
             <form.Field name="caption">
               {(field) => <CaptionField {...fieldProps(field)} />}
             </form.Field>

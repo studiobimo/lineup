@@ -21,11 +21,20 @@ const video = { id: 'v', video: true }
 
 let latest: TagDraft[] = []
 
-function Harness({ slides = [image] }: { slides?: { id: string; video: boolean }[] }) {
+function Harness({
+  slides = [image],
+  opened = 0
+}: {
+  slides?: { id: string; video: boolean }[]
+  opened?: number
+}) {
   const [tags, setTags] = useState<TagDraft[]>([])
+  const [index, setIndex] = useState(opened)
   return (
     <TagPicker
       slides={slides}
+      index={index}
+      onIndexChange={setIndex}
       tags={tags}
       onChange={(next) => {
         latest = next
@@ -162,6 +171,12 @@ describe('TagPicker, moving and removing tags', () => {
     ])
     await user.click(screen.getByRole('button', { name: /^Slide 1/ }))
     expect(screen.getAllByRole('textbox')).toHaveLength(1)
+  })
+
+  it('opens on the slide it is given', () => {
+    render(<Harness slides={[image, video]} opened={1} />)
+    expect(screen.getByRole('button', { name: /^Slide 2/ })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByTestId('tag-picture')).toBeNull()
   })
 
   it('stops at twenty tags', async () => {

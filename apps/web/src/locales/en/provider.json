@@ -110,6 +110,14 @@
       "noRoom": "There is no time between these posts that leaves enough room. You can still schedule it.",
       "use": "Use {{time}}",
       "legend": "Marked times are too near a post already scheduled: {{image}} minutes for pictures, {{video}} for a video, and more for a large one."
+    },
+    "viewer": {
+      "carousel": "carousel",
+      "label": "The post's slides",
+      "position": "Slide {{position}} of {{count}}",
+      "previous": "Previous slide",
+      "next": "Next slide",
+      "go": "Show slide {{position}} of {{count}}"
     }
   },
   "published": {
