@@ -142,7 +142,17 @@
     "facts": {
       "collaborators_one": "Invited to collaborate: {{usernames}}",
       "collaborators_other": "{{count}} collaborators invited: {{usernames}}",
-      "dropped": "Instagram did not invite @{{name}}: {{reason}}"
+      "dropped": "Instagram did not invite @{{name}}: {{reason}}",
+      "commentsOff": "Comments are turned off, if Instagram allows it.",
+      "firstComment": "First comment: {{text}}"
+    },
+    "advanced": {
+      "title": "Advanced settings",
+      "commentsOff": "Turn off commenting",
+      "commentsNote": "Turning off comments is best effort. It is applied just after the post is published, and if that fails the post stays live with comments on.",
+      "firstComment": "First comment",
+      "firstCommentHint": "Posted as a comment on your post just after it is published.",
+      "firstCommentCount": "{{count}} of {{limit}}"
     }
   },
   "published": {

@@ -142,7 +142,17 @@
     "facts": {
       "collaborators_one": "Invitado a colaborar: {{usernames}}",
       "collaborators_other": "{{count}} colaboradores invitados: {{usernames}}",
-      "dropped": "Instagram no invitó a @{{name}}: {{reason}}"
+      "dropped": "Instagram no invitó a @{{name}}: {{reason}}",
+      "commentsOff": "Los comentarios están desactivados, si Instagram lo permite.",
+      "firstComment": "Primer comentario: {{text}}"
+    },
+    "advanced": {
+      "title": "Ajustes avanzados",
+      "commentsOff": "Desactivar los comentarios",
+      "commentsNote": "Desactivar los comentarios es un intento: se aplica justo después de publicar, y si falla la publicación queda con los comentarios activados.",
+      "firstComment": "Primer comentario",
+      "firstCommentHint": "Se publica como comentario en tu publicación justo después de que salga.",
+      "firstCommentCount": "{{count}} de {{limit}}"
     }
   },
   "published": {

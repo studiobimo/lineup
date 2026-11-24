@@ -71,6 +71,12 @@ describe('PostFacts', () => {
     ).toBeInTheDocument()
   })
 
+  it('says comments are off and shows the first comment', () => {
+    render(<PostFacts commentsEnabled={false} firstComment="Link in bio" />)
+    expect(screen.getByText('Comments are turned off, if Instagram allows it.')).toBeInTheDocument()
+    expect(screen.getByText('First comment: Link in bio')).toBeInTheDocument()
+  })
+
   it('shows nothing without any', () => {
     const { container } = render(<PostFacts />)
     expect(container).toBeEmptyDOMElement()

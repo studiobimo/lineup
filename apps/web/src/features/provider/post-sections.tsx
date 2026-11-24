@@ -1,3 +1,4 @@
+import { AdvancedSection } from './advanced-section'
 import { AltTextSection } from './alt-text-section'
 import { CollaboratorsSection } from './collaborators-section'
 import type { PostOptions } from './post-options'
@@ -20,6 +21,7 @@ export function PostSections({ slides, options, onChange }: PostSectionsProps) {
         collaborators={options.collaborators}
         onChange={(collaborators) => onChange({ ...options, collaborators })}
       />
+      <AdvancedSection options={options} onChange={onChange} />
     </>
   )
 }

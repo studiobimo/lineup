@@ -517,6 +517,38 @@ describe('zernio, collaborators', () => {
   })
 })
 
+describe('zernio, comment options', () => {
+  it('sends comments off and a trimmed first comment in the Instagram options', async () => {
+    await scheduleOne({ commentsEnabled: false, firstComment: ' Link in bio ' })
+    expect(sent().body).toMatchObject({
+      platforms: [{ platformSpecificData: { commentsEnabled: false, firstComment: 'Link in bio' } }]
+    })
+  })
+
+  it('sends nothing for comments left on and a blank first comment', async () => {
+    await scheduleOne({ commentsEnabled: true, firstComment: '  ' })
+    expect(JSON.stringify(sent().body)).not.toContain('platformSpecificData')
+  })
+
+  it('reports both on a post that is read back', async () => {
+    stub.mockResolvedValue(
+      respond({
+        posts: [
+          {
+            _id: 'post',
+            status: 'scheduled',
+            platforms: [
+              { platformSpecificData: { commentsEnabled: false, firstComment: 'Link in bio' } }
+            ]
+          }
+        ]
+      })
+    )
+    const [post] = await provider.scheduledPosts('account')
+    expect(post).toMatchObject({ commentsEnabled: false, firstComment: 'Link in bio' })
+  })
+})
+
 describe('zernio, video and cancelling', () => {
   it('sends a video as one, beside the images of its carousel', async () => {
     await scheduleOne({
