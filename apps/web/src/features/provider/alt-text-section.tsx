@@ -1,7 +1,7 @@
 import { POST } from 'lineup-contract'
 import { useTranslation } from 'react-i18next'
 
-import { Label } from '@/components/ui/label'
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 
 import type { PostOptions } from './post-options'
@@ -24,19 +24,16 @@ export function AltTextSection({ slides, altTexts, onChange }: AltTextSectionPro
   }
   return (
     <PostSection title={t('post.alt.title')}>
-      <p className="text-xs text-muted-foreground">{t('post.alt.hint')}</p>
       {pictures.map(({ id, index }) => (
-        <div key={id} className="flex flex-col gap-1.5">
-          <Label htmlFor={`post-alt-${index}`}>
-            {t('post.alt.slide', { position: index + 1 })}
-          </Label>
+        <Field key={id}>
+          <FieldLabel>{t('post.alt.slide', { position: index + 1 })}</FieldLabel>
           <Textarea
-            id={`post-alt-${index}`}
             value={altTexts[index] ?? ''}
             maxLength={POST.limit.altText}
             onChange={({ target }) => change(index, target.value)}
           />
-        </div>
+          {index === pictures[0].index && <FieldDescription>{t('post.alt.hint')}</FieldDescription>}
+        </Field>
       ))}
     </PostSection>
   )
