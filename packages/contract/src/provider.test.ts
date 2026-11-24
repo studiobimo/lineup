@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   cleanUsername,
   newPostSchema,
+  POST,
   SOONEST_MINUTES,
   SOONEST_MS,
   soonestSchedule,
@@ -45,6 +46,19 @@ describe('newPostSchema, user tags', () => {
       Array.from({ length: count }, (_, index) => ({ username: `a${index}`, x: 0, y: 0 }))
     expect(valid({ userTags: tags(TAGS_PER_POST) })).toBe(true)
     expect(valid({ userTags: tags(TAGS_PER_POST + 1) })).toBe(false)
+  })
+})
+
+describe('newPostSchema, alt text', () => {
+  it('takes a description for each slide, or none', () => {
+    expect(valid({ altTexts: ['A cat', ''] })).toBe(true)
+    expect(valid({ altTexts: ['A cat'] })).toBe(true)
+  })
+
+  it('refuses a description for a slide that does not exist, or one that is too long', () => {
+    expect(valid({ altTexts: ['a', 'b', 'c'] })).toBe(false)
+    expect(valid({ altTexts: ['a'.repeat(POST.limit.altText + 1)] })).toBe(false)
+    expect(valid({ altTexts: ['a'.repeat(POST.limit.altText)] })).toBe(true)
   })
 })
 

@@ -353,6 +353,103 @@ describe('zernio, scheduling a post', () => {
   })
 })
 
+describe('zernio, alt text', () => {
+  const created = () =>
+    stub.mockResolvedValue(respond({ post: { _id: 'post', status: 'scheduled' } }, 201))
+  const when = {
+    accountId: 'account',
+    caption: '',
+    scheduledFor: '2030-01-01T10:00:00Z',
+    timeZone: 'Europe/Madrid'
+  }
+
+  it('sends the description of each image, and leaves out an empty one', async () => {
+    created()
+    await provider.schedule(
+      {
+        ...when,
+        mediaUrls: ['https://m.test/1.jpg', 'https://m.test/2.jpg'],
+        altTexts: [' A cat ', '']
+      },
+      'once'
+    )
+    const { mediaItems } = sent().body as { mediaItems: object[] }
+    expect(mediaItems[0]).toEqual({ type: 'image', url: 'https://m.test/1.jpg', altText: 'A cat' })
+    expect(mediaItems[1]).not.toHaveProperty('altText')
+  })
+
+  it('leaves it out for a video', async () => {
+    created()
+    await provider.schedule(
+      {
+        ...when,
+        mediaUrls: ['https://m.test/1.mp4'],
+        mediaTypes: ['video'],
+        altTexts: ['A clip']
+      },
+      'once'
+    )
+    expect(JSON.stringify(sent().body)).not.toContain('altText')
+  })
+})
+
+describe('zernio, changing a post', () => {
+  const stored = {
+    post: {
+      _id: 'post',
+      status: 'scheduled',
+      mediaItems: [
+        { type: 'image', url: 'https://m.test/1.jpg', altText: 'A cat', thumbnail: null }
+      ],
+      platforms: [
+        {
+          platform: 'instagram',
+          accountId: { _id: 'account', username: 'studio' },
+          status: 'pending',
+          platformSpecificData: {
+            userTags: [{ username: 'friend', x: 0.5, y: 0.5 }],
+            droppedCollaborators: [{ username: 'x', reason: 'no' }]
+          }
+        }
+      ]
+    }
+  }
+
+  it('reads the post and sends its media and options back whole', async () => {
+    stub.mockResolvedValueOnce(respond(stored)).mockResolvedValueOnce(respond(stored))
+    await provider.update('post', {
+      scheduledFor: '2030-01-01T10:00:00Z',
+      timeZone: 'Europe/Madrid',
+      caption: 'New'
+    })
+    expect(sent(0).method).toBeUndefined()
+    const { method, url, body } = sent(1)
+    expect(method).toBe('PUT')
+    expect(url).toBe('https://zernio.com/api/v1/posts/post')
+    expect(body).toEqual({
+      scheduledFor: '2030-01-01T10:00:00Z',
+      timezone: 'Europe/Madrid',
+      content: 'New',
+      mediaItems: [{ type: 'image', url: 'https://m.test/1.jpg', altText: 'A cat' }],
+      platforms: [
+        {
+          platform: 'instagram',
+          accountId: 'account',
+          platformSpecificData: { userTags: [{ username: 'friend', x: 0.5, y: 0.5 }] }
+        }
+      ]
+    })
+  })
+
+  it('changes nothing when the post cannot be read', async () => {
+    stub.mockResolvedValueOnce(respond({ error: 'gone' }, 404))
+    await expect(
+      provider.update('post', { scheduledFor: '2030-01-01T10:00:00Z', timeZone: 'Europe/Madrid' })
+    ).rejects.toMatchObject({ failure: 'missing' })
+    expect(stub).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('zernio, video and cancelling', () => {
   it('sends a video as one, beside the images of its carousel', async () => {
     stub.mockResolvedValue(respond({ post: { _id: 'post', status: 'scheduled' } }, 201))

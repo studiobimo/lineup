@@ -118,6 +118,11 @@
       "previous": "Diapositiva anterior",
       "next": "Diapositiva siguiente",
       "go": "Mostrar diapositiva {{position}} de {{count}}"
+    },
+    "alt": {
+      "title": "Accesibilidad",
+      "hint": "Describe cada imagen para quienes usan un lector de pantalla.",
+      "slide": "Texto alternativo de la diapositiva {{position}}"
     }
   },
   "published": {

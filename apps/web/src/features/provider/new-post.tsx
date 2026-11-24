@@ -8,6 +8,8 @@ import { imagesOf } from '@/features/planner/board'
 import { instagram } from '@/features/planner/network-profile'
 import { plannerStore, usePlanner } from '@/features/planner/planner'
 
+import { AltTextSection } from './alt-text-section'
+import { NO_OPTIONS, toAltTexts } from './post-options'
 import { type PostFormValues } from './post-schema'
 import { PostScreens } from './post-screens'
 import {
@@ -35,6 +37,7 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
   const images = imagesOf(plannerStore.getState().board, cell)
   const [sending, setSending] = useState(0)
   const [tags, setTags] = useState<TagDraft[]>([])
+  const [options, setOptions] = useState(NO_OPTIONS)
   const records = usePlanner(({ images: known }) => known)
   const slides = images.map((id) => ({ id, video: Boolean(records[id]?.video) }))
   const queryClient = useQueryClient()
@@ -45,12 +48,14 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
     mutationFn: async ({ caption, when }: PostFormValues) => {
       const scheduledFor = fromFieldTime(when)
       const userTags = toUserTags(tags)
+      const altTexts = toAltTexts(options.altTexts, slides)
       const post = {
         accountId,
         caption,
         scheduledFor,
         timeZone: localTimeZone(),
-        ...(userTags.length > 0 && { userTags })
+        ...(userTags.length > 0 && { userTags }),
+        ...(altTexts && { altTexts })
       }
       return sendPost({ cell, images, post, onImage: setSending })
     },
@@ -92,6 +97,11 @@ export function NewPost({ cell, accountId, onDone }: NewPostProps) {
       problem={problem}
       onSubmit={send.mutateAsync}
     >
+      <AltTextSection
+        slides={slides}
+        altTexts={options.altTexts}
+        onChange={(altTexts) => setOptions({ ...options, altTexts })}
+      />
       <p className="text-sm text-muted-foreground">
         {t('post.notice', { provider: provider.name })}
       </p>
