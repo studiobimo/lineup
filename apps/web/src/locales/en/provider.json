@@ -123,6 +123,11 @@
       "title": "Accessibility",
       "hint": "Describe each picture for people who use a screen reader.",
       "slide": "Alt text for slide {{position}}"
+    },
+    "strip": {
+      "slide": "Slide {{position}}",
+      "label": "Reorder the slides",
+      "instructions": "Press Space to pick up a slide, move it with the arrow keys, and press Space to drop it. Press Enter to show it."
     }
   },
   "published": {

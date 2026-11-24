@@ -8,6 +8,7 @@ import type { TagDraft } from './tags'
 import { PostScreens } from './post-screens'
 
 vi.mock('./slide-viewer', () => ({ SlideViewer: () => <div data-testid="thumbnail" /> }))
+vi.mock('./slide-strip', () => ({ SlideStrip: () => null }))
 vi.mock('./tag-picker', () => ({ TagPicker: () => <p>picker</p> }))
 vi.mock('./use-misordered', () => ({ isMisordered: () => false }))
 vi.mock('./use-spacing', () => ({

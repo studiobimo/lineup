@@ -1,10 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { toastManager } from '@/components/ui/toast'
 import { provider } from '@/config/provider'
-import { imagesOf } from '@/features/planner/board'
 import { instagram } from '@/features/planner/network-profile'
 import { plannerStore, usePlanner } from '@/features/planner/planner'
 
@@ -34,7 +33,8 @@ interface NewPostProps {
 export function NewPost({ cell, accountId, onDone }: NewPostProps) {
   const { t } = useTranslation('provider')
   const problemText = useProblemText()
-  const images = imagesOf(plannerStore.getState().board, cell)
+  const album = usePlanner(({ board }) => board.albums?.[cell])
+  const images = useMemo(() => album ?? [cell], [album, cell])
   const [sending, setSending] = useState(0)
   const [tags, setTags] = useState<TagDraft[]>([])
   const [options, setOptions] = useState(NO_OPTIONS)

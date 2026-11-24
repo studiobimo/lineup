@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
 
-import { addImages, grid, groupCells, image, png, tray, watchErrors } from './fixtures'
+import { addImages, grid, groupCells, image, png, savedBoard, tray, watchErrors } from './fixtures'
 import { mockProvider } from './provider-mock'
 
 const KEY = 'pasted-key-ending-abcd'
@@ -257,6 +257,37 @@ test('the schedule dialog steps through every slide of an album', async ({ page 
     'aria-pressed',
     'true'
   )
+})
+
+test('the schedule dialog reorders an album from the keyboard, and undo puts it back', async ({
+  page
+}) => {
+  await mockProvider(page)
+  await planOnGrid(page, 3)
+  await groupCells(page, grid(page), 3)
+  await connect(page)
+  const albumOnBoard = async () => Object.values((await savedBoard(page)).albums ?? {})[0] ?? []
+  await expect.poll(albumOnBoard).toHaveLength(3)
+  const before = await albumOnBoard()
+
+  const dialog = await openSchedule(page)
+  await dialog.getByRole('button', { name: 'Slide 1', exact: true }).focus()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(50)
+  await expect(page.getByText('Picked up Slide 1.')).toBeAttached()
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByText('Over Slide 2.')).toBeAttached()
+  await page.keyboard.press('Space')
+  await expect.poll(albumOnBoard).toEqual([before[1], before[0], before[2]])
+  await expect(dialog.getByRole('tab', { name: 'Show slide 2 of 3' })).toHaveAttribute(
+    'aria-selected',
+    'true'
+  )
+
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
+  await expect.poll(albumOnBoard).toEqual(before)
 })
 
 test('a single image shows no slide controls', async ({ page }) => {
