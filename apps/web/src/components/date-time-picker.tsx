@@ -51,7 +51,7 @@ interface Option {
 }
 
 // ~keep From `start` up to but not including `end`, in epoch milliseconds.
-export interface TimeMark {
+interface TimeMark {
   start: number
   end: number
   label: string
@@ -189,59 +189,28 @@ interface DateTimePickerProps {
   markNote?: string
 }
 
-export function DateTimePicker({
-  id,
-  value,
-  onChange,
-  onBlur,
-  invalid,
-  'aria-describedby': describedBy,
-  minDate,
-  hourCycle,
-  marks = [],
-  markNote
-}: DateTimePickerProps) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const parts = parse(value)
-  const twentyFour = hourCycle ? hourCycle === 24 : prefersTwentyFourHour()
+// ~keep Every change is held to the minimum, not just the default: choosing the minimum hour
+// or day would otherwise leave minutes the columns show as disabled.
+function clampToMinimum(parts: Parts, minDate?: Date): Parts {
+  if (!minDate || toDate(parts) >= minDate) return parts
+  const first = startOfDay(minDate)
+  const date = parts.date < first ? first : parts.date
+  if (toDate({ ...parts, date }) >= minDate) return { ...parts, date }
+  return { date, hour: minDate.getHours(), minute: minDate.getMinutes() }
+}
 
-  // ~keep Blur is reported when the popup closes: opening it moves focus off the
-  // trigger, which would otherwise mark the field as visited too early.
-  function onOpenChange(next: boolean) {
-    setOpen(next)
-    if (!next) onBlur?.()
-  }
+interface TimeOptionsInput {
+  twentyFour: boolean
+  pm: boolean
+  hour: number | undefined
+  day: Date
+  minHour: number
+  minMinute: number
+  marks: TimeMark[]
+}
 
-  function commit(change: Partial<Parts>) {
-    const next = {
-      date: parts?.date ?? startOfDay(new Date()),
-      hour: parts?.hour ?? DEFAULT_HOUR,
-      minute: parts?.minute ?? 0,
-      ...change
-    }
-    // ~keep Every change is held to the minimum, not just the default: choosing the minimum hour
-    // or day would otherwise leave minutes the columns show as disabled.
-    if (minDate && toDate(next) < minDate) {
-      const first = startOfDay(minDate)
-      if (next.date < first) next.date = first
-      if (toDate(next) < minDate) {
-        if (next.hour !== minDate.getHours()) next.hour = minDate.getHours()
-        next.minute = minDate.getMinutes()
-      }
-    }
-    onChange(stringify(next))
-  }
-
-  const hour = parts?.hour
-  const pm = hour === undefined ? undefined : hour >= 12
-  // ~keep Earlier times only matter on the minimum's own day.
-  const day = parts?.date ?? startOfDay(new Date())
-  const limited = minDate && startOfDay(minDate).getTime() === day.getTime() ? minDate : undefined
-  const minHour = limited?.getHours() ?? 0
-  const minMinute = limited && (hour ?? DEFAULT_HOUR) === minHour ? limited.getMinutes() : 0
-  const actualHour = (picked: number) =>
-    twentyFour ? picked : (picked % 12) + ((pm ?? false) ? 12 : 0)
+function timeOptions({ twentyFour, pm, hour, day, minHour, minMinute, marks }: TimeOptionsInput) {
+  const actualHour = (picked: number) => (twentyFour ? picked : (picked % 12) + (pm ? 12 : 0))
   // ~keep An hour is marked when any of its minutes is; a minute only when it is itself.
   const startOf = (pickedHour: number, minute = 0) =>
     toDate({ date: day, hour: pickedHour, minute })
@@ -261,103 +230,264 @@ export function DateTimePicker({
       note: noteFor(marks, from, from + 1)
     }
   })
+  return { hours, minutes }
+}
+
+interface DayCalendarProps {
+  parts: Parts | null
+  minDate?: Date
+  onSelect: (date: Date) => void
+  onClear: () => void
+  onToday: () => void
+}
+
+function DayCalendar({ parts, minDate, onSelect, onClear, onToday }: DayCalendarProps) {
+  const { t } = useTranslation()
+  return (
+    <div className="flex flex-col gap-2">
+      <Calendar
+        mode="single"
+        required
+        selected={parts?.date}
+        defaultMonth={parts?.date ?? minDate}
+        disabled={minDate && { before: startOfDay(minDate) }}
+        onSelect={onSelect}
+        formatters={calendarFormatters()}
+        weekStartsOn={weekStart()}
+        classNames={{ weekday: 'text-muted-foreground' }}
+        labels={{
+          // ~keep The default label spells the day as an ordinal, which does not contain the
+          // number the button shows, so assistive tech and voice control miss it.
+          labelDayButton: (date) => dateTimeFormat({ dateStyle: 'full' }).format(date),
+          labelPrevious: () => t('dateTime.previousMonth'),
+          labelNext: () => t('dateTime.nextMonth')
+        }}
+      />
+      <div className="flex justify-between">
+        <Button variant="ghost" size="sm" onClick={onClear}>
+          {t('dateTime.clear')}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onToday}>
+          {t('dateTime.today')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TimeColumnsProps {
+  twentyFour: boolean
+  pm: boolean | undefined
+  shownHour: number | undefined
+  minute: number | undefined
+  minHour: number
+  hours: Option[]
+  minutes: Option[]
+  onHour: (value: number) => void
+  onMinute: (value: number) => void
+  onPeriod: (value: number) => void
+}
+
+function TimeColumns({
+  twentyFour,
+  pm,
+  shownHour,
+  minute,
+  minHour,
+  hours,
+  minutes,
+  onHour,
+  onMinute,
+  onPeriod
+}: TimeColumnsProps) {
+  const { t } = useTranslation()
+  return (
+    <div className="flex h-44 gap-1.5 sm:h-auto">
+      <TimeColumn
+        label={t('dateTime.hour')}
+        options={hours}
+        selected={shownHour}
+        onSelect={onHour}
+      />
+      <TimeColumn
+        label={t('dateTime.minute')}
+        options={minutes}
+        selected={minute}
+        onSelect={onMinute}
+      />
+      {!twentyFour && (
+        <TimeColumn
+          label={t('dateTime.period')}
+          options={[
+            { value: 0, label: t('dateTime.am'), disabled: minHour >= 12 },
+            { value: 1, label: t('dateTime.pm') }
+          ]}
+          selected={pm === undefined ? undefined : Number(pm)}
+          onSelect={onPeriod}
+        />
+      )}
+    </div>
+  )
+}
+
+interface DateTimeTriggerProps {
+  id?: string
+  invalid?: boolean
+  describedBy?: string
+  parts: Parts | null
+}
+
+function DateTimeTrigger({ id, invalid, describedBy, parts }: DateTimeTriggerProps) {
+  const { t } = useTranslation()
+  const shown = parts
+    ? dateTimeFormat({ dateStyle: 'medium', timeStyle: 'short' }).format(toDate(parts))
+    : t('dateTime.placeholder')
+  return (
+    <PopoverTrigger
+      render={
+        <Button
+          id={id}
+          type="button"
+          variant="outline"
+          aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
+          className={cn('w-full justify-start font-normal', !parts && 'text-muted-foreground')}
+        />
+      }
+    >
+      <CalendarIcon aria-hidden="true" />
+      {shown}
+    </PopoverTrigger>
+  )
+}
+
+function minimumOf(minDate: Date | undefined, parts: Parts | null, hour: number | undefined) {
+  const day = parts?.date ?? startOfDay(new Date())
+  const limited = minDate && startOfDay(minDate).getTime() === day.getTime() ? minDate : undefined
+  const minHour = limited?.getHours() ?? 0
+  const minMinute = limited && (hour ?? DEFAULT_HOUR) === minHour ? limited.getMinutes() : 0
+  return { day, minHour, minMinute }
+}
+
+interface DateTimePopupProps {
+  parts: Parts | null
+  minDate?: Date
+  twentyFour: boolean
+  marks: TimeMark[]
+  markNote?: string
+  onChange: (value: string) => void
+  commit: (change: Partial<Parts>) => void
+}
+
+function DateTimePopup({
+  parts,
+  minDate,
+  twentyFour,
+  marks,
+  markNote,
+  onChange,
+  commit
+}: DateTimePopupProps) {
+  const hour = parts?.hour
+  const pm = hour === undefined ? undefined : hour >= 12
+  // ~keep Earlier times only matter on the minimum's own day.
+  const { day, minHour, minMinute } = minimumOf(minDate, parts, hour)
+  const { hours, minutes } = timeOptions({
+    twentyFour,
+    pm: pm ?? false,
+    hour,
+    day,
+    minHour,
+    minMinute,
+    marks
+  })
   const shownHour = hour === undefined ? undefined : twentyFour ? hour : hour % 12 || 12
   const setHour = (picked: number) =>
     commit({ hour: twentyFour ? picked : (picked % 12) + (pm ? 12 : 0) })
   const setPeriod = (period: number) =>
     commit({ hour: ((hour ?? DEFAULT_HOUR) % 12) + (period ? 12 : 0) })
 
-  const shown = parts
-    ? dateTimeFormat({ dateStyle: 'medium', timeStyle: 'short' }).format(toDate(parts))
-    : t('dateTime.placeholder')
+  return (
+    <PopoverPopup
+      align="start"
+      className="max-h-(--available-height) max-w-[calc(100vw-2*var(--spacing-gutter))]"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <DayCalendar
+          parts={parts}
+          minDate={minDate}
+          onSelect={(date) => commit({ date })}
+          onClear={() => onChange('')}
+          onToday={() => commit({ date: startOfDay(new Date()) })}
+        />
+        <TimeColumns
+          twentyFour={twentyFour}
+          pm={pm}
+          shownHour={shownHour}
+          minute={parts?.minute}
+          minHour={minHour}
+          hours={hours}
+          minutes={minutes}
+          onHour={setHour}
+          onMinute={(minute) => commit({ minute })}
+          onPeriod={setPeriod}
+        />
+      </div>
+      {markNote && marks.length > 0 && (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-warning" />
+          {markNote}
+        </p>
+      )}
+    </PopoverPopup>
+  )
+}
+
+export function DateTimePicker({
+  id,
+  value,
+  onChange,
+  onBlur,
+  invalid,
+  'aria-describedby': describedBy,
+  minDate,
+  hourCycle,
+  marks = [],
+  markNote
+}: DateTimePickerProps) {
+  const [open, setOpen] = useState(false)
+  const parts = parse(value)
+  const twentyFour = hourCycle ? hourCycle === 24 : prefersTwentyFourHour()
+
+  // ~keep Blur is reported when the popup closes: opening it moves focus off the
+  // trigger, which would otherwise mark the field as visited too early.
+  function onOpenChange(next: boolean) {
+    setOpen(next)
+    if (!next) onBlur?.()
+  }
+
+  function commit(change: Partial<Parts>) {
+    const next = {
+      date: parts?.date ?? startOfDay(new Date()),
+      hour: parts?.hour ?? DEFAULT_HOUR,
+      minute: parts?.minute ?? 0,
+      ...change
+    }
+    onChange(stringify(clampToMinimum(next, minDate)))
+  }
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger
-        render={
-          <Button
-            id={id}
-            type="button"
-            variant="outline"
-            aria-invalid={invalid || undefined}
-            aria-describedby={describedBy}
-            className={cn('w-full justify-start font-normal', !parts && 'text-muted-foreground')}
-          />
-        }
-      >
-        <CalendarIcon aria-hidden="true" />
-        {shown}
-      </PopoverTrigger>
-      <PopoverPopup
-        align="start"
-        className="max-h-(--available-height) max-w-[calc(100vw-2*var(--spacing-gutter))]"
-      >
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="flex flex-col gap-2">
-            <Calendar
-              mode="single"
-              required
-              selected={parts?.date}
-              defaultMonth={parts?.date ?? minDate}
-              disabled={minDate && { before: startOfDay(minDate) }}
-              onSelect={(date) => commit({ date })}
-              formatters={calendarFormatters()}
-              weekStartsOn={weekStart()}
-              classNames={{ weekday: 'text-muted-foreground' }}
-              labels={{
-                // ~keep The default label spells the day as an ordinal, which does not contain the
-                // number the button shows, so assistive tech and voice control miss it.
-                labelDayButton: (date) => dateTimeFormat({ dateStyle: 'full' }).format(date),
-                labelPrevious: () => t('dateTime.previousMonth'),
-                labelNext: () => t('dateTime.nextMonth')
-              }}
-            />
-            <div className="flex justify-between">
-              <Button variant="ghost" size="sm" onClick={() => onChange('')}>
-                {t('dateTime.clear')}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => commit({ date: startOfDay(new Date()) })}
-              >
-                {t('dateTime.today')}
-              </Button>
-            </div>
-          </div>
-          <div className="flex h-44 gap-1.5 sm:h-auto">
-            <TimeColumn
-              label={t('dateTime.hour')}
-              options={hours}
-              selected={shownHour}
-              onSelect={setHour}
-            />
-            <TimeColumn
-              label={t('dateTime.minute')}
-              options={minutes}
-              selected={parts?.minute}
-              onSelect={(minute) => commit({ minute })}
-            />
-            {!twentyFour && (
-              <TimeColumn
-                label={t('dateTime.period')}
-                options={[
-                  { value: 0, label: t('dateTime.am'), disabled: minHour >= 12 },
-                  { value: 1, label: t('dateTime.pm') }
-                ]}
-                selected={pm === undefined ? undefined : Number(pm)}
-                onSelect={setPeriod}
-              />
-            )}
-          </div>
-        </div>
-        {markNote && marks.length > 0 && (
-          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-warning" />
-            {markNote}
-          </p>
-        )}
-      </PopoverPopup>
+      <DateTimeTrigger id={id} invalid={invalid} describedBy={describedBy} parts={parts} />
+      <DateTimePopup
+        parts={parts}
+        minDate={minDate}
+        twentyFour={twentyFour}
+        marks={marks}
+        markNote={markNote}
+        onChange={onChange}
+        commit={commit}
+      />
     </Popover>
   )
 }

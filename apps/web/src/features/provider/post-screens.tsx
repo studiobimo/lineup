@@ -27,25 +27,11 @@ interface PostScreensProps {
   onSubmit: (values: PostFormValues) => Promise<unknown>
 }
 
-export function PostScreens({
-  cell,
-  initial,
-  slides,
-  tags,
-  submitLabel,
-  pending,
-  problem,
-  children,
-  onTagsChange,
-  onSubmit
-}: PostScreensProps) {
-  const { t } = useTranslation('provider')
+function useTaggingScreen(problem: string | undefined) {
   const [tagging, setTagging] = useState(false)
   const heading = useRef<HTMLHeadingElement>(null)
   const open = useRef<HTMLButtonElement>(null)
   const moved = useRef(false)
-  const form = usePostForm(initial, onSubmit)
-  const when = useStore(form.store, ({ values }) => values.when)
 
   // A refusal from the server, such as a time already past, shows on the main screen. ~keep
   const [seen, setSeen] = useState(problem)
@@ -60,6 +46,26 @@ export function PostScreens({
     else if (tagging) heading.current?.focus()
     else open.current?.focus()
   }, [tagging])
+
+  return { tagging, setTagging, heading, open }
+}
+
+export function PostScreens({
+  cell,
+  initial,
+  slides,
+  tags,
+  submitLabel,
+  pending,
+  problem,
+  children,
+  onTagsChange,
+  onSubmit
+}: PostScreensProps) {
+  const { t } = useTranslation('provider')
+  const { tagging, setTagging, heading, open } = useTaggingScreen(problem)
+  const form = usePostForm(initial, onSubmit)
+  const when = useStore(form.store, ({ values }) => values.when)
 
   const usernames = tags.map(({ username }) => `@${username}`).join(', ')
 

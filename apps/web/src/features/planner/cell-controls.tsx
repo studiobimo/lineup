@@ -36,8 +36,20 @@ export function CellBadge({ icon: Icon, label, text }: CellBadgeProps) {
   )
 }
 
-export function CellButton(props: ComponentProps<typeof IconButton>) {
-  return <IconButton size="icon-xs" tabIndex={-1} tooltip={cellTooltip} {...props} />
+export function CellButton({ className, ...props }: ComponentProps<typeof IconButton>) {
+  return (
+    <IconButton
+      size="icon-xs"
+      variant="ghost"
+      tabIndex={-1}
+      tooltip={cellTooltip}
+      className={cn(
+        'border-on-photo bg-photo-scrim text-on-photo shadow-xs drop-shadow hover:bg-photo-scrim hover:text-on-photo',
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
 export const CellActions = memo(function CellActions({

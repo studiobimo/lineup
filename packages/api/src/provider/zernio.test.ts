@@ -299,7 +299,9 @@ describe('zernio, scheduling', () => {
     expect(line).not.toContain('secret')
     logged.mockRestore()
   })
+})
 
+describe('zernio, scheduling, continued', () => {
   it('schedules one Instagram post with its images in order and the idempotency key', async () => {
     stub.mockResolvedValue(respond({ post: { _id: 'post', status: 'scheduled' } }, 201))
     const post = await provider.schedule(

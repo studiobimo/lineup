@@ -596,6 +596,10 @@ describe('the planner store, when a post goes out', () => {
     expect(state().board.grid).toEqual(['c', 'd', 'e'])
     expect(Object.keys(state().board.posts ?? {})).toEqual(['c', 'd', 'e'])
   })
+})
+
+describe('the planner store, when a post goes out, continued', () => {
+  const published: CellPost = { ...post, status: 'published' }
 
   it('is not a step of its own, and undo and redo cannot bring the cell back', async () => {
     const { state } = await loaded()
