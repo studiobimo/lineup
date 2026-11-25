@@ -347,6 +347,33 @@ test('the schedule dialog reorders an album from the keyboard, and undo puts it 
   await expect.poll(albumOnBoard).toEqual(before)
 })
 
+test('a slide dragged in the schedule dialog moves sideways, and the strip never scrolls vertically', async ({
+  page
+}) => {
+  await mockProvider(page)
+  await planOnGrid(page, 2)
+  await groupCells(page, grid(page), 2)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  const strip = dialog.getByRole('group', { name: 'Reorder the slides' })
+  const slide = dialog.getByRole('button', { name: 'Slide 1', exact: true })
+  const start = await slide.boundingBox()
+  if (!start) throw new Error('Slide 1 has no box')
+  const from = { x: start.x + start.width / 2, y: start.y + start.height / 2 }
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  for (let step = 1; step <= 10; step++) {
+    await page.mouse.move(from.x + step * 20, from.y + step * 2)
+  }
+  expect(await strip.evaluate((node) => node.scrollHeight)).toBe(
+    await strip.evaluate((node) => node.clientHeight)
+  )
+  const dragged = await slide.boundingBox()
+  expect(dragged?.y).toBeCloseTo(start.y, 0)
+  await page.mouse.up()
+})
+
 const SCREENS = [
   { name: 'a laptop', width: 1280, height: 720 },
   { name: 'a phone', width: 375, height: 812 }
