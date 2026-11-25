@@ -72,6 +72,7 @@ export function NewPost({ cell, accountId, headerAction, onDone }: NewPostProps)
   return (
     <PostScreens
       cell={cell}
+      from={from}
       slides={slides}
       tags={tags}
       onTagsChange={setTags}

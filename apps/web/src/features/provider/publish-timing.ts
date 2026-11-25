@@ -134,21 +134,51 @@ interface DefaultInput extends GapInput {
   soonest: number
 }
 
-// ~keep
-// Where a new post starts out: after every post older on the grid has had its gap, and before the
-// newer ones need theirs, so the order of the grid is the order of the times. With no room
-// between them it falls back to the time that suits the older ones, and the warning says why.
-export function defaultTime({ from, soonest, ...input }: DefaultInput) {
+const whole = (time: number) => Math.ceil(time / MINUTE_MS) * MINUTE_MS
+
+function limitsOf({ soonest, ...input }: GapInput & { soonest: number }) {
   const { board, images, sizes, cell } = input
   const place = board.grid.indexOf(cell)
   const own = slotOf(board, images, sizes, cell, 0)
   const others = place < 0 ? [] : scheduledSlots(board, images, sizes, cell)
-  const whole = (time: number) => Math.ceil(time / MINUTE_MS) * MINUTE_MS
   const older = others.filter((slot) => board.grid.indexOf(slot.cell) > place)
   const newer = others.filter((slot) => board.grid.indexOf(slot.cell) < place)
   const lowest = Math.max(whole(soonest), ...older.map((slot) => whole(slot.at + slot.gap)))
-  const preferred = Math.max(lowest, whole(from))
   const highest = Math.min(...newer.map((slot) => slot.at - own.gap))
+  return { own, newer, lowest, highest }
+}
+
+// ~keep
+// Where a new post starts out: after every post older on the grid has had its gap, and before the
+// newer ones need theirs, so the order of the grid is the order of the times. With no room
+// between them it falls back to the time that suits the older ones, and `roomFor` says what would
+// make room.
+export function defaultTime({ from, ...input }: DefaultInput) {
+  const { lowest, highest } = limitsOf(input)
+  const preferred = Math.max(lowest, whole(from))
   if (preferred <= highest || lowest > highest) return new Date(preferred)
   return new Date(highest)
+}
+
+export interface Move {
+  cell: string
+  from: number
+  to: number
+}
+
+export interface Room {
+  start: Date
+  moves: Move[]
+}
+
+export function roomFor(input: DefaultInput): Room | undefined {
+  const { own, newer, lowest, highest } = limitsOf(input)
+  if (newer.length === 0 || lowest <= highest) return undefined
+  let earliest = lowest + own.gap
+  const moves = newer.flatMap((slot) => {
+    const to = Math.max(slot.at, whole(earliest))
+    earliest = to + slot.gap
+    return to > slot.at ? [{ cell: slot.cell, from: slot.at, to }] : []
+  })
+  return { start: new Date(lowest), moves }
 }

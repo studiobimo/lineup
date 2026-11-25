@@ -22,6 +22,7 @@ interface ConfirmDialogProps {
   onConfirm?: () => void
   pending?: boolean
   actions?: ReactNode
+  children?: ReactNode
 }
 
 export function ConfirmDialog({
@@ -34,7 +35,8 @@ export function ConfirmDialog({
   confirmLabel,
   onConfirm,
   pending,
-  actions
+  actions,
+  children
 }: ConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -43,6 +45,7 @@ export function ConfirmDialog({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
+        {children}
         {error}
         <AlertDialogFooter>
           <AlertDialogClose render={<Button variant="ghost" />}>{cancelLabel}</AlertDialogClose>

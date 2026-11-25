@@ -102,6 +102,19 @@
       "tagged_one": "Tagged: {{usernames}}",
       "tagged_other": "{{count}} accounts tagged: {{usernames}}"
     },
+    "room": {
+      "noFit": "No time fits before your newer scheduled posts, and Instagram orders posts by when they go live. Posting at the earliest time would put this one after them.",
+      "offer": "Move newer posts later",
+      "title": "Move newer posts later?",
+      "description": "These posts are rescheduled with {{provider}}, in the same order and with the same spacing. This post then starts at {{time}}.",
+      "move": "Position {{position}}: {{from}} to {{to}}",
+      "confirm": "Move posts",
+      "cancel": "Not now",
+      "failed": "Not every post could be moved, so this one has no time yet.",
+      "moved": "Moved: {{posts}}.",
+      "left": "Not moved: {{posts}}.",
+      "post": "position {{position}} ({{time}})"
+    },
     "spacing": {
       "before": "The post at position {{position}} on your grid needs about {{minutes}} minutes to go live before this one.",
       "after": "This post needs about {{minutes}} minutes to go live before the post at position {{position}} on your grid.",

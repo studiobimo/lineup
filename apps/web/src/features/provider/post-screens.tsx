@@ -10,6 +10,7 @@ import { MediaFields } from './media-fields'
 import { fieldProps, usePostForm } from './use-post-form'
 import { CaptionField, TimeField } from './post-fields'
 import { type PostFormValues } from './post-schema'
+import { MakeRoom } from './make-room'
 import { ScheduleWarning } from './schedule-warning'
 import { SlideStrip } from './slide-strip'
 import { SlideViewer } from './slide-viewer'
@@ -18,6 +19,7 @@ import type { TagDraft } from './tags'
 
 interface PostScreensProps {
   cell: string
+  from: number
   initial: PostFormValues
   slides: { id: string; video: boolean }[]
   tags: TagDraft[]
@@ -140,13 +142,14 @@ function TaggedNote({ tags }: { tags: TagDraft[] }) {
 
 interface MainFieldsProps {
   cell: string
+  from: number
   form: ReturnType<typeof usePostForm>
   tags: TagDraft[]
   problem?: string
   children?: ReactNode
 }
 
-function MainFields({ cell, form, tags, problem, children }: MainFieldsProps) {
+function MainFields({ cell, from, form, tags, problem, children }: MainFieldsProps) {
   const when = useStore(form.store, ({ values }) => values.when)
   return (
     <>
@@ -155,6 +158,7 @@ function MainFields({ cell, form, tags, problem, children }: MainFieldsProps) {
         {(field) => <TimeField cell={cell} {...fieldProps(field)} />}
       </form.Field>
       <TaggedNote tags={tags} />
+      <MakeRoom cell={cell} from={from} onUse={(time) => form.setFieldValue('when', time)} />
       <ScheduleWarning cell={cell} when={when} onUse={(time) => form.setFieldValue('when', time)} />
       {children}
       <ErrorNotice text={problem} />
@@ -164,6 +168,7 @@ function MainFields({ cell, form, tags, problem, children }: MainFieldsProps) {
 
 export function PostScreens({
   cell,
+  from,
   initial,
   slides,
   tags,
@@ -214,7 +219,7 @@ export function PostScreens({
               </div>
             }
           >
-            <MainFields cell={cell} form={form} tags={tags} problem={problem}>
+            <MainFields cell={cell} from={from} form={form} tags={tags} problem={problem}>
               {children}
             </MainFields>
             <MainActions open={open} tagCount={tags.length} onTag={() => setTagging(true)} />

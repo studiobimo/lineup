@@ -279,6 +279,37 @@ test('an album goes as one post, and each image on its own', async ({ page }) =>
   expect(provider.bodies[at].mediaUrls).toHaveLength(2)
 })
 
+test('a cell with no time before the newer posts offers to move them later', async ({ page }) => {
+  const provider = await mockProvider(page)
+  await planOnGrid(page, 3)
+  await groupCells(page, grid(page), 2)
+  await connect(page)
+
+  const album = await openSchedule(page)
+  await schedule(album, new Date(Math.ceil(Date.now() / 60_000) * 60_000 + 23 * 60_000))
+  await expect(album).toBeHidden()
+  const albumTime = Date.parse(String(provider.scheduled[0]?.scheduledFor))
+
+  const dialog = await openSchedule(page, 1)
+  await expect(dialog.getByText(/No time fits before your newer scheduled posts/)).toBeVisible()
+  await dialog.getByRole('button', { name: 'Move newer posts later' }).click()
+  const confirm = page.getByRole('alertdialog', { name: 'Move newer posts later?' })
+  await expect(confirm.getByText(/^Position 1: /)).toBeVisible()
+  expect(provider.requests.filter((request) => request.startsWith('PATCH'))).toHaveLength(0)
+  await confirm.getByRole('button', { name: 'Move posts' }).click()
+  await expect(confirm).toBeHidden()
+  await expect(dialog.getByText(/No time fits/)).toHaveCount(0)
+
+  expect(provider.requests.filter((request) => request.startsWith('PATCH'))).toHaveLength(1)
+  const movedAlbum = Date.parse(String(provider.scheduled[0]?.scheduledFor))
+  expect(movedAlbum).toBeGreaterThan(albumTime)
+
+  await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  const own = Date.parse(String(provider.scheduled[1]?.scheduledFor))
+  expect(own).toBeLessThanOrEqual(movedAlbum - 5 * 60_000)
+})
+
 test('the schedule dialog steps through every slide of an album', async ({ page }) => {
   await mockProvider(page)
   await planOnGrid(page, 3)
