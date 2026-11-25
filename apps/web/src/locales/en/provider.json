@@ -77,28 +77,18 @@
       "count_other": "A carousel can hold {{count}} videos."
     },
     "tags": {
-      "title": "Tag accounts",
-      "hint": "Tap the picture where you want a tag, type the username and press Enter. Drag a tag to move it, or use the arrow keys (hold Shift for bigger steps). Up to {{limit}} per post.",
-      "videoHint": "Add the accounts to tag in this video. Up to {{limit}} per post.",
-      "slide": "Slide {{position}} ({{count}})",
-      "picture": "The picture to tag",
+      "hint": "Tap the picture to tag someone.",
       "unnamed": "Tag {{position}}",
       "marker": "{{name}}, {{x}} from the left, {{y}} from the top. Move with the arrow keys, remove with Delete.",
-      "username": "Username of tag {{position}}",
       "placeholder": "username",
-      "remove": "Remove tag {{position}}",
+      "remove": "Remove {{name}}",
       "add": "Add an account",
       "full": "That is the most Instagram allows on a post, {{limit}} tags.",
-      "place": "Place a tag on the picture. Then type the username.",
+      "place": "Tag someone on the picture. Then type the username.",
       "pending": "Username for the new tag",
-      "confirm": "Add the tag",
-      "none": "No tags yet.",
-      "tapPicture": "Tap the picture to add a tag."
+      "confirm": "Add the tag"
     },
     "screens": {
-      "done": "Done",
-      "tag": "Tag accounts",
-      "tagCount": "Tag accounts ({{count}})",
       "tagged_one": "Tagged: {{usernames}}",
       "tagged_other": "{{count}} accounts tagged: {{usernames}}"
     },

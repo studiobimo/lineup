@@ -224,11 +224,16 @@ test('a planned image is sent, scheduled and held in place', async ({ page }) =>
 
   const dialog = await openSchedule(page)
   await expect(dialog.getByText(/sent to Zernio and Instagram/)).toBeVisible()
-  await dialog.getByRole('button', { name: 'Tag accounts', exact: true }).click()
+  await expect(dialog.getByRole('button', { name: /Tag accounts/ })).toHaveCount(0)
   await dialog.getByTestId('tag-picture').click()
-  await dialog.getByRole('textbox', { name: 'Username for the new tag' }).fill('friend')
+  const username = page.getByRole('textbox', { name: 'Username for the new tag' })
+  await username.fill('friend')
+  await page.keyboard.press('Escape')
+  await expect(username).toBeHidden()
+  await expect(dialog).toBeVisible()
+  await dialog.getByTestId('tag-picture').click()
+  await username.fill('friend')
   await page.keyboard.press('Enter')
-  await dialog.getByRole('button', { name: 'Done', exact: true }).click()
   await expect(dialog.getByText('Tagged: @friend')).toBeVisible()
   await schedule(dialog)
   await expect(dialog).toBeHidden()
@@ -325,11 +330,13 @@ test('the schedule dialog steps through every slide of an album', async ({ page 
   await page.keyboard.press('ArrowRight')
   await expect(dialog.getByRole('button', { name: 'Next slide' })).toBeDisabled()
   await expect(viewer.locator('canvas')).toHaveCount(1)
-  await dialog.getByRole('button', { name: 'Tag accounts', exact: true }).click()
-  await expect(dialog.getByRole('button', { name: /^Slide 3/ })).toHaveAttribute(
-    'aria-pressed',
-    'true'
-  )
+  await dialog.getByTestId('tag-picture').click()
+  await page.getByRole('textbox', { name: 'Username for the new tag' }).fill('third')
+  await page.keyboard.press('Enter')
+  await dialog.getByRole('button', { name: 'Previous slide' }).click()
+  await expect(dialog.getByRole('button', { name: /^@third/ })).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Next slide' }).click()
+  await expect(dialog.getByRole('button', { name: /^@third/ })).toBeVisible()
 })
 
 test('the picture stays in view while the fields scroll', async ({ page }) => {
