@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -65,7 +65,8 @@ describe('tagging on the picture', () => {
     const user = userEvent.setup()
     render(<Harness />)
     await user.click(surface())
-    expect(await pendingName()).toHaveFocus()
+    const field = await pendingName()
+    await waitFor(() => expect(field).toHaveFocus())
     expect(screen.getByTestId('pending-tag')).toBeInTheDocument()
     expect(latest).toEqual([])
     await user.type(await pendingName(), '@Some.One{Enter}')
@@ -113,7 +114,8 @@ describe('tagging on the picture', () => {
     render(<Harness />)
     surface().focus()
     await user.keyboard('{Enter}')
-    expect(await pendingName()).toHaveFocus()
+    const field = await pendingName()
+    await waitFor(() => expect(field).toHaveFocus())
     await user.keyboard('friend{Enter}')
     expect(toUserTags(latest)).toEqual([{ username: 'friend', x: 0.5, y: 0.5, mediaIndex: 0 }])
   })
@@ -165,7 +167,8 @@ describe('tagging on the picture, moving and removing tags', () => {
     await user.click(screen.getByRole('button', { name: 'Next slide' }))
     expect(screen.queryByTestId('tag-picture')).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Add an account' }))
-    expect(await pendingName()).toHaveFocus()
+    const field = await pendingName()
+    await waitFor(() => expect(field).toHaveFocus())
     await user.type(await pendingName(), 'filmer{Enter}')
     expect(toUserTags(latest)).toEqual([
       { username: 'friend', x: 0.5, y: 0.5, mediaIndex: 0 },

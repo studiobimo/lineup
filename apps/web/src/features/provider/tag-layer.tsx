@@ -181,7 +181,7 @@ export function TagLayer({ editor, tags, all }: TagLayerProps) {
         <span
           ref={dot}
           aria-hidden
-          data-testid="pending-tag"
+          data-testid={pendingHere ? 'pending-tag' : 'tag-anchor'}
           className={cn(
             'pointer-events-none absolute z-10 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-dashed border-primary bg-background/60 shadow-sm',
             !pendingHere && 'invisible'
