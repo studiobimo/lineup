@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -32,10 +33,14 @@ export function PostDialog({ cell }: { cell: string }) {
   const connection = useConnection()
   const accountId = liveAccount(connection)
   const scheduling = !post && accountId && mayPost(connection)
+  const [headerAction, setHeaderAction] = useState<HTMLElement | null>(null)
   return (
     <Dialog {...dialog}>
-      <DialogPopup className={scheduling ? 'max-w-3xl' : undefined}>
-        <DialogHeader>
+      <DialogPopup
+        className={scheduling ? 'max-w-4xl' : undefined}
+        onKeyDown={(event) => event.preventBaseUIHandler()}
+      >
+        <DialogHeader className={scheduling ? 'pe-36' : undefined}>
           <DialogTitle>{t(post ? 'post.existingTitle' : 'post.title')}</DialogTitle>
           <DialogDescription>
             {post
@@ -49,12 +54,20 @@ export function PostDialog({ cell }: { cell: string }) {
             {post ? (
               <PostDetails cell={cell} post={post} onDone={close} />
             ) : scheduling ? (
-              <NewPost cell={cell} accountId={accountId} onDone={close} />
+              <NewPost
+                cell={cell}
+                accountId={accountId}
+                headerAction={headerAction}
+                onDone={close}
+              />
             ) : (
               <p className="text-sm text-muted-foreground">{t(whatIsMissing(connection))}</p>
             )}
           </ProviderQueries>
         </DialogPanel>
+        {scheduling && (
+          <div ref={setHeaderAction} className="absolute end-14 top-4 z-10 max-sm:top-3" />
+        )}
       </DialogPopup>
     </Dialog>
   )

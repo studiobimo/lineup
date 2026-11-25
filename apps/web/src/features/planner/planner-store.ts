@@ -1,6 +1,7 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
 
 import type { ImageColour } from '@/features/autosort/colour'
+import { getNeighbours } from '@/features/autosort/neighbours'
 import { sortByColour, type SortStrategy } from '@/features/autosort/sort'
 
 import {
@@ -352,7 +353,7 @@ const colourSlice = ({
   async sortByColour(container, strategy) {
     const { board, images } = get()
     const cells = board[container].map((id) => ({ ...images[coverOf(board, id)], id }))
-    const order = await sortByColour(cells, strategy)
+    const order = await sortByColour(cells, strategy, container === 'grid' ? getNeighbours() : [])
     if (get().board === board) commit({ ...board, [container]: order })
   },
 

@@ -1,9 +1,17 @@
+import { SOONEST_MS } from 'lineup-contract'
 import { describe, expect, it } from 'vitest'
 
 import type { CellPost } from '@/features/planner/board-schema'
 import type { Board, ImageRecord } from '@/features/planner/board-store'
 
-import { defaultTime, gapWindows, publishGap, spacingFor } from './publish-timing'
+import {
+  defaultTime,
+  gapWindows,
+  type Move,
+  publishGap,
+  roomFor,
+  spacingFor
+} from './publish-timing'
 
 const MINUTE = 60_000
 const MB = 1024 * 1024
@@ -137,6 +145,19 @@ describe('the time a new post starts at', () => {
     expect(defaultAt({ c: post(0) }, 'a', 60)).toBe(60)
   })
 
+  it('never starts before the soonest time, even when asked to', () => {
+    const soonest = T0 + SOONEST_MS
+    const time = defaultTime({
+      board: board({}),
+      images,
+      sizes: {},
+      cell: 'a',
+      from: T0,
+      soonest
+    }).getTime()
+    expect(time).toBe(soonest)
+  })
+
   it('leaves the post older on the grid its gap, when that is later', () => {
     expect(defaultAt({ c: post(58) }, 'a', 60)).toBe(63)
     expect(defaultAt({ c: post(58), b: post(55) }, 'a', 60)).toBe(70)
@@ -169,5 +190,52 @@ describe('the windows to mark in the picker', () => {
     })
     expect(before).toMatchObject({ start: at(56), end: at(60) })
     expect(after).toMatchObject({ start: at(60), end: at(75), gap: 15 * MINUTE })
+  })
+})
+
+const roomAt = (posts: Board['posts'], cell: string, from = 0) =>
+  roomFor({ board: board(posts), images, sizes: {}, cell, from: at(from), soonest: at(-100) })
+const minutes = ({ cell, from, to }: Move) => ({
+  cell,
+  from: (from - T0) / MINUTE,
+  to: (to - T0) / MINUTE
+})
+
+describe('making room before the newer posts', () => {
+  it('has nothing to offer when a time already fits', () => {
+    expect(roomAt({}, 'c')).toBeUndefined()
+    expect(roomAt({ a: post(30) }, 'c', 0)).toBeUndefined()
+    expect(roomAt({ d: post(28) }, 'c', 0)).toBeUndefined()
+  })
+
+  it('moves the newer post just far enough, and starts at the earliest time allowed', () => {
+    const room = roomAt({ a: post(30), d: post(28) }, 'c')
+    expect(room?.start).toEqual(new Date(at(33)))
+    expect(room?.moves.map(minutes)).toEqual([{ cell: 'a', from: 30, to: 38 }])
+  })
+
+  it('pushes each later post only as far as its gap to the one before needs', () => {
+    const room = roomAt({ a: post(30), b: post(33), d: post(28) }, 'c')
+    expect(room?.moves.map(minutes)).toEqual([
+      { cell: 'a', from: 30, to: 38 },
+      { cell: 'b', from: 33, to: 43 }
+    ])
+  })
+
+  it('leaves a post that already clears the others where it is', () => {
+    const room = roomAt({ a: post(30), b: post(120), d: post(28) }, 'c')
+    expect(room?.moves.map(minutes)).toEqual([{ cell: 'a', from: 30, to: 38 }])
+  })
+
+  it('starts at the time the post would otherwise fall back to', () => {
+    const input = {
+      board: board({ a: post(30), d: post(28) }),
+      images,
+      sizes: {},
+      cell: 'c',
+      from: at(0),
+      soonest: at(-100)
+    }
+    expect(roomFor(input)?.start).toEqual(defaultTime(input))
   })
 })

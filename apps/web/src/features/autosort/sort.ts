@@ -12,7 +12,7 @@ export const sortStrategies = [...keyedStrategies, 'bands2', 'bands4'] as const
 
 export type SortStrategy = (typeof sortStrategies)[number]
 
-const bandRows = { bands2: 2, bands4: 4 } as const
+export const bandRows = { bands2: 2, bands4: 4 } as const
 
 type Cell = Pick<ImageRecord, 'id' | 'colour' | 'takenAt' | 'place'>
 
@@ -36,16 +36,18 @@ const keys: Record<(typeof keyedStrategies)[number], (colour: Oklch) => SortKey>
   }
 }
 
-function toBandCell(
-  { id, takenAt, place }: Cell,
-  { dominant, tone, vivid }: ImageColour
-): BandCell {
-  const neutral = dominant.chroma < NEUTRAL_CHROMA || vivid < MUTED
+const salientHue = ({ palette, vivid }: ImageColour) => {
+  const salient = palette.find(({ chroma }) => chroma >= NEUTRAL_CHROMA)
+  return salient && vivid >= MUTED ? fromRed(salient.hue) : null
+}
+
+export function toBandCell({ id, takenAt, place }: Cell, colour: ImageColour): BandCell {
+  const { tone, vivid } = colour
   return {
     id,
     tone,
     vivid,
-    hue: neutral ? null : fromRed(dominant.hue),
+    hue: salientHue(colour),
     takenAt: takenAt === undefined ? undefined : Date.parse(takenAt),
     place
   }
@@ -59,12 +61,18 @@ function compare(one: SortKey, other: SortKey) {
   return 0
 }
 
-export async function sortByColour(cells: Cell[], strategy: SortStrategy) {
+export async function sortByColour(
+  cells: Cell[],
+  strategy: SortStrategy,
+  neighbours: BandCell[] = []
+) {
   if (strategy === 'bands2' || strategy === 'bands4') {
+    console.info('[magic sort]', `sorting with ${neighbours.length} neighbour colours`)
     const order = await arrangeBands({
       cells: cells.flatMap((cell) => (cell.colour ? [toBandCell(cell, cell.colour)] : [])),
       rowsPerBand: bandRows[strategy],
-      columns: instagram.columns
+      columns: instagram.columns,
+      neighbours
     })
     const waiting = cells.filter(({ colour }) => !colour).map(({ id }) => id)
     return [...order, ...waiting.sort()]

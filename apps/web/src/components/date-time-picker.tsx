@@ -189,28 +189,37 @@ interface DateTimePickerProps {
   markNote?: string
 }
 
-// ~keep Every change is held to the minimum, not just the default: choosing the minimum hour
-// or day would otherwise leave minutes the columns show as disabled.
-function clampToMinimum(parts: Parts, minDate?: Date): Parts {
-  if (!minDate || toDate(parts) >= minDate) return parts
+const withDefaults = (parts: Parts | null): Parts => ({
+  date: parts?.date ?? startOfDay(new Date()),
+  hour: parts?.hour ?? DEFAULT_HOUR,
+  minute: parts?.minute ?? 0
+})
+
+function clampToMinimum(next: Parts, minDate?: Date): Parts {
+  if (!minDate || toDate(next) >= minDate) return next
   const first = startOfDay(minDate)
-  const date = parts.date < first ? first : parts.date
-  if (toDate({ ...parts, date }) >= minDate) return { ...parts, date }
-  return { date, hour: minDate.getHours(), minute: minDate.getMinutes() }
+  const clamped = { ...next, date: next.date < first ? first : next.date }
+  if (toDate(clamped) >= minDate) return clamped
+  return { ...clamped, hour: minDate.getHours(), minute: minDate.getMinutes() }
 }
 
-interface TimeOptionsInput {
+interface TimeOptionsRequest {
+  parts: Parts | null
+  minDate?: Date
   twentyFour: boolean
-  pm: boolean
-  hour: number | undefined
-  day: Date
-  minHour: number
-  minMinute: number
   marks: TimeMark[]
 }
 
-function timeOptions({ twentyFour, pm, hour, day, minHour, minMinute, marks }: TimeOptionsInput) {
-  const actualHour = (picked: number) => (twentyFour ? picked : (picked % 12) + (pm ? 12 : 0))
+function timeOptions({ parts, minDate, twentyFour, marks }: TimeOptionsRequest) {
+  const hour = parts?.hour
+  const pm = hour === undefined ? undefined : hour >= 12
+  // ~keep Earlier times only matter on the minimum's own day.
+  const day = parts?.date ?? startOfDay(new Date())
+  const limited = minDate && startOfDay(minDate).getTime() === day.getTime() ? minDate : undefined
+  const minHour = limited?.getHours() ?? 0
+  const minMinute = limited && (hour ?? DEFAULT_HOUR) === minHour ? limited.getMinutes() : 0
+  const actualHour = (picked: number) =>
+    twentyFour ? picked : (picked % 12) + ((pm ?? false) ? 12 : 0)
   // ~keep An hour is marked when any of its minutes is; a minute only when it is itself.
   const startOf = (pickedHour: number, minute = 0) =>
     toDate({ date: day, hour: pickedHour, minute })
@@ -224,24 +233,21 @@ function timeOptions({ twentyFour, pm, hour, day, minHour, minMinute, marks }: T
   })
   const minutes = range(60).map((option) => {
     const from = startOf(hour ?? DEFAULT_HOUR, option.value).getTime()
-    return {
-      ...option,
-      disabled: option.value < minMinute,
-      note: noteFor(marks, from, from + 1)
-    }
+    return { ...option, disabled: option.value < minMinute, note: noteFor(marks, from, from + 1) }
   })
-  return { hours, minutes }
+  const shownHour = hour === undefined ? undefined : twentyFour ? hour : hour % 12 || 12
+  return { hour, pm, minHour, hours, minutes, shownHour }
 }
 
-interface DayCalendarProps {
+interface CalendarPanelProps {
   parts: Parts | null
   minDate?: Date
-  onSelect: (date: Date) => void
+  onPick: (date: Date) => void
   onClear: () => void
   onToday: () => void
 }
 
-function DayCalendar({ parts, minDate, onSelect, onClear, onToday }: DayCalendarProps) {
+function CalendarPanel({ parts, minDate, onPick, onClear, onToday }: CalendarPanelProps) {
   const { t } = useTranslation()
   return (
     <div className="flex flex-col gap-2">
@@ -251,7 +257,7 @@ function DayCalendar({ parts, minDate, onSelect, onClear, onToday }: DayCalendar
         selected={parts?.date}
         defaultMonth={parts?.date ?? minDate}
         disabled={minDate && { before: startOfDay(minDate) }}
-        onSelect={onSelect}
+        onSelect={onPick}
         formatters={calendarFormatters()}
         weekStartsOn={weekStart()}
         classNames={{ weekday: 'text-muted-foreground' }}
@@ -276,31 +282,24 @@ function DayCalendar({ parts, minDate, onSelect, onClear, onToday }: DayCalendar
 }
 
 interface TimeColumnsProps {
-  twentyFour: boolean
-  pm: boolean | undefined
-  shownHour: number | undefined
+  options: ReturnType<typeof timeOptions>
   minute: number | undefined
-  minHour: number
-  hours: Option[]
-  minutes: Option[]
-  onHour: (value: number) => void
-  onMinute: (value: number) => void
-  onPeriod: (value: number) => void
+  twentyFour: boolean
+  onHour: (hour: number) => void
+  onMinute: (minute: number) => void
+  onPeriod: (period: number) => void
 }
 
 function TimeColumns({
-  twentyFour,
-  pm,
-  shownHour,
+  options,
   minute,
-  minHour,
-  hours,
-  minutes,
+  twentyFour,
   onHour,
   onMinute,
   onPeriod
 }: TimeColumnsProps) {
   const { t } = useTranslation()
+  const { hours, minutes, shownHour, pm, minHour } = options
   return (
     <div className="flex h-44 gap-1.5 sm:h-auto">
       <TimeColumn
@@ -330,18 +329,15 @@ function TimeColumns({
   )
 }
 
-interface DateTimeTriggerProps {
+interface PickerTriggerProps {
   id?: string
   invalid?: boolean
   describedBy?: string
-  parts: Parts | null
+  empty: boolean
+  shown: string
 }
 
-function DateTimeTrigger({ id, invalid, describedBy, parts }: DateTimeTriggerProps) {
-  const { t } = useTranslation()
-  const shown = parts
-    ? dateTimeFormat({ dateStyle: 'medium', timeStyle: 'short' }).format(toDate(parts))
-    : t('dateTime.placeholder')
+function PickerTrigger({ id, invalid, describedBy, empty, shown }: PickerTriggerProps) {
   return (
     <PopoverTrigger
       render={
@@ -351,7 +347,7 @@ function DateTimeTrigger({ id, invalid, describedBy, parts }: DateTimeTriggerPro
           variant="outline"
           aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
-          className={cn('w-full justify-start font-normal', !parts && 'text-muted-foreground')}
+          className={cn('w-full justify-start font-normal', empty && 'text-muted-foreground')}
         />
       }
     >
@@ -361,85 +357,12 @@ function DateTimeTrigger({ id, invalid, describedBy, parts }: DateTimeTriggerPro
   )
 }
 
-function minimumOf(minDate: Date | undefined, parts: Parts | null, hour: number | undefined) {
-  const day = parts?.date ?? startOfDay(new Date())
-  const limited = minDate && startOfDay(minDate).getTime() === day.getTime() ? minDate : undefined
-  const minHour = limited?.getHours() ?? 0
-  const minMinute = limited && (hour ?? DEFAULT_HOUR) === minHour ? limited.getMinutes() : 0
-  return { day, minHour, minMinute }
-}
-
-interface DateTimePopupProps {
-  parts: Parts | null
-  minDate?: Date
-  twentyFour: boolean
-  marks: TimeMark[]
-  markNote?: string
-  onChange: (value: string) => void
-  commit: (change: Partial<Parts>) => void
-}
-
-function DateTimePopup({
-  parts,
-  minDate,
-  twentyFour,
-  marks,
-  markNote,
-  onChange,
-  commit
-}: DateTimePopupProps) {
-  const hour = parts?.hour
-  const pm = hour === undefined ? undefined : hour >= 12
-  // ~keep Earlier times only matter on the minimum's own day.
-  const { day, minHour, minMinute } = minimumOf(minDate, parts, hour)
-  const { hours, minutes } = timeOptions({
-    twentyFour,
-    pm: pm ?? false,
-    hour,
-    day,
-    minHour,
-    minMinute,
-    marks
-  })
-  const shownHour = hour === undefined ? undefined : twentyFour ? hour : hour % 12 || 12
-  const setHour = (picked: number) =>
-    commit({ hour: twentyFour ? picked : (picked % 12) + (pm ? 12 : 0) })
-  const setPeriod = (period: number) =>
-    commit({ hour: ((hour ?? DEFAULT_HOUR) % 12) + (period ? 12 : 0) })
-
+function MarkNote({ text }: { text: string }) {
   return (
-    <PopoverPopup
-      align="start"
-      className="max-h-(--available-height) max-w-[calc(100vw-2*var(--spacing-gutter))]"
-    >
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <DayCalendar
-          parts={parts}
-          minDate={minDate}
-          onSelect={(date) => commit({ date })}
-          onClear={() => onChange('')}
-          onToday={() => commit({ date: startOfDay(new Date()) })}
-        />
-        <TimeColumns
-          twentyFour={twentyFour}
-          pm={pm}
-          shownHour={shownHour}
-          minute={parts?.minute}
-          minHour={minHour}
-          hours={hours}
-          minutes={minutes}
-          onHour={setHour}
-          onMinute={(minute) => commit({ minute })}
-          onPeriod={setPeriod}
-        />
-      </div>
-      {markNote && marks.length > 0 && (
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-warning" />
-          {markNote}
-        </p>
-      )}
-    </PopoverPopup>
+    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-warning" />
+      {text}
+    </p>
   )
 }
 
@@ -455,6 +378,7 @@ export function DateTimePicker({
   marks = [],
   markNote
 }: DateTimePickerProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const parts = parse(value)
   const twentyFour = hourCycle ? hourCycle === 24 : prefersTwentyFourHour()
@@ -467,27 +391,55 @@ export function DateTimePicker({
   }
 
   function commit(change: Partial<Parts>) {
-    const next = {
-      date: parts?.date ?? startOfDay(new Date()),
-      hour: parts?.hour ?? DEFAULT_HOUR,
-      minute: parts?.minute ?? 0,
-      ...change
-    }
+    const next = { ...withDefaults(parts), ...change }
+    // ~keep Every change is held to the minimum, not just the default: choosing the minimum hour
+    // or day would otherwise leave minutes the columns show as disabled.
     onChange(stringify(clampToMinimum(next, minDate)))
   }
 
+  const options = timeOptions({ parts, minDate, twentyFour, marks })
+  const { hour, pm } = options
+  const setHour = (picked: number) =>
+    commit({ hour: twentyFour ? picked : (picked % 12) + (pm ? 12 : 0) })
+  const setPeriod = (period: number) =>
+    commit({ hour: ((hour ?? DEFAULT_HOUR) % 12) + (period ? 12 : 0) })
+
+  const shown = parts
+    ? dateTimeFormat({ dateStyle: 'medium', timeStyle: 'short' }).format(toDate(parts))
+    : t('dateTime.placeholder')
+
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <DateTimeTrigger id={id} invalid={invalid} describedBy={describedBy} parts={parts} />
-      <DateTimePopup
-        parts={parts}
-        minDate={minDate}
-        twentyFour={twentyFour}
-        marks={marks}
-        markNote={markNote}
-        onChange={onChange}
-        commit={commit}
+      <PickerTrigger
+        id={id}
+        invalid={invalid}
+        describedBy={describedBy}
+        empty={!parts}
+        shown={shown}
       />
+      <PopoverPopup
+        align="start"
+        className="max-h-(--available-height) max-w-[calc(100vw-2*var(--spacing-gutter))]"
+      >
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <CalendarPanel
+            parts={parts}
+            minDate={minDate}
+            onPick={(date) => commit({ date })}
+            onClear={() => onChange('')}
+            onToday={() => commit({ date: startOfDay(new Date()) })}
+          />
+          <TimeColumns
+            options={options}
+            minute={parts?.minute}
+            twentyFour={twentyFour}
+            onHour={setHour}
+            onMinute={(minute) => commit({ minute })}
+            onPeriod={setPeriod}
+          />
+        </div>
+        {markNote && marks.length > 0 && <MarkNote text={markNote} />}
+      </PopoverPopup>
     </Popover>
   )
 }

@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
 
-import { addImages, grid, groupCells, image, png, tray, watchErrors } from './fixtures'
+import { addImages, grid, groupCells, image, png, savedBoard, tray, watchErrors } from './fixtures'
 import { mockProvider } from './provider-mock'
 
 const KEY = 'pasted-key-ending-abcd'
@@ -157,6 +157,106 @@ async function schedule(dialog: Locator, when = IN_A_WEEK, caption = 'Hello') {
   await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
 }
 
+test('alt text is written under Accessibility and sent with the picture', async ({ page }) => {
+  const provider = await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  const section = dialog.getByRole('button', { name: 'Accessibility' })
+  await expect(section).toHaveAttribute('aria-expanded', 'false')
+  await section.click()
+  await dialog.getByLabel('Alt text for slide 1').fill('A grey cat on a sofa')
+  await schedule(dialog)
+  await expect(dialog).toBeHidden()
+
+  const at = provider.requests.indexOf('POST /scheduled-posts')
+  expect(provider.bodies[at]).toMatchObject({ altTexts: ['A grey cat on a sofa'] })
+})
+
+test('collaborators are invited, and a fourth is refused', async ({ page }) => {
+  const provider = await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  await dialog.getByRole('button', { name: 'Collaborators' }).click()
+  const name = dialog.getByLabel('Invite a collaborator')
+  for (const friend of ['one', 'two', 'three']) {
+    await name.fill(friend)
+    await name.press('Enter')
+  }
+  await expect(name).toBeDisabled()
+  await expect(dialog.getByText(/most Instagram allows, 3 collaborators/)).toBeVisible()
+  await schedule(dialog)
+  await expect(dialog).toBeHidden()
+
+  const at = provider.requests.indexOf('POST /scheduled-posts')
+  expect(provider.bodies[at]).toMatchObject({ collaborators: ['one', 'two', 'three'] })
+})
+
+test('comments can be turned off and a first comment added under Advanced settings', async ({
+  page
+}) => {
+  const provider = await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  const section = dialog.getByRole('button', { name: 'Advanced settings' })
+  await expect(section).toHaveAttribute('aria-expanded', 'false')
+  await section.click()
+  await expect(dialog.getByText(/best effort/)).toBeVisible()
+  await dialog.getByRole('switch', { name: 'Turn off commenting' }).click()
+  await dialog.getByLabel('First comment').fill('Link in bio')
+  await schedule(dialog)
+  await expect(dialog).toBeHidden()
+
+  const at = provider.requests.indexOf('POST /scheduled-posts')
+  expect(provider.bodies[at]).toMatchObject({ commentsEnabled: false, firstComment: 'Link in bio' })
+})
+
+test('the tag username field stays anchored on the picture when it is clicked again', async ({
+  page
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  const picture = dialog.getByTestId('tag-picture')
+  const username = page.getByRole('textbox', { name: 'Username for the new tag' })
+  const box = await picture.boundingBox()
+  if (!box) throw new Error('the picture has no box')
+  await page.evaluate(() => {
+    const seen: DOMRect[] = []
+    Object.assign(window, { seenPopups: seen })
+    const sample = () => {
+      for (const popup of document.querySelectorAll('[data-slot="popover-popup"]'))
+        seen.push(popup.getBoundingClientRect())
+      requestAnimationFrame(sample)
+    }
+    sample()
+  })
+  await picture.click({ position: { x: box.width * 0.5, y: box.height * 0.3 } })
+  await expect(username).toBeVisible()
+  await picture.click({ position: { x: box.width * 0.55, y: box.height * 0.5 } })
+  await expect(username).toBeVisible()
+  await page.waitForTimeout(500)
+
+  const seen = await page.evaluate(
+    () => (window as unknown as { seenPopups: DOMRect[] }).seenPopups
+  )
+  expect(seen.length).toBeGreaterThan(0)
+  for (const popup of seen) {
+    expect(popup.x).toBeGreaterThanOrEqual(box.x)
+    expect(popup.y).toBeGreaterThanOrEqual(box.y)
+    expect(popup.x + popup.width).toBeLessThanOrEqual(box.x + box.width)
+    expect(popup.y + popup.height).toBeLessThanOrEqual(box.y + box.height)
+  }
+})
+
 test('a planned image is sent, scheduled and held in place', async ({ page }) => {
   const errors = watchErrors(page)
   const provider = await mockProvider(page)
@@ -165,11 +265,16 @@ test('a planned image is sent, scheduled and held in place', async ({ page }) =>
 
   const dialog = await openSchedule(page)
   await expect(dialog.getByText(/sent to Zernio and Instagram/)).toBeVisible()
-  await dialog.getByRole('button', { name: 'Tag accounts', exact: true }).click()
+  await expect(dialog.getByRole('button', { name: /Tag accounts/ })).toHaveCount(0)
   await dialog.getByTestId('tag-picture').click()
-  await dialog.getByRole('textbox', { name: 'Username for the new tag' }).fill('friend')
+  const username = page.getByRole('textbox', { name: 'Username for the new tag' })
+  await username.fill('friend')
+  await page.keyboard.press('Escape')
+  await expect(username).toBeHidden()
+  await expect(dialog).toBeVisible()
+  await dialog.getByTestId('tag-picture').click()
+  await username.fill('friend')
   await page.keyboard.press('Enter')
-  await dialog.getByRole('button', { name: 'Done', exact: true }).click()
   await expect(dialog.getByText('Tagged: @friend')).toBeVisible()
   await schedule(dialog)
   await expect(dialog).toBeHidden()
@@ -218,6 +323,165 @@ test('an album goes as one post, and each image on its own', async ({ page }) =>
   expect(provider.requests.filter((request) => request === 'PUT storage')).toHaveLength(2)
   const at = provider.requests.indexOf('POST /scheduled-posts')
   expect(provider.bodies[at].mediaUrls).toHaveLength(2)
+})
+
+test('a cell with no time before the newer posts offers to move them later', async ({ page }) => {
+  const provider = await mockProvider(page)
+  await planOnGrid(page, 3)
+  await groupCells(page, grid(page), 2)
+  await connect(page)
+
+  const album = await openSchedule(page)
+  await schedule(album, new Date(Math.ceil(Date.now() / 60_000) * 60_000 + 23 * 60_000))
+  await expect(album).toBeHidden()
+  const albumTime = Date.parse(String(provider.scheduled[0]?.scheduledFor))
+
+  const dialog = await openSchedule(page, 1)
+  await expect(dialog.getByText(/No time fits before your newer scheduled posts/)).toBeVisible()
+  await dialog.getByRole('button', { name: 'Move newer posts later' }).click()
+  const confirm = page.getByRole('alertdialog', { name: 'Move newer posts later?' })
+  await expect(confirm.getByText(/^Position 1: /)).toBeVisible()
+  expect(provider.requests.filter((request) => request.startsWith('PATCH'))).toHaveLength(0)
+  await confirm.getByRole('button', { name: 'Move posts' }).click()
+  await expect(confirm).toBeHidden()
+  await expect(dialog.getByText(/No time fits/)).toHaveCount(0)
+
+  expect(provider.requests.filter((request) => request.startsWith('PATCH'))).toHaveLength(1)
+  const movedAlbum = Date.parse(String(provider.scheduled[0]?.scheduledFor))
+  expect(movedAlbum).toBeGreaterThan(albumTime)
+
+  await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  const own = Date.parse(String(provider.scheduled[1]?.scheduledFor))
+  expect(own).toBeLessThanOrEqual(movedAlbum - 5 * 60_000)
+})
+
+test('the schedule dialog steps through every slide of an album', async ({ page }) => {
+  await mockProvider(page)
+  await planOnGrid(page, 3)
+  await groupCells(page, grid(page), 3)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  const viewer = dialog.getByRole('group', { name: "The post's slides" })
+  await expect(viewer.getByRole('tab', { name: /^Show slide/ })).toHaveCount(3)
+  await expect(viewer.locator('canvas')).toHaveCount(1)
+  await dialog.getByRole('button', { name: 'Next slide' }).click()
+  await viewer.getByRole('tab', { name: 'Show slide 2 of 3' }).focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(dialog.getByRole('button', { name: 'Next slide' })).toBeDisabled()
+  await expect(viewer.locator('canvas')).toHaveCount(1)
+  await dialog.getByTestId('tag-picture').click()
+  await page.getByRole('textbox', { name: 'Username for the new tag' }).fill('third')
+  await page.keyboard.press('Enter')
+  await dialog.getByRole('button', { name: 'Previous slide' }).click()
+  await expect(dialog.getByRole('button', { name: /^@third/ })).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Next slide' }).click()
+  await expect(dialog.getByRole('button', { name: /^@third/ })).toBeVisible()
+})
+
+test('the picture stays in view while the fields scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await mockProvider(page)
+  await planOnGrid(page, 3)
+  await groupCells(page, grid(page), 3)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  await dialog.getByRole('button', { name: 'Accessibility' }).click()
+  const viewer = dialog.getByRole('group', { name: "The post's slides" })
+  await dialog.getByLabel('Alt text for slide 3').scrollIntoViewIfNeeded()
+  await dialog.getByRole('button', { name: 'Advanced settings' }).scrollIntoViewIfNeeded()
+  await expect(viewer).toBeInViewport({ ratio: 1 })
+})
+
+test('the schedule dialog reorders an album from the keyboard, and undo puts it back', async ({
+  page
+}) => {
+  await mockProvider(page)
+  await planOnGrid(page, 3)
+  await groupCells(page, grid(page), 3)
+  await connect(page)
+  const albumOnBoard = async () => Object.values((await savedBoard(page)).albums ?? {})[0] ?? []
+  await expect.poll(albumOnBoard).toHaveLength(3)
+  const before = await albumOnBoard()
+
+  const dialog = await openSchedule(page)
+  await dialog.getByRole('button', { name: 'Slide 1', exact: true }).focus()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(50)
+  await expect(page.getByText('Picked up Slide 1.')).toBeAttached()
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByText('Over Slide 2.')).toBeAttached()
+  await page.keyboard.press('Space')
+  await expect.poll(albumOnBoard).toEqual([before[1], before[0], before[2]])
+  await expect(dialog.getByRole('tab', { name: 'Show slide 2 of 3' })).toHaveAttribute(
+    'aria-selected',
+    'true'
+  )
+
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  await page.getByRole('button', { name: 'Undo' }).first().click()
+  await expect.poll(albumOnBoard).toEqual(before)
+})
+
+test('a slide dragged in the schedule dialog moves sideways, and the strip never scrolls vertically', async ({
+  page
+}) => {
+  await mockProvider(page)
+  await planOnGrid(page, 2)
+  await groupCells(page, grid(page), 2)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  const strip = dialog.getByRole('group', { name: 'Reorder the slides' })
+  const slide = dialog.getByRole('button', { name: 'Slide 1', exact: true })
+  const start = await slide.boundingBox()
+  if (!start) throw new Error('Slide 1 has no box')
+  const from = { x: start.x + start.width / 2, y: start.y + start.height / 2 }
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  for (let step = 1; step <= 10; step++) {
+    await page.mouse.move(from.x + step * 20, from.y + step * 2)
+  }
+  expect(await strip.evaluate((node) => node.scrollHeight)).toBe(
+    await strip.evaluate((node) => node.clientHeight)
+  )
+  const dragged = await slide.boundingBox()
+  expect(dragged?.y).toBeCloseTo(start.y, 0)
+  await page.mouse.up()
+})
+
+const SCREENS = [
+  { name: 'a laptop', width: 1280, height: 720 },
+  { name: 'a phone', width: 375, height: 812 }
+]
+
+for (const { name, width, height } of SCREENS) {
+  for (const count of [1, 3]) {
+    test(`Schedule is in view without scrolling on ${name}, with ${count} image(s)`, async ({
+      page
+    }) => {
+      await mockProvider(page)
+      await planOnGrid(page, count)
+      if (count > 1) await groupCells(page, grid(page), count)
+      await connect(page)
+      await page.setViewportSize({ width, height })
+      const dialog = await openSchedule(page)
+      await expect(dialog.getByRole('button', { name: 'Schedule', exact: true })).toBeInViewport({
+        ratio: 1
+      })
+    })
+  }
+}
+
+test('a single image shows no slide controls', async ({ page }) => {
+  await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+  const dialog = await openSchedule(page)
+  await expect(dialog.getByRole('button', { name: 'Next slide' })).toHaveCount(0)
 })
 
 test('a retry after a lost answer does not post twice', async ({ page }) => {

@@ -1,4 +1,4 @@
-import { problemSchema } from 'lineup-contract'
+import { problemSchema, SOONEST_MS } from 'lineup-contract'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createApi } from '../app'
@@ -342,6 +342,23 @@ describe('provider routes, with a key, scheduling, continued', () => {
     expect(provider.update).not.toHaveBeenCalled()
   })
 
+  it('refuses a time under 20 minutes away and accepts one just past it', async () => {
+    const headers = { ...(await signedIn()), 'Idempotency-Key': 'twenty' }
+    const at = (offset: number) => new Date(Date.now() + SOONEST_MS + offset).toISOString()
+    const schedule = (scheduledFor: string) =>
+      send('/scheduled-posts', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ ...newPost(), scheduledFor })
+      })
+    const early = await schedule(at(-5000))
+    expect(early.status).toBe(422)
+    expect(await code(early)).toBe('time_in_past')
+    expect((await schedule(at(5000))).status).toBeLessThan(300)
+  })
+})
+
+describe('provider routes, with a key, listing and cancelling', () => {
   it('needs an account to list scheduled posts, and reschedules and cancels', async () => {
     const headers = await signedIn()
     expect((await send('/scheduled-posts', { headers })).status).toBe(400)

@@ -142,7 +142,9 @@ describe('sending a post, continued', () => {
     const [first, second] = posts().map(({ headers }) => headers.get('idempotency-key'))
     expect(second).not.toBe(first)
   })
+})
 
+describe('sending a post, after a failure', () => {
   it('picks up from the image that failed', async () => {
     const { posts, stored } = provider({ failUploads: new Set([2]) })
     await expect(send(['a', 'b', 'c'])).rejects.toBeInstanceOf(ProviderRequestError)

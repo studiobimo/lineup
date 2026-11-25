@@ -50,6 +50,7 @@
   --color-control-hover: var(--control-hover);
   --color-muted: var(--muted);
   --color-input: var(--input);
+  --color-field-border: var(--field-border);
   --color-foreground: var(--foreground);
   --color-destructive: var(--destructive);
   --color-card-foreground: var(--card-foreground);

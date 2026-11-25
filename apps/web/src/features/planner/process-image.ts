@@ -55,7 +55,7 @@ function draw(source: CanvasImageSource, { width, height }: Size): OffscreenCanv
   return canvas
 }
 
-function sampleColour(source: CanvasImageSource, size: Size) {
+export function sampleColour(source: CanvasImageSource, size: Size) {
   const { width, height } = colourSampleSize(size)
   const context = draw(source, { width, height }).getContext('2d')
   if (!context) throw new Error('This browser gave no 2d context')

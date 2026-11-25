@@ -1,4 +1,4 @@
-import type { PostStatus, ScheduledPost } from 'lineup-contract'
+import type { NewPost, PostStatus, ScheduledPost } from 'lineup-contract'
 import { z } from 'zod'
 
 import { type Provider, ProviderError, type ProviderFailure } from './provider'
@@ -62,7 +62,17 @@ const zernioPostSchema = z.object({
         platformPostId: z.string().nullish(),
         platformPostUrl: z.string().nullish(),
         publishedAt: z.string().nullish(),
-        errorMessage: z.string().nullish()
+        errorMessage: z.string().nullish(),
+        platformSpecificData: z
+          .object({
+            collaborators: z.array(z.string()).nullish(),
+            commentsEnabled: z.boolean().nullish(),
+            firstComment: z.string().nullish(),
+            droppedCollaborators: z
+              .array(z.object({ username: z.string(), reason: z.string() }))
+              .nullish()
+          })
+          .nullish()
       })
     )
     .nullish()
@@ -112,7 +122,11 @@ function toScheduledPost(post: ZernioPost): ScheduledPost {
     caption: post.content ?? undefined,
     url: target?.platformPostUrl ?? undefined,
     failure: target?.errorMessage ?? undefined,
-    publishedAt: target?.publishedAt ?? undefined
+    publishedAt: target?.publishedAt ?? undefined,
+    collaborators: target?.platformSpecificData?.collaborators ?? undefined,
+    droppedCollaborators: target?.platformSpecificData?.droppedCollaborators ?? undefined,
+    commentsEnabled: target?.platformSpecificData?.commentsEnabled ?? undefined,
+    firstComment: target?.platformSpecificData?.firstComment ?? undefined
   }
 }
 
@@ -314,11 +328,59 @@ const readMethods = (call: Call): Pick<Provider, 'publishedPosts' | 'scheduledPo
   }
 })
 
+const keptMediaSchema = z.object({
+  type: z.string().nullish(),
+  url: z.string().nullish(),
+  altText: z.string().nullish(),
+  thumbnail: z.string().nullish(),
+  instagramThumbnail: z.string().nullish()
+})
+
+const keptTargetSchema = z.object({
+  platform: z.string(),
+  accountId: z.union([z.string(), z.object({ _id: z.string() })]),
+  platformSpecificData: z.record(z.string(), z.unknown()).nullish()
+})
+
+const keptPostSchema = z.object({
+  post: z.object({
+    mediaItems: z.array(keptMediaSchema).nullish(),
+    platforms: z.array(keptTargetSchema).nullish()
+  })
+})
+
+const OUTPUT_ONLY = ['droppedCollaborators']
+
+const present = (fields: Record<string, unknown>) =>
+  Object.fromEntries(Object.entries(fields).filter(([, value]) => value != null))
+
+function whatToKeep({ post }: z.infer<typeof keptPostSchema>) {
+  const mediaItems = post.mediaItems?.map(present)
+  const platforms = post.platforms?.map(({ platform, accountId, platformSpecificData }) => ({
+    platform,
+    accountId: typeof accountId === 'string' ? accountId : accountId._id,
+    ...(platformSpecificData && {
+      platformSpecificData: Object.fromEntries(
+        Object.entries(platformSpecificData).filter(([name]) => !OUTPUT_ONLY.includes(name))
+      )
+    })
+  }))
+  return { ...(mediaItems?.length && { mediaItems }), ...(platforms?.length && { platforms }) }
+}
+
+const platformOptions = ({ userTags, collaborators, commentsEnabled, firstComment }: NewPost) => {
+  const options = {
+    ...(userTags?.length && { userTags }),
+    ...(collaborators?.length && { collaborators }),
+    ...(commentsEnabled === false && { commentsEnabled }),
+    ...(firstComment?.trim() && { firstComment: firstComment.trim() })
+  }
+  return Object.keys(options).length > 0 ? { platformSpecificData: options } : {}
+}
+
 const writeMethods = (call: Call): Pick<Provider, 'schedule' | 'update' | 'cancel'> => ({
-  async schedule(
-    { accountId, caption, scheduledFor, timeZone, mediaUrls, mediaTypes, userTags },
-    idempotencyKey
-  ) {
+  async schedule(input, idempotencyKey) {
+    const { accountId, caption, scheduledFor, timeZone, mediaUrls, mediaTypes, altTexts } = input
     const { post } = await call('/posts', postSchema, {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey },
@@ -326,26 +388,23 @@ const writeMethods = (call: Call): Pick<Provider, 'schedule' | 'update' | 'cance
         content: caption,
         scheduledFor,
         timezone: timeZone,
-        mediaItems: mediaUrls.map((url, index) => ({
-          type: mediaTypes?.[index] ?? 'image',
-          url
-        })),
-        platforms: [
-          {
-            platform: PLATFORM,
-            accountId,
-            ...(userTags?.length && { platformSpecificData: { userTags } })
-          }
-        ]
+        mediaItems: mediaUrls.map((url, index) => {
+          const type = mediaTypes?.[index] ?? 'image'
+          const altText = type === 'image' ? altTexts?.[index]?.trim() : undefined
+          return { type, url, ...(altText && { altText }) }
+        }),
+        platforms: [{ platform: PLATFORM, accountId, ...platformOptions(input) }]
       }
     })
     return toScheduledPost(post)
   },
 
   async update(id, { scheduledFor, timeZone, caption }) {
-    const { post } = await call(`/posts/${encodeURIComponent(id)}`, postSchema, {
+    const path = `/posts/${encodeURIComponent(id)}`
+    const kept = whatToKeep(await call(path, keptPostSchema))
+    const { post } = await call(path, postSchema, {
       method: 'PUT',
-      body: { scheduledFor, timezone: timeZone, content: caption }
+      body: { scheduledFor, timezone: timeZone, content: caption, ...kept }
     })
     return toScheduledPost(post)
   },

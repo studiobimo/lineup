@@ -102,7 +102,10 @@ function scheduleRoute({ route, method, body, headers }: Call, { state, answered
     status: 'scheduled',
     scheduledFor: body.scheduledFor,
     timeZone: body.timeZone,
-    caption: body.caption
+    caption: body.caption,
+    collaborators: body.collaborators,
+    commentsEnabled: body.commentsEnabled,
+    firstComment: body.firstComment
   }
   state.scheduled.push(post)
   answered.set(key, post)

@@ -11,6 +11,7 @@ import {
   postChangesSchema,
   publishedPostSchema,
   scheduledPostSchema,
+  SOONEST_MINUTES,
   SOONEST_MS,
   uploadRequestSchema,
   uploadSchema
@@ -50,7 +51,7 @@ function notInThePast(scheduledFor: string) {
   throw new ProblemError({
     status: 422,
     code: 'time_in_past',
-    title: 'Pick a time later than now'
+    title: `Pick a time at least ${SOONEST_MINUTES} minutes from now`
   })
 }
 
@@ -222,7 +223,7 @@ const scheduleRoutes = (providerFor: ProviderFor) =>
       '/scheduled-posts',
       documented({
         description:
-          'Schedule, with tags if any. Needs `Idempotency-Key`, and refuses a time in the past',
+          'Schedule, with tags, alt text, collaborators and comment options if any. Needs `Idempotency-Key`, and refuses a time in the past',
         status: 201,
         answer: scheduledPostSchema,
         refuses: [400, 409, 422]
@@ -246,7 +247,8 @@ const scheduleRoutes = (providerFor: ProviderFor) =>
     .patch(
       '/scheduled-posts/:id',
       documented({
-        description: 'Change the time or the caption until it is published. Tags cannot change',
+        description:
+          'Change the time or the caption until it is published. Everything else is kept as scheduled',
         answer: scheduledPostSchema,
         refuses: [400, 404, 409, 422]
       }),

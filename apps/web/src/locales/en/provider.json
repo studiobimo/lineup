@@ -45,7 +45,7 @@
     "captionOver": "{{over}} over the limit of {{limit}}",
     "time": "Date and time",
     "timeZone": "In your time zone, {{zone}}.",
-    "timeInvalid": "Pick a time that is still to come.",
+    "timeInvalid": "Pick a time at least {{minutes}} minutes from now.",
     "outOfOrder": "With this time, posts will not go out in the order of your grid.",
     "notice": "When you schedule, the images and caption are sent to {{provider}} and Instagram. When it is published, one anonymous note of its kind, size and delay is sent to Lineup. Nothing else leaves this device.",
     "noKey": "Add your key in Settings to schedule this.",
@@ -77,30 +77,33 @@
       "count_other": "A carousel can hold {{count}} videos."
     },
     "tags": {
-      "title": "Tag accounts",
-      "hint": "Tap the picture where you want a tag, type the username and press Enter. Drag a tag to move it, or use the arrow keys (hold Shift for bigger steps). Up to {{limit}} per post.",
-      "videoHint": "Add the accounts to tag in this video. Up to {{limit}} per post.",
-      "slide": "Slide {{position}} ({{count}})",
-      "picture": "The picture to tag",
+      "hint": "Tap the picture to tag someone.",
       "unnamed": "Tag {{position}}",
       "marker": "{{name}}, {{x}} from the left, {{y}} from the top. Move with the arrow keys, remove with Delete.",
-      "username": "Username of tag {{position}}",
       "placeholder": "username",
-      "remove": "Remove tag {{position}}",
+      "remove": "Remove {{name}}",
       "add": "Add an account",
       "full": "That is the most Instagram allows on a post, {{limit}} tags.",
-      "place": "Place a tag on the picture. Then type the username.",
+      "place": "Tag someone on the picture. Then type the username.",
       "pending": "Username for the new tag",
-      "confirm": "Add the tag",
-      "none": "No tags yet.",
-      "tapPicture": "Tap the picture to add a tag."
+      "confirm": "Add the tag"
     },
     "screens": {
-      "done": "Done",
-      "tag": "Tag accounts",
-      "tagCount": "Tag accounts ({{count}})",
       "tagged_one": "Tagged: {{usernames}}",
       "tagged_other": "{{count}} accounts tagged: {{usernames}}"
+    },
+    "room": {
+      "noFit": "No time fits before your newer scheduled posts, and Instagram orders posts by when they go live. Posting at the earliest time would put this one after them.",
+      "offer": "Move newer posts later",
+      "title": "Move newer posts later?",
+      "description": "These posts are rescheduled with {{provider}}, in the same order and with the same spacing. This post then starts at {{time}}.",
+      "move": "Position {{position}}: {{from}} to {{to}}",
+      "confirm": "Move posts",
+      "cancel": "Not now",
+      "failed": "Not every post could be moved, so this one has no time yet.",
+      "moved": "Moved: {{posts}}.",
+      "left": "Not moved: {{posts}}.",
+      "post": "position {{position}} ({{time}})"
     },
     "spacing": {
       "before": "The post at position {{position}} on your grid needs about {{minutes}} minutes to go live before this one.",
@@ -110,6 +113,49 @@
       "noRoom": "There is no time between these posts that leaves enough room. You can still schedule it.",
       "use": "Use {{time}}",
       "legend": "Marked times are too near a post already scheduled: {{image}} minutes for pictures, {{video}} for a video, and more for a large one."
+    },
+    "viewer": {
+      "carousel": "carousel",
+      "label": "The post's slides",
+      "position": "Slide {{position}} of {{count}}",
+      "previous": "Previous slide",
+      "next": "Next slide",
+      "go": "Show slide {{position}} of {{count}}"
+    },
+    "alt": {
+      "title": "Accessibility",
+      "hint": "Describe each picture for people who use a screen reader.",
+      "slide": "Alt text for slide {{position}}"
+    },
+    "strip": {
+      "slide": "Slide {{position}}",
+      "label": "Reorder the slides",
+      "instructions": "Press Space to pick up a slide, move it with the arrow keys, and press Space to drop it. Press Enter to show it."
+    },
+    "collaborators": {
+      "title": "Collaborators",
+      "label": "Invite a collaborator",
+      "placeholder": "username",
+      "add": "Add",
+      "hint": "Up to {{limit}} Instagram accounts. They get an invite, and the post is shared once they accept.",
+      "full": "That is the most Instagram allows, {{limit}} collaborators. Remove one to add another.",
+      "again": "That account is already invited.",
+      "remove": "Remove @{{name}}"
+    },
+    "facts": {
+      "collaborators_one": "Invited to collaborate: {{usernames}}",
+      "collaborators_other": "{{count}} collaborators invited: {{usernames}}",
+      "dropped": "Instagram did not invite @{{name}}: {{reason}}",
+      "commentsOff": "Comments are turned off, if Instagram allows it.",
+      "firstComment": "First comment: {{text}}"
+    },
+    "advanced": {
+      "title": "Advanced settings",
+      "commentsOff": "Turn off commenting",
+      "commentsNote": "Turning off comments is best effort. It is applied just after the post is published, and if that fails the post stays live with comments on.",
+      "firstComment": "First comment",
+      "firstCommentHint": "Posted as a comment on your post just after it is published.",
+      "firstCommentCount": "{{count}} of {{limit}}"
     }
   },
   "published": {
@@ -129,7 +175,7 @@
     "key_not_allowed": "This key is not allowed to do that.",
     "profile_required": "Choose a profile for this key.",
     "idempotency_required": "This request was missing something. Reload the page and try again.",
-    "time_in_past": "That time has passed. Pick a later one.",
+    "time_in_past": "Pick a time at least {{minutes}} minutes from now.",
     "provider_refused": "This was refused.",
     "provider_busy": "This is still being worked on. Try again in a moment.",
     "provider_failed": "The scheduling service did not answer. Try again in a moment."

@@ -102,6 +102,29 @@ The move to 1.0. The app is already live, so this milestone is about meeting the
 - The privacy policy, terms and README are final
 - `davidmoralesz/instaplanner` and `davidmoralesz/instaplanner-vp` are archived with a pointer
 
+## M6: Instagram-style scheduling
+
+The schedule dialog moves closer to Instagram's create-post flow: every slide in view and reorderable,
+the action in the header, Instagram's 20-minute minimum, and the post options Zernio supports.
+
+**Stories:** ZRN-20 to ZRN-24, with changes to ZRN-7.
+
+### Exit criteria
+
+- ZRN-7: on `development`, Schedule sits in the dialog's header, and no time under 20 minutes
+  away can be chosen
+- ZRN-20: on `development`, every slide of an album is viewed in order from the schedule dialog and
+  the tag screen, and a single image shows no controls
+- ZRN-21: on `development`, an album's slides are reordered by drag and by keyboard, the board
+  changes with them, and undo restores the order
+- ZRN-22: on `development`, alt text is sent with the post and kept when it is edited, and a video
+  shows no field
+- ZRN-23: on `development`, a fourth username is refused with the reason, and an invite Instagram
+  dropped shows in the post's details
+- ZRN-24: on `development`, comments turned off and a first comment reach the post, and the notice
+  that turning comments off may not take shows
+- Location and hiding like counts are recorded as non-goals
+
 ## Later
 
 Not scheduled. Each needs its own ADR before it starts.

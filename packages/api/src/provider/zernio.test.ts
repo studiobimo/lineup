@@ -301,7 +301,7 @@ describe('zernio, scheduling', () => {
   })
 })
 
-describe('zernio, scheduling, continued', () => {
+describe('zernio, scheduling a post', () => {
   it('schedules one Instagram post with its images in order and the idempotency key', async () => {
     stub.mockResolvedValue(respond({ post: { _id: 'post', status: 'scheduled' } }, 201))
     const post = await provider.schedule(
@@ -353,20 +353,208 @@ describe('zernio, scheduling, continued', () => {
   })
 })
 
-describe('zernio, video and cancelling', () => {
-  it('sends a video as one, beside the images of its carousel', async () => {
+describe('zernio, alt text', () => {
+  const created = () =>
     stub.mockResolvedValue(respond({ post: { _id: 'post', status: 'scheduled' } }, 201))
+  const when = {
+    accountId: 'account',
+    caption: '',
+    scheduledFor: '2030-01-01T10:00:00Z',
+    timeZone: 'Europe/Madrid'
+  }
+
+  it('sends the description of each image, and leaves out an empty one', async () => {
+    created()
     await provider.schedule(
       {
-        accountId: 'account',
-        caption: '',
-        scheduledFor: '2030-01-01T10:00:00Z',
-        timeZone: 'Europe/Madrid',
-        mediaUrls: ['https://media.zernio.com/1.jpg', 'https://media.zernio.com/2.mp4'],
-        mediaTypes: ['image', 'video']
+        ...when,
+        mediaUrls: ['https://m.test/1.jpg', 'https://m.test/2.jpg'],
+        altTexts: [' A cat ', '']
       },
       'once'
     )
+    const { mediaItems } = sent().body as { mediaItems: object[] }
+    expect(mediaItems[0]).toEqual({ type: 'image', url: 'https://m.test/1.jpg', altText: 'A cat' })
+    expect(mediaItems[1]).not.toHaveProperty('altText')
+  })
+
+  it('leaves it out for a video', async () => {
+    created()
+    await provider.schedule(
+      {
+        ...when,
+        mediaUrls: ['https://m.test/1.mp4'],
+        mediaTypes: ['video'],
+        altTexts: ['A clip']
+      },
+      'once'
+    )
+    expect(JSON.stringify(sent().body)).not.toContain('altText')
+  })
+})
+
+describe('zernio, changing a post', () => {
+  const stored = {
+    post: {
+      _id: 'post',
+      status: 'scheduled',
+      mediaItems: [
+        { type: 'image', url: 'https://m.test/1.jpg', altText: 'A cat', thumbnail: null }
+      ],
+      platforms: [
+        {
+          platform: 'instagram',
+          accountId: { _id: 'account', username: 'studio' },
+          status: 'pending',
+          platformSpecificData: {
+            userTags: [{ username: 'friend', x: 0.5, y: 0.5 }],
+            droppedCollaborators: [{ username: 'x', reason: 'no' }]
+          }
+        }
+      ]
+    }
+  }
+
+  it('reads the post and sends its media and options back whole', async () => {
+    stub.mockResolvedValueOnce(respond(stored)).mockResolvedValueOnce(respond(stored))
+    await provider.update('post', {
+      scheduledFor: '2030-01-01T10:00:00Z',
+      timeZone: 'Europe/Madrid',
+      caption: 'New'
+    })
+    expect(sent(0).method).toBeUndefined()
+    const { method, url, body } = sent(1)
+    expect(method).toBe('PUT')
+    expect(url).toBe('https://zernio.com/api/v1/posts/post')
+    expect(body).toEqual({
+      scheduledFor: '2030-01-01T10:00:00Z',
+      timezone: 'Europe/Madrid',
+      content: 'New',
+      mediaItems: [{ type: 'image', url: 'https://m.test/1.jpg', altText: 'A cat' }],
+      platforms: [
+        {
+          platform: 'instagram',
+          accountId: 'account',
+          platformSpecificData: { userTags: [{ username: 'friend', x: 0.5, y: 0.5 }] }
+        }
+      ]
+    })
+  })
+
+  it('changes nothing when the post cannot be read', async () => {
+    stub.mockResolvedValueOnce(respond({ error: 'gone' }, 404))
+    await expect(
+      provider.update('post', { scheduledFor: '2030-01-01T10:00:00Z', timeZone: 'Europe/Madrid' })
+    ).rejects.toMatchObject({ failure: 'missing' })
+    expect(stub).toHaveBeenCalledTimes(1)
+  })
+})
+
+const scheduleOne = async (extra: Partial<Parameters<typeof provider.schedule>[0]> = {}) => {
+  stub.mockResolvedValue(respond({ post: { _id: 'post', status: 'scheduled' } }, 201))
+  await provider.schedule(
+    {
+      accountId: 'account',
+      caption: '',
+      scheduledFor: '2030-01-01T10:00:00Z',
+      timeZone: 'Europe/Madrid',
+      mediaUrls: ['https://m.test/1.jpg'],
+      ...extra
+    },
+    'once'
+  )
+}
+
+describe('zernio, collaborators', () => {
+  it('sends them beside the tags in the Instagram options', async () => {
+    await scheduleOne({
+      userTags: [{ username: 'friend', x: 0.1, y: 0.2 }],
+      collaborators: ['one', 'two']
+    })
+    expect(sent().body).toMatchObject({
+      platforms: [
+        {
+          platformSpecificData: {
+            userTags: [{ username: 'friend', x: 0.1, y: 0.2 }],
+            collaborators: ['one', 'two']
+          }
+        }
+      ]
+    })
+  })
+
+  it('sends no options when there are none', async () => {
+    await scheduleOne({
+      collaborators: []
+    })
+    expect(JSON.stringify(sent().body)).not.toContain('platformSpecificData')
+  })
+
+  it('reports the ones Instagram dropped', async () => {
+    stub.mockResolvedValue(
+      respond({
+        posts: [
+          {
+            _id: 'post',
+            status: 'scheduled',
+            platforms: [
+              {
+                platformSpecificData: {
+                  collaborators: ['one', 'two'],
+                  droppedCollaborators: [{ username: 'two', reason: 'Account is private' }]
+                }
+              }
+            ]
+          }
+        ]
+      })
+    )
+    const [post] = await provider.scheduledPosts('account')
+    expect(post).toMatchObject({
+      collaborators: ['one', 'two'],
+      droppedCollaborators: [{ username: 'two', reason: 'Account is private' }]
+    })
+  })
+})
+
+describe('zernio, comment options', () => {
+  it('sends comments off and a trimmed first comment in the Instagram options', async () => {
+    await scheduleOne({ commentsEnabled: false, firstComment: ' Link in bio ' })
+    expect(sent().body).toMatchObject({
+      platforms: [{ platformSpecificData: { commentsEnabled: false, firstComment: 'Link in bio' } }]
+    })
+  })
+
+  it('sends nothing for comments left on and a blank first comment', async () => {
+    await scheduleOne({ commentsEnabled: true, firstComment: '  ' })
+    expect(JSON.stringify(sent().body)).not.toContain('platformSpecificData')
+  })
+
+  it('reports both on a post that is read back', async () => {
+    stub.mockResolvedValue(
+      respond({
+        posts: [
+          {
+            _id: 'post',
+            status: 'scheduled',
+            platforms: [
+              { platformSpecificData: { commentsEnabled: false, firstComment: 'Link in bio' } }
+            ]
+          }
+        ]
+      })
+    )
+    const [post] = await provider.scheduledPosts('account')
+    expect(post).toMatchObject({ commentsEnabled: false, firstComment: 'Link in bio' })
+  })
+})
+
+describe('zernio, video and cancelling', () => {
+  it('sends a video as one, beside the images of its carousel', async () => {
+    await scheduleOne({
+      mediaUrls: ['https://media.zernio.com/1.jpg', 'https://media.zernio.com/2.mp4'],
+      mediaTypes: ['image', 'video']
+    })
     expect(sent().body).toMatchObject({
       mediaItems: [
         { type: 'image', url: 'https://media.zernio.com/1.jpg' },

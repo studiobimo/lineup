@@ -135,16 +135,7 @@ function listPosts(query) {
   return found.slice(0, limit)
 }
 
-const listProfilesRoute = ({ response }) => json(response, 200, { profiles })
-const createApiKey = ({ response }) =>
-  json(response, 201, { apiKey: { key: `mock-narrow-${randomUUID().slice(0, 8)}` } })
-const listAccounts = ({ response }) => json(response, 200, { accounts })
-const connectInstagram = ({ response, url }) => {
-  const back = url.searchParams.get('redirect_url') ?? ORIGIN
-  return json(response, 200, { authUrl: back })
-}
-
-async function presignMedia({ request, response }) {
+async function presign({ request, response }) {
   const { filename = 'file', contentType = 'application/octet-stream' } = await readJson(request)
   const id = `${randomUUID()}-${String(filename).replace(/[^\w.-]/g, '_')}`
   uploads.set(id, { type: contentType, bytes: undefined })
@@ -153,9 +144,6 @@ async function presignMedia({ request, response }) {
     publicUrl: `${ORIGIN}/uploads/${id}`
   })
 }
-
-const listPostsRoute = ({ response, url }) =>
-  json(response, 200, { posts: listPosts(url.searchParams) })
 
 async function createPost({ request, response }) {
   const key = request.headers['idempotency-key']
@@ -178,51 +166,60 @@ async function createPost({ request, response }) {
   return json(response, 201, { post: view(posts.get(id)) })
 }
 
-async function updatePost({ request, response, id }) {
-  const stored = posts.get(id)
+async function updatePost({ request, response, match }) {
+  const stored = posts.get(match[1])
   if (!stored) return fail(response, 404, 'Post not found')
   if (view(stored).status !== 'scheduled')
     return fail(response, 409, 'The post is already going out')
   const body = await readJson(request)
-  console.log(`PUT /posts/${id} body:\n${JSON.stringify(body, null, 2)}`)
+  console.log(`PUT /posts/${match[1]} body:\n${JSON.stringify(body, null, 2)}`)
   for (const field of ['scheduledFor', 'timezone', 'content']) {
     if (body[field] !== undefined) stored[field] = body[field]
   }
   return json(response, 200, { post: view(stored) })
 }
 
-function deletePost({ response, id }) {
-  if (!posts.has(id)) return fail(response, 404, 'Post not found')
-  posts.delete(id)
+function deletePost({ response, match }) {
+  if (!posts.has(match[1])) return fail(response, 404, 'Post not found')
+  posts.delete(match[1])
   return json(response, 200, { message: 'Deleted' })
 }
 
-const routes = new Map([
-  ['GET /profiles', listProfilesRoute],
-  ['POST /api-keys', createApiKey],
-  ['GET /accounts', listAccounts],
-  ['GET /connect/instagram', connectInstagram],
-  ['POST /media/presign', presignMedia],
-  ['GET /posts', listPostsRoute],
-  ['POST /posts', createPost]
-])
-const postRoutes = new Map([
-  ['PUT', updatePost],
-  ['DELETE', deletePost]
-])
-
-function authorised(request) {
-  const bearer = /^Bearer (.+)$/.exec(request.headers.authorization ?? '')?.[1]
-  return Boolean(bearer) && bearer !== BAD_KEY
-}
+const routes = [
+  ['GET', /^\/profiles$/, ({ response }) => json(response, 200, { profiles })],
+  [
+    'POST',
+    /^\/api-keys$/,
+    ({ response }) =>
+      json(response, 201, { apiKey: { key: `mock-narrow-${randomUUID().slice(0, 8)}` } })
+  ],
+  ['GET', /^\/accounts$/, ({ response }) => json(response, 200, { accounts })],
+  [
+    'GET',
+    /^\/connect\/instagram$/,
+    ({ response, url }) =>
+      json(response, 200, { authUrl: url.searchParams.get('redirect_url') ?? ORIGIN })
+  ],
+  ['POST', /^\/media\/presign$/, presign],
+  [
+    'GET',
+    /^\/posts$/,
+    ({ response, url }) => json(response, 200, { posts: listPosts(url.searchParams) })
+  ],
+  ['POST', /^\/posts$/, createPost],
+  ['PUT', /^\/posts\/([^/]+)$/, updatePost],
+  ['DELETE', /^\/posts\/([^/]+)$/, deletePost]
+]
 
 async function api(request, response, url) {
-  if (!authorised(request)) return fail(response, 401, 'Invalid API key')
   const path = url.pathname.replace(/^\/api\/v1/, '')
-  const post = /^\/posts\/([^/]+)$/.exec(path)
-  const handler = post ? postRoutes.get(request.method) : routes.get(`${request.method} ${path}`)
-  if (!handler) return fail(response, 404, `The mock has no ${request.method} ${path}`)
-  return handler({ request, response, url, id: post?.[1] })
+  const bearer = /^Bearer (.+)$/.exec(request.headers.authorization ?? '')?.[1]
+  if (!bearer || bearer === BAD_KEY) return fail(response, 401, 'Invalid API key')
+  for (const [method, pattern, handler] of routes) {
+    const match = request.method === method ? pattern.exec(path) : null
+    if (match) return handler({ request, response, url, match })
+  }
+  return fail(response, 404, `The mock has no ${request.method} ${path}`)
 }
 
 const cors = {
@@ -233,29 +230,27 @@ const cors = {
   'Access-Control-Allow-Private-Network': 'true'
 }
 
-async function serveUpload(request, response, id) {
-  const stored = uploads.get(decodeURIComponent(id))
-  if (request.method === 'PUT') {
-    if (!stored) return fail(response, 404, 'Ask for an upload address first')
-    stored.bytes = await readBody(request)
-    console.log(`PUT /uploads/${id} (${stored.bytes.length} bytes, ${stored.type})`)
-    return void response.writeHead(200).end()
-  }
-  if (!stored?.bytes) return fail(response, 404, 'Nothing uploaded here')
-  response.writeHead(200, {
-    'Content-Type': stored.type,
-    'Content-Length': stored.bytes.length
-  })
-  return void response.end(request.method === 'HEAD' ? undefined : stored.bytes)
-}
-
 createServer(async (request, response) => {
   for (const [name, value] of Object.entries(cors)) response.setHeader(name, value)
   const url = new URL(request.url ?? '/', ORIGIN)
   try {
     if (request.method === 'OPTIONS') return void response.writeHead(204).end()
     const file = /^\/uploads\/([^/]+)$/.exec(url.pathname)
-    if (file) return void (await serveUpload(request, response, file[1]))
+    if (file) {
+      const stored = uploads.get(decodeURIComponent(file[1]))
+      if (request.method === 'PUT') {
+        if (!stored) return fail(response, 404, 'Ask for an upload address first')
+        stored.bytes = await readBody(request)
+        console.log(`PUT ${url.pathname} (${stored.bytes.length} bytes, ${stored.type})`)
+        return void response.writeHead(200).end()
+      }
+      if (!stored?.bytes) return fail(response, 404, 'Nothing uploaded here')
+      response.writeHead(200, {
+        'Content-Type': stored.type,
+        'Content-Length': stored.bytes.length
+      })
+      return void response.end(request.method === 'HEAD' ? undefined : stored.bytes)
+    }
     if (url.pathname === '/') return json(response, 200, { mock: 'zernio', badKey: BAD_KEY })
     await api(request, response, url)
   } catch (error) {

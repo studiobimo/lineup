@@ -285,19 +285,15 @@ test('the schedule form says what is wrong, beside the field it is about', async
   await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
   await expect(dialog.getByLabel('Caption')).toHaveAccessibleDescription('1 over the limit of 2200')
   await expect(dialog.getByLabel('Date and time')).toHaveAccessibleDescription(
-    'Pick a time that is still to come.'
+    'Pick a time at least 20 minutes from now.'
   )
   expect(await violations(page)).toEqual([])
 
-  await dialog.getByRole('button', { name: 'Tag accounts', exact: true }).click()
-  await expect(dialog.getByRole('heading', { name: 'Tag accounts' })).toBeFocused()
   await dialog.getByTestId('tag-picture').click()
-  await dialog.getByRole('textbox', { name: 'Username for the new tag' }).fill('friend')
-  await page.keyboard.press('Enter')
-  await expect(dialog.getByRole('textbox', { name: 'Username of tag 1' })).toHaveValue('friend')
+  await page.getByRole('textbox', { name: 'Username for the new tag' }).fill('friend')
   expect(await violations(page)).toEqual([])
-  await dialog.getByRole('button', { name: 'Done', exact: true }).click()
-  await expect(dialog.getByRole('button', { name: 'Tag accounts (1)' })).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(dialog.getByRole('button', { name: /^@friend/ })).toBeVisible()
   expect(await violations(page)).toEqual([])
 })
 

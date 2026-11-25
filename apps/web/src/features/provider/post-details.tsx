@@ -11,6 +11,7 @@ import { plannerStore } from '@/features/planner/planner'
 import { providerApi, ProviderRequestError } from './api'
 import { mayPost, useConnection } from './connection'
 import { ErrorNotice } from './error-notice'
+import { PostFacts } from './post-facts'
 import { PostForm } from './post-form'
 import type { PostFormValues } from './post-schema'
 import { fromFieldTime, localTimeZone, toFieldTime } from './post-time'
@@ -90,6 +91,7 @@ function ChangePost({ cell, post, onDone }: PostProps) {
   return (
     <div className="flex flex-col gap-3">
       <ErrorNotice text={post.failure} />
+      <PostFacts {...post} />
       <PostForm
         cell={cell}
         initial={{ caption: post.caption, when: toFieldTime(post.scheduledFor) }}
@@ -129,6 +131,7 @@ export function PostDetails({ cell, post, onDone }: PostProps) {
     return (
       <div className="flex flex-col items-start gap-3">
         <Caption caption={caption} />
+        <PostFacts {...post} />
         {url && <ExternalLink href={url}>{t('post.view')}</ExternalLink>}
         <FreeCell cell={cell} onDone={onDone} note={t('post.freePublished')} />
       </div>
@@ -138,6 +141,7 @@ export function PostDetails({ cell, post, onDone }: PostProps) {
     return (
       <div className="flex flex-col gap-3">
         <Caption caption={caption} />
+        <PostFacts {...post} />
         <FreeCell
           cell={cell}
           onDone={onDone}
