@@ -280,7 +280,9 @@ describe('board operations', () => {
     const locked = { tray: ['a'], grid: ['b', 'c'], locked: ['b'] }
     expect(moveToStart(locked, ['a'], 'grid').grid).toEqual(['b', 'a', 'c'])
   })
+})
 
+describe('board operations, continued', () => {
   it('appends when every grid cell is locked or the grid is empty', () => {
     expect(moveToStart({ tray: ['a'], grid: ['b'], locked: ['b'] }, ['a'], 'grid').grid).toEqual([
       'b',

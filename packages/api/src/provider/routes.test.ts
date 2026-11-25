@@ -318,7 +318,9 @@ describe('provider routes, with a key, scheduling', () => {
     expect(await code(response)).toBe('idempotency_required')
     expect(provider.schedule).not.toHaveBeenCalled()
   })
+})
 
+describe('provider routes, with a key, scheduling, continued', () => {
   it('refuses a time in the past, which the provider would publish at once', async () => {
     const headers = { ...(await signedIn()), 'Idempotency-Key': 'once' }
     const past = new Date(Date.now() - 1000).toISOString()

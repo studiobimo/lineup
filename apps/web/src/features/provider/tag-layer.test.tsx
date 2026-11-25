@@ -108,6 +108,13 @@ describe('tagging on the picture', () => {
     await tag(user, 'friend')
     expect(screen.queryByText('Tap the picture to tag someone.')).toBeNull()
   })
+})
+
+describe('TagPicker, continued', () => {
+  beforeAll(() => loadStrings('provider'))
+  beforeEach(() => {
+    latest = []
+  })
 
   it('opens the username field from the keyboard', async () => {
     const user = userEvent.setup()
