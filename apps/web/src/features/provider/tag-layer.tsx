@@ -127,6 +127,19 @@ function RemoveTag({ tag, onRemove }: { tag: TagDraft; onRemove: () => void }) {
   )
 }
 
+interface Point {
+  x: number
+  y: number
+}
+
+function useLastPoint(pending?: { x?: number; y?: number }) {
+  const [last, setLast] = useState<Point>()
+  const x = pending?.x
+  const y = pending?.y
+  if (x !== undefined && y !== undefined && (last?.x !== x || last.y !== y)) setLast({ x, y })
+  return last
+}
+
 interface TagLayerProps {
   editor: TagEditor
   tags: TagDraft[]
@@ -140,6 +153,7 @@ export function TagLayer({ editor, tags, all }: TagLayerProps) {
   const dot = useRef<HTMLSpanElement>(null)
   const { selected, setSelected, pendingHere, place, change } = editor
   const full = !mayAddTag(all)
+  const anchorAt = useLastPoint(pendingHere)
   const picked = tags.find(({ key }) => key === selected)
   const remove = (key: string) => {
     editor.remove(key)
@@ -163,13 +177,16 @@ export function TagLayer({ editor, tags, all }: TagLayerProps) {
         }}
       />
       <Hint full={full} visible={full || (!pendingHere && tags.length === 0)} />
-      {pendingHere?.x !== undefined && (
+      {anchorAt && (
         <span
           ref={dot}
           aria-hidden
           data-testid="pending-tag"
-          className="pointer-events-none absolute z-10 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-dashed border-primary bg-background/60 shadow-sm"
-          style={{ left: percent(pendingHere.x), top: percent(pendingHere.y) }}
+          className={cn(
+            'pointer-events-none absolute z-10 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-dashed border-primary bg-background/60 shadow-sm',
+            !pendingHere && 'invisible'
+          )}
+          style={{ left: percent(anchorAt.x), top: percent(anchorAt.y) }}
         />
       )}
       <TagPopover editor={editor} anchor={dot} returnFocus={surface} />
