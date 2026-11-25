@@ -4,12 +4,17 @@
  * copyright @dorianbaffier. From it: the pointer capture drag, the clamp to the picture and
  * the arrow key nudge. The crop previews, next/image and its colours and strings are dropped.
  */
-import { type KeyboardEvent, type PointerEvent, useRef, useState } from 'react'
+import { type KeyboardEvent, type PointerEvent, type RefObject, useRef, useState } from 'react'
+import { TAGS_PER_POST } from 'lineup-contract'
+import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { PictureImage } from '@/features/planner/thumbnail'
+import { IconButton } from '@/components/icon-button'
 import { cn } from '@/lib/utils'
-import { nudged, pointIn, type TagDraft } from './tags'
+
+import { TagPopover } from './tag-popover'
+import { mayAddTag, nudged, pointIn, type TagDraft } from './tags'
+import type { TagEditor } from './use-tag-editor'
 
 const percent = (value = 0) => `${Math.round(value * 100)}%`
 
@@ -17,7 +22,7 @@ interface MarkerProps {
   tag: TagDraft
   position: number
   selected: boolean
-  frame: React.RefObject<HTMLDivElement | null>
+  frame: RefObject<HTMLDivElement | null>
   onSelect: () => void
   onMove: (point: { x: number; y: number }) => void
   onRemove: () => void
@@ -87,66 +92,87 @@ function Marker({ tag, position, selected, frame, onSelect, onMove, onRemove }: 
   )
 }
 
-interface TagPictureProps {
-  image: string
-  ratio: number
-  tags: TagDraft[]
-  pending: { x: number; y: number } | undefined
-  selected: string | undefined
+interface HintProps {
   full: boolean
-  onAdd: (point: { x: number; y: number }) => void
-  onSelect: (key: string) => void
-  onMove: (key: string, point: { x: number; y: number }) => void
-  onRemove: (key: string) => void
+  visible: boolean
 }
 
-export function TagPicture({
-  image,
-  ratio,
-  tags,
-  pending,
-  selected,
-  full,
-  onAdd,
-  onSelect,
-  onMove,
-  onRemove
-}: TagPictureProps) {
+function Hint({ full, visible }: HintProps) {
+  const { t } = useTranslation('provider')
+  if (!visible) return null
+  return (
+    <p className="pointer-events-none absolute inset-x-2 top-2 z-10 rounded-sm bg-background/90 px-2 py-1 text-center text-xs text-foreground shadow-sm">
+      {full ? t('post.tags.full', { limit: TAGS_PER_POST }) : t('post.tags.hint')}
+    </p>
+  )
+}
+
+function RemoveTag({ tag, onRemove }: { tag: TagDraft; onRemove: () => void }) {
+  const { t } = useTranslation('provider')
+  const flipped = (tag.x ?? 0.5) > 0.7
+  return (
+    <IconButton
+      type="button"
+      size="icon-xs"
+      label={t('post.tags.remove', { name: `@${tag.username}` })}
+      className={cn(
+        'absolute z-20 -translate-y-1/2',
+        flipped ? '-translate-x-[calc(100%+1.25rem)]' : 'translate-x-5'
+      )}
+      style={{ left: percent(tag.x), top: percent(tag.y) }}
+      onClick={onRemove}
+    >
+      <X />
+    </IconButton>
+  )
+}
+
+interface TagLayerProps {
+  editor: TagEditor
+  tags: TagDraft[]
+  all: TagDraft[]
+}
+
+export function TagLayer({ editor, tags, all }: TagLayerProps) {
   const { t } = useTranslation('provider')
   const frame = useRef<HTMLDivElement>(null)
+  const surface = useRef<HTMLButtonElement>(null)
+  const dot = useRef<HTMLSpanElement>(null)
+  const { selected, setSelected, pendingHere, place, change } = editor
+  const full = !mayAddTag(all)
+  const picked = tags.find(({ key }) => key === selected)
+  const remove = (key: string) => {
+    editor.remove(key)
+    surface.current?.focus()
+  }
   return (
-    <div
-      ref={frame}
-      className="relative mx-auto touch-manipulation overflow-hidden rounded-sm bg-muted"
-      style={{ aspectRatio: ratio, width: `min(100%, calc(25rem * ${ratio}))` }}
-    >
-      <div className="pointer-events-none absolute inset-0">
-        <PictureImage id={image} label={t('post.tags.picture')} />
-      </div>
+    <div ref={frame} className="absolute inset-0 touch-manipulation">
       <button
+        ref={surface}
         type="button"
         data-testid="tag-picture"
         aria-label={t('post.tags.place')}
         disabled={full}
-        className="absolute inset-0 cursor-crosshair outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
+        className="absolute inset-0 cursor-crosshair outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-not-allowed"
         onClick={(event) => {
           const rect = frame.current?.getBoundingClientRect()
-          // A key press has no pointer position, so it places the tag in the middle. ~keep
           if (rect)
-            onAdd(
+            place(
               event.detail === 0 ? { x: 0.5, y: 0.5 } : pointIn(rect, event.clientX, event.clientY)
             )
         }}
       />
-      {pending && (
-        // Dashed and hollow, so it reads as not yet a tag; the username field below is its control. ~keep
+      <Hint full={full} visible={full || (!pendingHere && tags.length === 0)} />
+      {pendingHere?.x !== undefined && (
         <span
+          ref={dot}
           aria-hidden
           data-testid="pending-tag"
           className="pointer-events-none absolute z-10 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-dashed border-primary bg-background/60 shadow-sm"
-          style={{ left: percent(pending.x), top: percent(pending.y) }}
+          style={{ left: percent(pendingHere.x), top: percent(pendingHere.y) }}
         />
       )}
+      <TagPopover editor={editor} anchor={dot} returnFocus={surface} />
       {tags.map((tag, index) => (
         <Marker
           key={tag.key}
@@ -154,11 +180,12 @@ export function TagPicture({
           position={index + 1}
           selected={tag.key === selected}
           frame={frame}
-          onSelect={() => onSelect(tag.key)}
-          onMove={(point) => onMove(tag.key, point)}
-          onRemove={() => onRemove(tag.key)}
+          onSelect={() => setSelected(tag.key)}
+          onMove={(point) => change(tag.key, point)}
+          onRemove={() => remove(tag.key)}
         />
       ))}
+      {picked && <RemoveTag tag={picked} onRemove={() => remove(picked.key)} />}
     </div>
   )
 }

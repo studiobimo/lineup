@@ -7,7 +7,11 @@ import { loadStrings } from '@/i18n/load-strings'
 
 import { SlideViewer } from './slide-viewer'
 
+vi.mock('@/features/planner/planner', () => ({
+  usePlanner: (select: (state: object) => unknown) => select({ images: {} })
+}))
 vi.mock('@/features/planner/thumbnail', () => ({
+  PictureImage: () => null,
   Thumbnail: ({ id }: { id: string }) => <div data-testid="slide">{id}</div>
 }))
 
