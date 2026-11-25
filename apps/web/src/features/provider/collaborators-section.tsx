@@ -54,8 +54,14 @@ export function CollaboratorsSection({ collaborators, onChange }: CollaboratorsS
               add()
             }}
           />
-          <GroupSeparator />
-          <Button type="button" variant="outline" disabled={!mayAdd} onClick={add}>
+          <GroupSeparator className="bg-field-border dark:before:bg-transparent" />
+          <Button
+            type="button"
+            variant="outline"
+            className="border-field-border"
+            disabled={!mayAdd}
+            onClick={add}
+          >
             <PlusIcon aria-hidden="true" />
             {t('post.collaborators.add')}
           </Button>
