@@ -102,6 +102,19 @@
       "tagged_one": "Etiquetada: {{usernames}}",
       "tagged_other": "{{count}} cuentas etiquetadas: {{usernames}}"
     },
+    "room": {
+      "noFit": "Ninguna hora cabe antes de tus publicaciones más nuevas, e Instagram ordena las publicaciones según cuándo salen. Con la hora más temprana, esta saldría después de ellas.",
+      "offer": "Mover las más nuevas más tarde",
+      "title": "¿Mover las publicaciones más nuevas más tarde?",
+      "description": "Estas publicaciones se reprograman en {{provider}}, en el mismo orden y con la misma separación. Esta empieza entonces a las {{time}}.",
+      "move": "Posición {{position}}: de {{from}} a {{to}}",
+      "confirm": "Mover publicaciones",
+      "cancel": "Ahora no",
+      "failed": "No se pudieron mover todas las publicaciones, así que esta aún no tiene hora.",
+      "moved": "Movidas: {{posts}}.",
+      "left": "Sin mover: {{posts}}.",
+      "post": "posición {{position}} ({{time}})"
+    },
     "spacing": {
       "before": "La publicación en la posición {{position}} de tu cuadrícula necesita unos {{minutes}} minutos para salir antes que esta.",
       "after": "Esta publicación necesita unos {{minutes}} minutos para salir antes que la de la posición {{position}} de tu cuadrícula.",

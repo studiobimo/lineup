@@ -6,7 +6,7 @@ import { imagesOf } from '@/features/planner/board'
 import { boardStore, usePlanner } from '@/features/planner/planner'
 
 import { fromFieldTime } from './post-time'
-import { defaultTime, gapWindows, spacingFor } from './publish-timing'
+import { defaultTime, gapWindows, roomFor, spacingFor } from './publish-timing'
 
 // ~keep
 // Sizes are read from the stored publish copies, only for the cells whose gap depends on them
@@ -76,12 +76,16 @@ export function useGapMarks(cell: string) {
   )
 }
 
-export function useDefaultTime(cell: string, from: number) {
+function useTiming(cell: string, from: number) {
   const sizes = useSizes(cell)
   const board = usePlanner(({ board }) => board)
   const images = usePlanner(({ images }) => images)
   return useMemo(
-    () => defaultTime({ board, images, sizes, cell, from, soonest: soonestSchedule().getTime() }),
+    () => ({ board, images, sizes, cell, from, soonest: soonestSchedule().getTime() }),
     [board, images, sizes, cell, from]
   )
 }
+
+export const useDefaultTime = (cell: string, from: number) => defaultTime(useTiming(cell, from))
+
+export const useRoom = (cell: string, from: number) => roomFor(useTiming(cell, from))

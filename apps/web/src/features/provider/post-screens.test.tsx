@@ -10,6 +10,7 @@ import { PostScreens } from './post-screens'
 vi.mock('./slide-viewer', () => ({ SlideViewer: () => <div data-testid="thumbnail" /> }))
 vi.mock('./slide-strip', () => ({ SlideStrip: () => null }))
 vi.mock('./tag-picker', () => ({ TagPicker: () => <p>picker</p> }))
+vi.mock('./make-room', () => ({ MakeRoom: () => null }))
 vi.mock('./use-misordered', () => ({ isMisordered: () => false }))
 vi.mock('./use-spacing', () => ({
   useGapMarks: () => [],
@@ -31,6 +32,7 @@ function setup(problem?: string, tags: TagDraft[] = []) {
   const view = (error?: string) => (
     <PostScreens
       cell="a"
+      from={0}
       initial={{ caption: '', when: FUTURE }}
       slides={[{ id: 'a', video: false }]}
       tags={tags}
