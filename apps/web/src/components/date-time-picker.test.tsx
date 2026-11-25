@@ -121,7 +121,9 @@ describe('DateTimePicker', () => {
     await user.click(await screen.findByRole('button', { name: /Monday, May 20/ }))
     expect(current()).toHaveTextContent(/T09:00$/)
   })
+})
 
+describe('DateTimePicker minimum', () => {
   describe('minimum time', () => {
     const min = new Date(2030, 4, 10, 14, 31)
     const disabled = (list: string, name: string) => expect(option(list, name)).toBeDisabled()
@@ -186,7 +188,9 @@ describe('DateTimePicker', () => {
       expect(current()).toHaveTextContent('2030-05-10T15:07')
     })
   })
+})
 
+describe('DateTimePicker languages and marks', () => {
   it('names weekdays and months in the active language', async () => {
     const user = userEvent.setup()
     await i18n.changeLanguage('es')

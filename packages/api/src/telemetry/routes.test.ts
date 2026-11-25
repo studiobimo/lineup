@@ -128,7 +128,9 @@ describe('POST /telemetry/publish-delay', () => {
     expect(logged()[0]).not.toHaveProperty(TAG)
     expect(JSON.stringify(log.mock.calls)).not.toContain('studio.bimo')
   })
+})
 
+describe('POST /telemetry/publish-delay, continued', () => {
   it('logs no account for an event that has none', async () => {
     await post({ ...event, account: undefined })
     expect(logged()[0]).not.toHaveProperty(TAG)

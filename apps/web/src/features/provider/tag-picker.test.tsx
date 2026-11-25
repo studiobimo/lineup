@@ -104,6 +104,13 @@ describe('TagPicker', () => {
     await user.click(document.body)
     expect(latest).toEqual([])
   })
+})
+
+describe('TagPicker, continued', () => {
+  beforeAll(() => loadStrings('provider'))
+  beforeEach(() => {
+    latest = []
+  })
 
   it('moves a tag with the arrow keys, ten times as far with Shift', async () => {
     const user = userEvent.setup()

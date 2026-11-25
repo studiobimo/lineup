@@ -122,7 +122,9 @@ describe('sending a post', () => {
     })
     expect(positions).toEqual([1, 2])
   })
+})
 
+describe('sending a post, continued', () => {
   it('uses the same key after a lost answer, and sends no image again', async () => {
     const { posts, stored } = provider({ loseAnswers: 1 })
     await expect(send(['a'])).rejects.toBeInstanceOf(ProviderRequestError)

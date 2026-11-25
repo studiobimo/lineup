@@ -135,72 +135,94 @@ function listPosts(query) {
   return found.slice(0, limit)
 }
 
-async function api(request, response, url) {
-  const path = url.pathname.replace(/^\/api\/v1/, '')
-  const bearer = /^Bearer (.+)$/.exec(request.headers.authorization ?? '')?.[1]
-  if (!bearer || bearer === BAD_KEY) return fail(response, 401, 'Invalid API key')
-  const { method } = request
-  const post = /^\/posts\/([^/]+)$/.exec(path)
+const listProfilesRoute = ({ response }) => json(response, 200, { profiles })
+const createApiKey = ({ response }) =>
+  json(response, 201, { apiKey: { key: `mock-narrow-${randomUUID().slice(0, 8)}` } })
+const listAccounts = ({ response }) => json(response, 200, { accounts })
+const connectInstagram = ({ response, url }) => {
+  const back = url.searchParams.get('redirect_url') ?? ORIGIN
+  return json(response, 200, { authUrl: back })
+}
 
-  if (method === 'GET' && path === '/profiles') return json(response, 200, { profiles })
-  if (method === 'POST' && path === '/api-keys') {
-    return json(response, 201, { apiKey: { key: `mock-narrow-${randomUUID().slice(0, 8)}` } })
+async function presignMedia({ request, response }) {
+  const { filename = 'file', contentType = 'application/octet-stream' } = await readJson(request)
+  const id = `${randomUUID()}-${String(filename).replace(/[^\w.-]/g, '_')}`
+  uploads.set(id, { type: contentType, bytes: undefined })
+  return json(response, 200, {
+    uploadUrl: `${ORIGIN}/uploads/${id}`,
+    publicUrl: `${ORIGIN}/uploads/${id}`
+  })
+}
+
+const listPostsRoute = ({ response, url }) =>
+  json(response, 200, { posts: listPosts(url.searchParams) })
+
+async function createPost({ request, response }) {
+  const key = request.headers['idempotency-key']
+  if (key && idempotent.has(key))
+    return json(response, 200, { post: view(posts.get(idempotent.get(key))) })
+  const body = await readJson(request)
+  console.log(`POST /posts body:\n${JSON.stringify(body, null, 2)}`)
+  const id = `mock-post-${randomUUID().slice(0, 8)}`
+  const now = Date.now()
+  posts.set(id, {
+    ...body,
+    _id: id,
+    origin: 'zernio',
+    mediaProductType: 'FEED',
+    scheduledFor: body.scheduledFor ?? new Date(now).toISOString(),
+    createdAt: new Date(now).toISOString(),
+    status: 'scheduled'
+  })
+  if (key) idempotent.set(key, id)
+  return json(response, 201, { post: view(posts.get(id)) })
+}
+
+async function updatePost({ request, response, id }) {
+  const stored = posts.get(id)
+  if (!stored) return fail(response, 404, 'Post not found')
+  if (view(stored).status !== 'scheduled')
+    return fail(response, 409, 'The post is already going out')
+  const body = await readJson(request)
+  console.log(`PUT /posts/${id} body:\n${JSON.stringify(body, null, 2)}`)
+  for (const field of ['scheduledFor', 'timezone', 'content']) {
+    if (body[field] !== undefined) stored[field] = body[field]
   }
-  if (method === 'GET' && path === '/accounts') return json(response, 200, { accounts })
-  if (method === 'GET' && path === '/connect/instagram') {
-    const back = url.searchParams.get('redirect_url') ?? ORIGIN
-    return json(response, 200, { authUrl: back })
-  }
-  if (method === 'POST' && path === '/media/presign') {
-    const { filename = 'file', contentType = 'application/octet-stream' } = await readJson(request)
-    const id = `${randomUUID()}-${String(filename).replace(/[^\w.-]/g, '_')}`
-    uploads.set(id, { type: contentType, bytes: undefined })
-    return json(response, 200, {
-      uploadUrl: `${ORIGIN}/uploads/${id}`,
-      publicUrl: `${ORIGIN}/uploads/${id}`
-    })
-  }
-  if (method === 'GET' && path === '/posts') {
-    return json(response, 200, { posts: listPosts(url.searchParams) })
-  }
-  if (method === 'POST' && path === '/posts') {
-    const key = request.headers['idempotency-key']
-    if (key && idempotent.has(key))
-      return json(response, 200, { post: view(posts.get(idempotent.get(key))) })
-    const body = await readJson(request)
-    console.log(`POST /posts body:\n${JSON.stringify(body, null, 2)}`)
-    const id = `mock-post-${randomUUID().slice(0, 8)}`
-    const now = Date.now()
-    posts.set(id, {
-      ...body,
-      _id: id,
-      origin: 'zernio',
-      mediaProductType: 'FEED',
-      scheduledFor: body.scheduledFor ?? new Date(now).toISOString(),
-      createdAt: new Date(now).toISOString(),
-      status: 'scheduled'
-    })
-    if (key) idempotent.set(key, id)
-    return json(response, 201, { post: view(posts.get(id)) })
-  }
-  if (post && method === 'PUT') {
-    const stored = posts.get(post[1])
-    if (!stored) return fail(response, 404, 'Post not found')
-    if (view(stored).status !== 'scheduled')
-      return fail(response, 409, 'The post is already going out')
-    const body = await readJson(request)
-    console.log(`PUT /posts/${post[1]} body:\n${JSON.stringify(body, null, 2)}`)
-    for (const field of ['scheduledFor', 'timezone', 'content']) {
-      if (body[field] !== undefined) stored[field] = body[field]
-    }
-    return json(response, 200, { post: view(stored) })
-  }
-  if (post && method === 'DELETE') {
-    if (!posts.has(post[1])) return fail(response, 404, 'Post not found')
-    posts.delete(post[1])
-    return json(response, 200, { message: 'Deleted' })
-  }
-  return fail(response, 404, `The mock has no ${method} ${path}`)
+  return json(response, 200, { post: view(stored) })
+}
+
+function deletePost({ response, id }) {
+  if (!posts.has(id)) return fail(response, 404, 'Post not found')
+  posts.delete(id)
+  return json(response, 200, { message: 'Deleted' })
+}
+
+const routes = new Map([
+  ['GET /profiles', listProfilesRoute],
+  ['POST /api-keys', createApiKey],
+  ['GET /accounts', listAccounts],
+  ['GET /connect/instagram', connectInstagram],
+  ['POST /media/presign', presignMedia],
+  ['GET /posts', listPostsRoute],
+  ['POST /posts', createPost]
+])
+const postRoutes = new Map([
+  ['PUT', updatePost],
+  ['DELETE', deletePost]
+])
+
+function authorised(request) {
+  const bearer = /^Bearer (.+)$/.exec(request.headers.authorization ?? '')?.[1]
+  return Boolean(bearer) && bearer !== BAD_KEY
+}
+
+async function api(request, response, url) {
+  if (!authorised(request)) return fail(response, 401, 'Invalid API key')
+  const path = url.pathname.replace(/^\/api\/v1/, '')
+  const post = /^\/posts\/([^/]+)$/.exec(path)
+  const handler = post ? postRoutes.get(request.method) : routes.get(`${request.method} ${path}`)
+  if (!handler) return fail(response, 404, `The mock has no ${request.method} ${path}`)
+  return handler({ request, response, url, id: post?.[1] })
 }
 
 const cors = {
@@ -211,27 +233,29 @@ const cors = {
   'Access-Control-Allow-Private-Network': 'true'
 }
 
+async function serveUpload(request, response, id) {
+  const stored = uploads.get(decodeURIComponent(id))
+  if (request.method === 'PUT') {
+    if (!stored) return fail(response, 404, 'Ask for an upload address first')
+    stored.bytes = await readBody(request)
+    console.log(`PUT /uploads/${id} (${stored.bytes.length} bytes, ${stored.type})`)
+    return void response.writeHead(200).end()
+  }
+  if (!stored?.bytes) return fail(response, 404, 'Nothing uploaded here')
+  response.writeHead(200, {
+    'Content-Type': stored.type,
+    'Content-Length': stored.bytes.length
+  })
+  return void response.end(request.method === 'HEAD' ? undefined : stored.bytes)
+}
+
 createServer(async (request, response) => {
   for (const [name, value] of Object.entries(cors)) response.setHeader(name, value)
   const url = new URL(request.url ?? '/', ORIGIN)
   try {
     if (request.method === 'OPTIONS') return void response.writeHead(204).end()
     const file = /^\/uploads\/([^/]+)$/.exec(url.pathname)
-    if (file) {
-      const stored = uploads.get(decodeURIComponent(file[1]))
-      if (request.method === 'PUT') {
-        if (!stored) return fail(response, 404, 'Ask for an upload address first')
-        stored.bytes = await readBody(request)
-        console.log(`PUT ${url.pathname} (${stored.bytes.length} bytes, ${stored.type})`)
-        return void response.writeHead(200).end()
-      }
-      if (!stored?.bytes) return fail(response, 404, 'Nothing uploaded here')
-      response.writeHead(200, {
-        'Content-Type': stored.type,
-        'Content-Length': stored.bytes.length
-      })
-      return void response.end(request.method === 'HEAD' ? undefined : stored.bytes)
-    }
+    if (file) return void (await serveUpload(request, response, file[1]))
     if (url.pathname === '/') return json(response, 200, { mock: 'zernio', badKey: BAD_KEY })
     await api(request, response, url)
   } catch (error) {
