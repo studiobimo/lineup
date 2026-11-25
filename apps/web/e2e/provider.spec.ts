@@ -216,6 +216,47 @@ test('comments can be turned off and a first comment added under Advanced settin
   expect(provider.bodies[at]).toMatchObject({ commentsEnabled: false, firstComment: 'Link in bio' })
 })
 
+test('the tag username field stays anchored on the picture when it is clicked again', async ({
+  page
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await mockProvider(page)
+  await planOnGrid(page)
+  await connect(page)
+
+  const dialog = await openSchedule(page)
+  const picture = dialog.getByTestId('tag-picture')
+  const username = page.getByRole('textbox', { name: 'Username for the new tag' })
+  const box = await picture.boundingBox()
+  if (!box) throw new Error('the picture has no box')
+  await page.evaluate(() => {
+    const seen: DOMRect[] = []
+    Object.assign(window, { seenPopups: seen })
+    const sample = () => {
+      for (const popup of document.querySelectorAll('[data-slot="popover-popup"]'))
+        seen.push(popup.getBoundingClientRect())
+      requestAnimationFrame(sample)
+    }
+    sample()
+  })
+  await picture.click({ position: { x: box.width * 0.5, y: box.height * 0.3 } })
+  await expect(username).toBeVisible()
+  await picture.click({ position: { x: box.width * 0.55, y: box.height * 0.5 } })
+  await expect(username).toBeVisible()
+  await page.waitForTimeout(500)
+
+  const seen = await page.evaluate(
+    () => (window as unknown as { seenPopups: DOMRect[] }).seenPopups
+  )
+  expect(seen.length).toBeGreaterThan(0)
+  for (const popup of seen) {
+    expect(popup.x).toBeGreaterThanOrEqual(box.x)
+    expect(popup.y).toBeGreaterThanOrEqual(box.y)
+    expect(popup.x + popup.width).toBeLessThanOrEqual(box.x + box.width)
+    expect(popup.y + popup.height).toBeLessThanOrEqual(box.y + box.height)
+  }
+})
+
 test('a planned image is sent, scheduled and held in place', async ({ page }) => {
   const errors = watchErrors(page)
   const provider = await mockProvider(page)
